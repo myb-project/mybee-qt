@@ -1,0 +1,37 @@
+<RCC>
+    <qresource prefix="/">
+        <file alias="main.qml">qml/main.qml</file>
+        <file alias="AppAboutPage.qml">qml/AppAboutPage.qml</file>
+        <file alias="AuthConfigPane.qml">qml/AuthConfigPane.qml</file>
+        <file alias="AuthSettingsPage.qml">qml/AuthSettingsPage.qml</file>
+        <file alias="BriefDialog.qml">qml/BriefDialog.qml</file>
+        <file alias="ButtonToolStrip.qml">qml/ButtonToolStrip.qml</file>
+        <file alias="DropDownPane.qml">qml/DropDownPane.qml</file>
+        <file alias="DropDownView.qml">qml/DropDownView.qml</file>
+        <file alias="ImageButton.qml">qml/ImageButton.qml</file>
+        <file alias="+qt6/ImageButton.qml">qml/+qt6/ImageButton.qml</file>
+        <file alias="MaterialSet.qml">qml/MaterialSet.qml</file>
+        <file alias="MyFileDialog.qml">qml/MyFileDialog.qml</file>
+        <file alias="+qt6/MyFileDialog.qml">qml/+qt6/MyFileDialog.qml</file>
+        <file alias="MyFlickable.qml">qml/MyFlickable.qml</file>
+        <file alias="MySettings.qml">qml/MySettings.qml</file>
+        <file alias="+qt6/MySettings.qml">qml/+qt6/MySettings.qml</file>
+        <file alias="MyTextField.qml">qml/MyTextField.qml</file>
+        <file alias="PreferencesPage.qml">qml/PreferencesPage.qml</file>
+        <file alias="RestApiSet.qml">qml/RestApiSet.qml</file>
+        <file alias="SudoPasswordDialog.qml">qml/SudoPasswordDialog.qml</file>
+        <file alias="TintedImage.qml">qml/TintedImage.qml</file>
+        <file alias="+qt6/TintedImage.qml">qml/+qt6/TintedImage.qml</file>
+        <file alias="UrlPasswordDialog.qml">qml/UrlPasswordDialog.qml</file>
+        <file alias="VMCommandsPage.qml">qml/VMCommandsPage.qml</file>
+        <file alias="VMConfigPane.qml">qml/VMConfigPane.qml</file>
+        <file alias="VMConfigSet.qml">qml/VMConfigSet.qml</file>
+        <file alias="VMDesktopPage.qml">qml/VMDesktopPage.qml</file>
+        <file alias="VMProfilesPage.qml">qml/VMProfilesPage.qml</file>
+        <file alias="VMProgressDialog.qml">qml/VMProgressDialog.qml</file>
+        <file alias="VMSelectDrawer.qml">qml/VMSelectDrawer.qml</file>
+        <file alias="VMSettingsPage.qml">qml/VMSettingsPage.qml</file>
+        <file alias="VMTerminalPage.qml">qml/VMTerminalPage.qml</file>
+        <file alias="VMTerminalView.qml">qml/VMTerminalView.qml</file>
+    </qresource>
+</RCC>

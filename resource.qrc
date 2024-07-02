@@ -1,0 +1,11 @@
+<RCC>
+    <qresource prefix="/">
+        <file alias="bike-bell.wav">resource/bike-bell.wav</file>
+        <file alias="jar-bell.wav">resource/jar-bell.wav</file>
+        <file alias="relaxing-bell.wav">resource/relaxing-bell.wav</file>
+        <file alias="service-bell.wav">resource/service-bell.wav</file>
+        <file alias="short-pulse.wav">resource/short-pulse.wav</file>
+        <file alias="key-layout.en_US">resource/key-layout.en_US</file>
+        <file alias="key-layout.ru_RU">resource/key-layout.ru_RU</file>
+    </qresource>
+</RCC>
