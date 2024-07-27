@@ -21,8 +21,12 @@
 #define TEXTRENDER_H
 
 #include <QQuickItem>
+#include <QPointer>
 
 #include "Terminal.h"
+
+class SshSession;
+class SshChannelShell;
 
 class TextRender : public QQuickItem
 {
@@ -44,15 +48,11 @@ class TextRender : public QQuickItem
     Q_PROPERTY(QSize terminalSize READ terminalSize NOTIFY terminalSizeChanged)
     Q_PROPERTY(QString selectedText READ selectedText NOTIFY selectionChanged)
     Q_PROPERTY(bool canPaste READ canPaste NOTIFY clipboardChanged)
-
-    Q_PROPERTY(QString localCharset READ localCharset WRITE setLocalCharset NOTIFY localCharsetChanged FINAL)
-    Q_PROPERTY(QString    localTerm READ localTerm    WRITE setLocalTerm    NOTIFY localTermChanged FINAL)
-    Q_PROPERTY(QString   localShell READ localShell   WRITE setLocalShell   NOTIFY localShellChanged FINAL)
-    Q_PROPERTY(QObject* secureShell READ secureShell  WRITE setSecureShell NOTIFY secureShellChanged FINAL)
+    Q_PROPERTY(QObject* session READ session WRITE setSession NOTIFY sessionChanged FINAL)
 
 public:
-    explicit TextRender(QQuickItem* parent = 0);
-    ~TextRender() = default;
+    explicit TextRender(QQuickItem *parent = nullptr);
+    ~TextRender();
 
     Q_INVOKABLE QStringList printableLinesFromCursor(int lines) const;
     Q_INVOKABLE void putString(QString str);
@@ -107,17 +107,10 @@ public:
     QQmlComponent* selectionDelegate() const;
     void setSelectionDelegate(QQmlComponent* delegate);
 
-    QString localCharset() const;
-    void setLocalCharset(const QString &charset);
+    QObject *session() const;
+    void setSession(QObject *obj);
 
-    QString localTerm() const;
-    void setLocalTerm(const QString &term);
-
-    QString localShell() const;
-    void setLocalShell(const QString &shell);
-
-    QObject* secureShell() const;
-    void setSecureShell(QObject *ssh);
+    void displayText(const QString &text);
 
 signals:
     void contentItemChanged();
@@ -144,10 +137,11 @@ signals:
     void panUp();
     void panDown();
     void hangupReceived();
-    void localCharsetChanged();
-    void localTermChanged();
-    void localShellChanged();
-    void secureShellChanged();
+
+    void sessionChanged();
+    void shellOpened();
+    void shellClosed();
+    void inputText(const QString &text);
 
 public slots:
     void redraw();
@@ -187,7 +181,6 @@ private:
     QPointF charsToPixels(QPoint pos);
     void selectionHelper(QPointF scenePos, bool selectionOngoing);
     void setFontMetrics();
-    void writeTerm(const QByteArray &data);
 
     qreal fontWidth() { return iFontWidth; }
     qreal fontHeight() { return iFontHeight; }
@@ -237,8 +230,7 @@ private:
     int m_dispatch_timer;
     Terminal m_terminal;
 
-    QString local_charset, local_term, local_shell;
-    QObject *secure_shell; // must NOT be QPointer!
+    QPointer<SshSession> ssh_session;
 };
 
 #endif // TEXTRENDER_H

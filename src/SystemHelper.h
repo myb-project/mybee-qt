@@ -13,6 +13,7 @@ class SystemHelper : public QObject
 
     Q_PROPERTY(QString   appConfigDir READ appConfigDir  CONSTANT FINAL)
     Q_PROPERTY(QString     appDataDir READ appDataDir    CONSTANT FINAL)
+    Q_PROPERTY(QString     appTempDir READ appTempDir    CONSTANT FINAL)
     Q_PROPERTY(QString      appSshKey READ appSshKey     CONSTANT FINAL)
     Q_PROPERTY(QString     platformOS READ platformOS    CONSTANT FINAL)
     Q_PROPERTY(QString       buildAbi READ buildAbi      CONSTANT FINAL)
@@ -36,6 +37,7 @@ public:
 
     static QString appConfigDir();
     static QString appDataDir();
+    static QString appTempDir();
     static QString appSshKey();
     static QString platformOS();
     static QString buildAbi();
@@ -50,6 +52,7 @@ public:
 
     Q_INVOKABLE static QString appConfigPath(const QString &name);
     Q_INVOKABLE static QString appDataPath(const QString &name);
+    Q_INVOKABLE static QString appTempPath(const QString &name);
     Q_INVOKABLE static QString envVariable(const QString &name);
     Q_INVOKABLE static QString userHome(const QString &name = QString()); // empty: current user
     Q_INVOKABLE static QStringList groupMembers(const QString &name = QString()); // empty: current user

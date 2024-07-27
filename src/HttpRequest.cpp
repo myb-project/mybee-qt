@@ -142,11 +142,10 @@ bool HttpRequest::sendGet(const QUrl &url, const QString &key)
 
     QNetworkRequest req(url);
     if (ssl) req.setSslConfiguration(ssl_conf);
-
     req.setAttribute(QNetworkRequest::CacheLoadControlAttribute, QNetworkRequest::AlwaysNetwork);
     if (!key.isEmpty()) {
-        req.setRawHeader(QByteArray("cid"),
-                         QCryptographicHash::hash(key.toLatin1(), QCryptographicHash::Md5).toHex());
+        auto hex = QCryptographicHash::hash(key.toLatin1(), QCryptographicHash::Md5).toHex();
+        req.setRawHeader(QByteArray("cid"), hex);
     }
     last_reply = net_mgr.get(req);
 
@@ -156,7 +155,7 @@ bool HttpRequest::sendGet(const QUrl &url, const QString &key)
     return true;
 }
 
-bool HttpRequest::sendData(const RequestQueueData &data)
+bool HttpRequest::sendQueue(const RequestQueueData &data)
 {
 #if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
     QMetaType::Type type = (QMetaType::Type)data.second.type();
@@ -179,7 +178,9 @@ void HttpRequest::setListenReply(bool on)
 
     if (last_reply) {
         if (on) {
-            connect(last_reply, &QIODevice::readyRead, this, &HttpRequest::receiveData);
+            connect(last_reply, &QIODevice::readyRead, this, [this]() {
+                reply_data.append(last_reply->readAll());
+            });
             connect(last_reply, &QNetworkReply::finished, this, &HttpRequest::replyFinished);
             connect(last_reply, &QNetworkReply::destroyed, this, &HttpRequest::replyDestroyed);
 #ifndef QT_NO_SSL
@@ -197,50 +198,37 @@ void HttpRequest::setListenReply(bool on)
     setRunning(on);
 }
 
-void HttpRequest::receiveData()
-{
-    Q_ASSERT(last_reply);
-
-    reply_data.append(last_reply->readAll());
-}
-
 void HttpRequest::replyFinished()
 {
     Q_ASSERT(last_reply);
 
-    if (last_reply->error() == QNetworkReply::NoError) {
-        dataReceived(last_reply->url());
-    } else {
-        emit recvError(QString("%1: %2").arg(last_reply->error()).arg(last_reply->errorString()));
-    }
     last_reply->deleteLater();
-}
 
-void HttpRequest::dataReceived(const QUrl &url)
-{
-    if (!reply_data.size())
-        reply_data = "{\"Message\":\"not found\"}";
-
-    const QJsonDocument jdoc = QJsonDocument::fromJson(reply_data);
-    if (jdoc.isObject()) {
-        QJsonObject obj = jdoc.object();
-        if (obj.isEmpty()) obj["Message"] = "not found";
-        emit recvObject(url, obj);
+    if (last_reply->error() != QNetworkReply::NoError) {
+        QVariant code = last_reply->attribute(QNetworkRequest::HttpStatusCodeAttribute);
+        int status = code.isValid() ? code.toInt() : last_reply->error();
+        emit recvError(QString("%1: %2").arg(status).arg(last_reply->errorString()));
         return;
     }
-    if (jdoc.isArray()) {
-        emit recvArray(url, jdoc.array());
-        return;
+    if (reply_data.size()) {
+        const QJsonDocument jdoc = QJsonDocument::fromJson(reply_data);
+        if (jdoc.isObject()) {
+            emit recvObject(last_reply->url(), jdoc.object());
+            return;
+        }
+        if (jdoc.isArray()) {
+            emit recvArray(last_reply->url(), jdoc.array());
+            return;
+        }
     }
-
-    emit recvError(tr("Invalid %1 bytes received at %2").arg(reply_data.size()).arg(url.toString()));
+    emit recvError(tr("Invalid %1 bytes received at %2").arg(reply_data.size()).arg(last_reply->url().toString()));
 }
 
 void HttpRequest::replyDestroyed(QObject *reply)
 {
     Q_UNUSED(reply);
 
-    if (request_queue.isEmpty() || !sendData(request_queue.dequeue())) {
+    if (request_queue.isEmpty() || !sendQueue(request_queue.dequeue())) {
         request_queue.clear();
         setRunning(false);
     }

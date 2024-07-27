@@ -3,8 +3,8 @@
 
 #include <QRect>
 #include <QSet>
-#include <rfb/rfbclient.h>
 
+#include "rfb/rfbclient.h"
 #include "DesktopClient.h"
 
 class VncDesktopClient : public DesktopClient

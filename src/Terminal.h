@@ -107,16 +107,13 @@ class Terminal : public QObject
     Q_OBJECT
 
 public:
-    static constexpr char const *defaultCharset   = "UTF-8";
-    static constexpr char const *defaultTermType  = "xterm-256color";
     static constexpr char const *multiCharEscapes = "().*+-/%#";
     static constexpr int const backBufferSize = 1000;
 
     explicit Terminal(QObject* parent = 0);
     ~Terminal() = default;
 
-    bool openPty(const QString &charset, const QString &term,
-                 const QString &shell = QString()); // default shell from /etc/passwd
+    bool openPty(const QString &shell = QString()); // default shell from /etc/passwd
     void closePty();
 
     QPoint cursorPos() const;

@@ -11,21 +11,23 @@ bool UrlModel::isEmptyAt(const QUrl &url)
 // static
 bool UrlModel::isValidAt(const QUrl &url)
 {
-    return url.isValid();
+    return (isLocalAt(url) || isRemoteAt(url));
 }
 
 // static
 bool UrlModel::isLocalAt(const QUrl &url)
 {
-    return (url.isValid() && url.isLocalFile());
+    return (url.isValid() && url.isLocalFile() && !url.path().isEmpty());
 }
 
 // static
 bool UrlModel::isRemoteAt(const QUrl &url)
 {
-    if (!url.isValid() || url.scheme().isEmpty() || url.isLocalFile()) return false;
+    if (!url.isValid() || url.scheme().isEmpty() || url.host().isEmpty() || url.isLocalFile())
+        return false;
 #ifndef QT_NO_SSL
-    return (!url.scheme().endsWith('s') || QSslSocket::supportsSsl());
+    QString scheme = url.scheme().toLower();
+    return (scheme.startsWith('s') || scheme.endsWith('s')) ? QSslSocket::supportsSsl() : true;
 #else
     return true;
 #endif
@@ -59,6 +61,12 @@ QString UrlModel::passwordAt(const QUrl &url)
 QString UrlModel::hostAt(const QUrl &url)
 {
     return url.host();
+}
+
+// static
+QString UrlModel::userHostAt(const QUrl &url)
+{
+    return url.userName() + '@' + url.host();
 }
 
 // static
@@ -113,13 +121,28 @@ QString UrlModel::fileNameAt(const QUrl &url)
 // static
 QString UrlModel::textAt(const QUrl &url)
 {
-    return url.toDisplayString();
+    return url.isLocalFile() ? QStringLiteral("file:") + url.path() : url.toDisplayString();
 }
 
 // static
-QUrl UrlModel::adjustedAt(const QUrl &url, FormatingOptions opt)
+QString UrlModel::adjustedAt(const QUrl &url, FormatingOptions opt)
 {
-    return url.adjusted((QUrl::FormattingOptions)opt);
+    return url.adjusted((QUrl::FormattingOptions)opt).toDisplayString();
+}
+
+// static
+QUrl UrlModel::compose(const QUrl &url, const QString &scheme,
+                       const QString &user, const QString &password,
+                       const QString &host, int port, const QString &path)
+{
+    QUrl composed(url);
+    if (!scheme.isNull())   composed.setScheme(scheme);
+    if (!user.isNull())     composed.setUserName(user);
+    if (!password.isNull()) composed.setPassword(password);
+    if (!host.isNull())     composed.setUserName(host);
+    if (port > 0)           composed.setPort(port);
+    if (!path.isNull())     composed.setPath(path);
+    return composed;
 }
 
 UrlModel::UrlModel(QObject *parent)
@@ -167,7 +190,10 @@ void UrlModel::setScheme(const QString &str)
 {
     QUrl url(url_model);
     url.setScheme(str);
-    if (reset(url)) emit schemeChanged();
+    if (reset(url)) {
+        emit schemeChanged();
+        emit textChanged();
+    }
 }
 
 void UrlModel::setUserName(const QString &str)
@@ -177,7 +203,10 @@ void UrlModel::setUserName(const QString &str)
         url = url_model;
         url.setUserName(str);
     } else url = url_model.adjusted(QUrl::RemoveUserInfo);
-    if (reset(url)) emit userNameChanged();
+    if (reset(url)) {
+        emit userNameChanged();
+        emit textChanged();
+    }
 }
 
 void UrlModel::setPassword(const QString &str)
@@ -191,7 +220,10 @@ void UrlModel::setHost(const QString &str)
 {
     QUrl url(url_model);
     url.setHost(str);
-    if (reset(url)) emit hostChanged();
+    if (reset(url)) {
+        emit hostChanged();
+        emit textChanged();
+    }
 }
 
 void UrlModel::setPort(int num)
@@ -199,26 +231,46 @@ void UrlModel::setPort(int num)
     QUrl url(url_model);
     int p = qBound(0, num, 65535);
     url.setPort(p ? p : -1);
-    if (reset(url)) emit portChanged();
+    if (reset(url)) {
+        emit portChanged();
+        emit textChanged();
+    }
 }
 
-void UrlModel::setPath(const QString &str)
+void UrlModel::setPath(const QString &path)
 {
     QUrl url(url_model);
+    QString str = path;
+    if (!str.isEmpty()) {
+        while (str.endsWith('/')) str.truncate(str.length() - 1);
+        if (!str.startsWith('/')) str.prepend('/');
+    }
     url.setPath(str);
-    if (reset(url)) emit pathChanged();
+
+    //qDebug() << Q_FUNC_INFO << str << url.isValid() << url.scheme().isEmpty() << url.host().isEmpty() << url.isLocalFile();
+
+    if (reset(url)) {
+        emit pathChanged();
+        emit textChanged();
+    }
 }
 
 void UrlModel::setQuery(const QString &str)
 {
     QUrl url(url_model);
     url.setQuery(str);
-    if (reset(url)) emit queryChanged();
+    if (reset(url)) {
+        emit queryChanged();
+        emit textChanged();
+    }
 }
 
 void UrlModel::setFragment(const QString &str)
 {
     QUrl url(url_model);
     url.setFragment(str);
-    if (reset(url)) emit fragmentChanged();
+    if (reset(url)) {
+        emit fragmentChanged();
+        emit textChanged();
+    }
 }

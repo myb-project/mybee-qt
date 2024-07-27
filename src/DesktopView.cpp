@@ -6,8 +6,8 @@
 #include "DesktopView.h"
 #include "DesktopAction.h"
 
-//#define TRACE_VNCDESKTOPVIEW
-#ifdef TRACE_VNCDESKTOPVIEW
+//#define TRACE_DESKTOPVIEW
+#ifdef TRACE_DESKTOPVIEW
 #include <QTime>
 #define TRACE()      qDebug() << QTime::currentTime().toString("hh:mm:ss.zzz") << Q_FUNC_INFO;
 #define TRACE_ARG(x) qDebug() << QTime::currentTime().toString("hh:mm:ss.zzz") << Q_FUNC_INFO << x;

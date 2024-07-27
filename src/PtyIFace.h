@@ -33,7 +33,12 @@ class PtyIFace : public QObject
 {
     Q_OBJECT
 public:
+    static constexpr char const *defaultCharset   = "UTF-8";
+    static constexpr char const *defaultTermType  = "xterm-256color";
+
     PtyIFace(const QString &charset, const QString &term, const QString &shell, Terminal *parent);
+    PtyIFace(const QString &shell, Terminal *parent)
+        : PtyIFace(defaultCharset, defaultTermType, shell, parent) {}
     ~PtyIFace();
 
     bool failed() const { return iFailed; }

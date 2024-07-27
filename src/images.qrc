@@ -1,0 +1,30 @@
+<RCC>
+    <qresource prefix="/">
+        <file alias="image-add">images/add.png</file>
+        <file alias="image-box">images/box.png</file>
+        <file alias="image-cbsd-logo">images/cbsd-logo.png</file>
+        <file alias="image-cbsd-movie">images/cbsd-movie.gif</file>
+        <file alias="image-check-bad">images/check-bad.png</file>
+        <file alias="image-check-ok">images/check-ok.png</file>
+        <file alias="image-check-part">images/check-part.png</file>
+        <file alias="image-cloud">images/cloud.png</file>
+        <file alias="image-connecting">images/connecting.gif</file>
+        <file alias="image-desktop">images/desktop.png</file>
+        <file alias="image-error">images/error.png</file>
+        <file alias="image-info">images/info.png</file>
+        <file alias="image-input">images/input.png</file>
+        <file alias="image-ok">images/ok.png</file>
+        <file alias="image-preferences">images/preferences.png</file>
+        <file alias="image-profiles">images/profiles.png</file>
+        <file alias="image-progress">images/progress.gif</file>
+        <file alias="image-remove">images/remove.png</file>
+        <file alias="image-secret-key">images/secret-key.png</file>
+        <file alias="image-settings-ok">images/settings-ok.png</file>
+        <file alias="image-settings">images/settings.png</file>
+        <file alias="image-ssh-keys">images/ssh-keys.png</file>
+        <file alias="image-start">images/start.png</file>
+        <file alias="image-stop">images/stop.png</file>
+        <file alias="image-terminal">images/terminal.png</file>
+        <file alias="image-warn">images/warn.png</file>
+    </qresource>
+</RCC>

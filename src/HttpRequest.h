@@ -15,6 +15,7 @@ typedef QPair<QUrl,QVariant> RequestQueueData;
 class HttpRequest : public QObject
 {
     Q_OBJECT
+    Q_DISABLE_COPY(HttpRequest)
 
     Q_PROPERTY(QStringList urlSchemes READ urlSchemes    CONSTANT FINAL)
     Q_PROPERTY(bool      sslAvailable READ sslAvailable  CONSTANT FINAL)
@@ -53,11 +54,9 @@ signals:
 private:
     void setUrl(const QUrl &url);
     void setRunning(bool on);
-    bool sendData(const RequestQueueData &data);
+    bool sendQueue(const RequestQueueData &data);
     void setListenReply(bool on);
-    void receiveData();
     void replyFinished();
-    void dataReceived(const QUrl &url);
     void replyDestroyed(QObject *reply);
 
     QNetworkAccessManager net_mgr;

@@ -26,7 +26,18 @@
 #include "Parser.h"
 #include "Terminal.h"
 #include "TextRender.h"
-#include "SshConnection.h"
+#include "SshSession.h"
+
+//#define TRACE_TEXTRENDER
+#ifdef  TRACE_TEXTRENDER
+#include <QTime>
+#include <QThread>
+#define TRACE()      qDebug() << QTime::currentTime().toString("hh:mm:ss.zzz") << QThread::currentThreadId() << Q_FUNC_INFO;
+#define TRACE_ARG(x) qDebug() << QTime::currentTime().toString("hh:mm:ss.zzz") << QThread::currentThreadId() << Q_FUNC_INFO << x;
+#else
+#define TRACE()
+#define TRACE_ARG(x)
+#endif
 
 /*!
  * \internal
@@ -81,8 +92,8 @@ TextRender::TextRender(QQuickItem* parent)
     , m_bottomSelectionDelegateInstance(0)
     , m_dragMode(DragScroll)
     , m_dispatch_timer(0)
-    , secure_shell(nullptr)
 {
+    TRACE();
     setFontMetrics();
 
     setAcceptedMouseButtons(Qt::LeftButton);
@@ -105,6 +116,11 @@ TextRender::TextRender(QQuickItem* parent)
     connect(&m_terminal, &Terminal::selectionChanged, this, &TextRender::selectionChanged);
 }
 
+TextRender::~TextRender()
+{
+    TRACE();
+}
+
 QStringList TextRender::printableLinesFromCursor(int lines) const
 {
     return m_terminal.printableLinesFromCursor(lines);
@@ -124,7 +140,7 @@ void TextRender::componentComplete()
 {
     QQuickItem::componentComplete();
 
-    if (!secure_shell && !m_terminal.openPty(local_charset, local_term, local_shell))
+    if (!ssh_session && !m_terminal.openPty())
         handleTitleChanged(tr("Pseudo TTY unavailable"));
 }
 
@@ -864,80 +880,36 @@ QPointF TextRender::scrollBackBuffer(QPointF now, QPointF last)
     return last;
 }
 
-QString TextRender::localCharset() const
+QObject *TextRender::session() const
 {
-    return local_charset;
+    return ssh_session.data();
 }
 
-void TextRender::setLocalCharset(const QString &charset)
+void TextRender::setSession(QObject *obj)
 {
-    if (charset != local_charset) {
-        local_charset = charset;
-        emit localCharsetChanged();
-    }
-}
-
-QString TextRender::localTerm() const
-{
-    return local_term;
-}
-
-void TextRender::setLocalTerm(const QString &term)
-{
-    if (term != local_term) {
-        local_term = term;
-        emit localTermChanged();
-    }
-}
-
-QString TextRender::localShell() const
-{
-    return local_shell;
-}
-
-void TextRender::setLocalShell(const QString &shell)
-{
-    if (shell != local_shell) {
-        local_shell = shell;
-        emit localShellChanged();
-    }
-}
-
-QObject* TextRender::secureShell() const
-{
-    return secure_shell;
-}
-
-void TextRender::setSecureShell(QObject *obj)
-{
-    if (!obj) {
-        if (!m_terminal.openPty(local_charset, local_term, local_shell)) {
-            handleTitleChanged(tr("Pseudo TTY unavailable"));
-        } else if (secure_shell) {
-            m_terminal.disconnect(secure_shell);
-            secure_shell->disconnect(this);
-            secure_shell = nullptr;
-        }
+    TRACE_ARG(obj);
+    if (ssh_session) {
+        qWarning() << Q_FUNC_INFO << "SshSession already set";
         return;
     }
-
-    auto ssh = qobject_cast<SshConnection*>(obj);
-    if (!ssh) {
-        qWarning() << Q_FUNC_INFO << "Bad Object type, SshConnection expected";
+    auto ss = qobject_cast<SshSession*>(obj);
+    if (!ss) {
+        qWarning() << Q_FUNC_INFO << "Bad Object type, SshSession expected";
         return;
     }
+    if (!ss->isReady()) {
+        qWarning() << Q_FUNC_INFO << "Ssh session must be ready!";
+        return;
+    }
+    ssh_session = ss;
+    ssh_session->createShell(this);
     m_terminal.closePty();
-
-    if (ssh != secure_shell) {
-        if (secure_shell) secure_shell->disconnect(this);
-        connect(ssh, &SshConnection::stdOutputChanged, this, &TextRender::writeTerm);
-        connect(ssh, &SshConnection::stdErrorChanged, this, &TextRender::writeTerm);
-        connect(&m_terminal, &Terminal::newTerminalChars, ssh, &SshConnection::stdInputText);
-        secure_shell = ssh;
-    }
+    connect(&m_terminal, &Terminal::newTerminalChars, this, &TextRender::inputText);
+    emit sessionChanged();
 }
 
-void TextRender::writeTerm(const QByteArray &data)
+void TextRender::displayText(const QString &text)
 {
-    m_terminal.insertInBuffer(QString::fromUtf8(data));
+    TRACE_ARG(text);
+    m_terminal.insertInBuffer(text);
 }

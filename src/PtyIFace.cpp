@@ -102,7 +102,7 @@ PtyIFace::PtyIFace(const QString &charset, const QString &term, const QString &s
         ::exit(1);
 
     } else if (pid == 0) {
-        qputenv("TERM", term.isEmpty() ? QByteArrayLiteral("xterm-256color") : term.toLatin1());
+        qputenv("TERM", term.isEmpty() ? QByteArrayLiteral(defaultTermType) : term.toLatin1());
 
         QString execCmd = shell;
         if (execCmd.isEmpty()) { // execute the user's default shell
@@ -115,8 +115,8 @@ PtyIFace::PtyIFace(const QString &charset, const QString &term, const QString &s
             qWarning() << Q_FUNC_INFO << "Command is empty, nothing to execute!";
             ::exit(0);
         }
-        char *ptrs[execParts.length() + 1];
-        for (int i = 0; i < execParts.length(); i++) {
+        char *ptrs[100];
+        for (int i = 0; i < execParts.length() && i < 99; i++) {
             ptrs[i] = new char[execParts.at(i).toLatin1().length() + 1];
             ::memcpy(ptrs[i], execParts.at(i).toLatin1().data(), execParts.at(i).toLatin1().length());
             ptrs[i][execParts.at(i).toLatin1().length()] = 0;
@@ -149,8 +149,8 @@ PtyIFace::PtyIFace(const QString &charset, const QString &term, const QString &s
     }
     ::fcntl(iMasterFd, F_SETFL, O_NONBLOCK); // reads from the descriptor should be non-blocking
 
-    if (!charset.isEmpty())
-        iTextCodec = QTextCodec::codecForName(charset.toLatin1());
+    iTextCodec = QTextCodec::codecForName(!charset.isEmpty() ? charset.toLatin1()
+                                                             : QByteArrayLiteral(defaultCharset));
 }
 
 PtyIFace::~PtyIFace()

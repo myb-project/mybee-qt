@@ -197,12 +197,10 @@ Terminal::Terminal(QObject* parent)
     resetTerminal(ResetMode::Hard);
 }
 
-bool Terminal::openPty(const QString &charset, const QString &term, const QString &shell)
+bool Terminal::openPty(const QString &shell)
 {
     if (!m_pty) {
-        m_pty = new PtyIFace(!charset.isEmpty() ? charset : defaultCharset,
-                             !term.isEmpty() ? term : defaultTermType,
-                             shell, this);
+        m_pty = new PtyIFace(shell, this);
         if (m_pty->failed()) return false;
 
         connect(m_pty, &PtyIFace::dataAvailable, this, [this]() {

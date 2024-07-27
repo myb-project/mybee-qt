@@ -10,15 +10,19 @@
 #include <QLocale>
 #include <QTranslator>
 #include <QDirIterator>
+#include <QFontDatabase>
+#include <QLoggingCategory>
 #ifdef Q_OS_ANDROID
 #include <QStandardPaths>
 #endif
 
+#include "libssh/libsshpp.hpp" // just for ssh_init()/ssh_finalize()
 #include "DesktopView.h"
 #include "HttpRequest.h"
 #include "KeyLoader.h"
 #include "TextRender.h"
-#include "SshConnection.h"
+#include "SshProcess.h"
+#include "SshSession.h"
 #include "SystemHelper.h"
 #include "SystemProcess.h"
 #include "UrlModel.h"
@@ -39,6 +43,7 @@ const bool isMobile = false;
 static const char *quickControlStyle = "Material";
 static const char *materialStyleMode = "Dense";
 #endif
+static const char *embeddedFontFamily = "Roboto";
 
 #ifdef Q_OS_ANDROID
 static const char *android_permission[] = { // must match android/AndroidManifest.xml !!!
@@ -121,7 +126,10 @@ static void setCbsdSearchPaths()
 
 int main(int argc, char *argv[])
 {
-    qputenv("QT_QUICK_CONTROLS_1_STYLE", "Plasma"); // just for FileDialog Controls-1
+    if (::ssh_init() != SSH_OK) {
+        qFatal("Can't initialize libssh");
+        return -1;
+    }
 
     if (!qEnvironmentVariableIsSet("QT_QUICK_CONTROLS_STYLE"))
         qputenv("QT_QUICK_CONTROLS_STYLE", quickControlStyle);
@@ -145,7 +153,7 @@ int main(int argc, char *argv[])
     app.setApplicationName(APP_NAME);
     app.setApplicationVersion(APP_VERSION);
     app.setApplicationDisplayName(SystemHelper::camelCase(app.applicationName(), '-'));
-    app.setWindowIcon(QIcon(QStringLiteral(":/vm-box")));
+    app.setWindowIcon(QIcon(QStringLiteral(":/image-box")));
     QQuickStyle::setStyle(quickControlStyle);
 
 #ifdef Q_OS_ANDROID
@@ -158,6 +166,23 @@ int main(int argc, char *argv[])
     app.setOrganizationDomain(app.applicationName());
     QSettings::setDefaultFormat(QSettings::IniFormat);
 #endif
+
+    bool set_font = false;
+    QDirIterator font_it(QStringLiteral(":/"), QStringList() << "font-*");
+    while (font_it.hasNext()) {
+        QString path = font_it.next();
+        int font_id = QFontDatabase::addApplicationFont(path);
+        if (!set_font) {
+            auto font_families = QFontDatabase::applicationFontFamilies(font_id);
+            set_font = font_families.contains(QLatin1String(embeddedFontFamily));
+        }
+    }
+    if (set_font) {
+        QFont sys_font = QFontDatabase::systemFont(QFontDatabase::GeneralFont);
+        QFont app_font(QLatin1String(embeddedFontFamily), sys_font.pointSize(), sys_font.weight());
+        app_font.setStyleStrategy(QFont::PreferAntialias);
+        app.setFont(app_font);
+    }
 
     QDirIterator res_it(QStringLiteral(":/"), QStringList() << KeyLoader::keyLayoutFilter << "*.wav");
     while (res_it.hasNext()) {
@@ -180,6 +205,8 @@ int main(int argc, char *argv[])
     if (!keyLoader.loadLayout(locale) && !keyLoader.loadLayout())
         qFatal("Failure loading keyboard layout");
 
+    QLoggingCategory::setFilterRules(QStringLiteral("qtc.ssh=true"));
+
     qmlRegisterSingletonType(QUrl(QStringLiteral("qrc:/MaterialSet.qml")), QML_CUSTOM_MODULES, 1, 0, "MaterialSet");
     qmlRegisterSingletonType(QUrl(QStringLiteral("qrc:/RestApiSet.qml")), QML_CUSTOM_MODULES, 1, 0, "RestApiSet");
     qmlRegisterSingletonType(QUrl(QStringLiteral("qrc:/VMConfigSet.qml")), QML_CUSTOM_MODULES, 1, 0, "VMConfigSet");
@@ -188,14 +215,16 @@ int main(int argc, char *argv[])
                                           [](QQmlEngine*, QJSEngine*)->QObject* { return new SystemHelper(); });
     qmlRegisterSingletonType<SystemProcess>(CPP_CUSTOM_MODULES, 1, 0, "SystemProcess",
                                             [](QQmlEngine*, QJSEngine*)->QObject* { return new SystemProcess(); });
+    qmlRegisterSingletonType<SshProcess>(CPP_CUSTOM_MODULES, 1, 0, "SshProcess",
+                                         [](QQmlEngine*, QJSEngine*)->QObject* { return new SshProcess(); });
     qmlRegisterSingletonType<HttpRequest>(CPP_CUSTOM_MODULES, 1, 0, "HttpRequest",
                                           [](QQmlEngine*, QJSEngine*)->QObject* { return new HttpRequest(); });
     qmlRegisterSingletonType<UrlModel>(CPP_CUSTOM_MODULES, 1, 0, "Url",
                                        [](QQmlEngine*, QJSEngine*)->QObject* { return new UrlModel(); });
 
     qmlRegisterType<DesktopView>(CPP_CUSTOM_MODULES, 1, 0, "DesktopView");
+    qmlRegisterType<SshSession>(CPP_CUSTOM_MODULES, 1, 0, "SshSession");
     qmlRegisterType<TextRender>(CPP_CUSTOM_MODULES, 1, 0, "TextRender");
-    qmlRegisterType<SshConnection>(CPP_CUSTOM_MODULES, 1, 0, "SshConnection");
     qmlRegisterType<UrlModel>(CPP_CUSTOM_MODULES, 1, 0, "UrlModel");
 
     QQmlApplicationEngine engine;
@@ -225,6 +254,8 @@ int main(int argc, char *argv[])
         if (!obj && qml == url) QCoreApplication::exit(-1);
     }, Qt::QueuedConnection);
     engine.load(qml);
+    int rc = app.exec();
 
-    return app.exec();
+    ::ssh_finalize();
+    return rc;
 }

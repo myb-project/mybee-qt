@@ -39,7 +39,6 @@ public slots:
     void startCommand(const QString &command);
     void stdInput(const QStringList &lines);
     void cancel();
-    void clearAll();
 
 signals:
     void commandChanged();

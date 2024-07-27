@@ -25,7 +25,6 @@ class UrlModel : public QObject
 
 public:
     enum FormatingOptions {
-        None            = QUrl::None,
         RemoveScheme    = QUrl::RemoveScheme,
         RemovePassword  = QUrl::RemovePassword,
         RemoveUserInfo  = QUrl::RemoveUserInfo,
@@ -54,6 +53,8 @@ public:
     Q_INVOKABLE static QString userNameAt(const QUrl &url);
     Q_INVOKABLE static QString passwordAt(const QUrl &url);
     Q_INVOKABLE static QString hostAt(const QUrl &url);
+    Q_INVOKABLE static QString userHostAt(const QUrl &url);
+    Q_INVOKABLE inline QString userHost() const { return userHostAt(url_model); }
     Q_INVOKABLE static int portAt(const QUrl &url);
     Q_INVOKABLE static QString pathAt(const QUrl &url);
     Q_INVOKABLE static QString hostPathAt(const QUrl &url);
@@ -65,9 +66,12 @@ public:
     Q_INVOKABLE inline QString pathName() const { return pathNameAt(url_model); }
     Q_INVOKABLE static QString fileNameAt(const QUrl &url);
     Q_INVOKABLE inline QString fileName() const { return fileNameAt(url_model); }
-    Q_INVOKABLE static QUrl adjustedAt(const QUrl &url, UrlModel::FormatingOptions opt);
-    Q_INVOKABLE inline QUrl adjusted(UrlModel::FormatingOptions opt) const { return adjustedAt(url_model, opt); }
+    Q_INVOKABLE static QString adjustedAt(const QUrl &url, UrlModel::FormatingOptions opt = RemovePath);
+    Q_INVOKABLE inline QString adjusted(UrlModel::FormatingOptions opt) const { return adjustedAt(url_model, opt); }
     Q_INVOKABLE inline void clear() { setLocation(QUrl()); }
+    Q_INVOKABLE static QUrl compose(const QUrl &url, const QString &scheme,
+                                    const QString &user, const QString &password,
+                                    const QString &host, int port, const QString &path);
 
     inline bool isEmpty() const { return isEmptyAt(url_model); }
     inline bool isValid() const { return isValidAt(url_model); }

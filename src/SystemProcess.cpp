@@ -1,6 +1,7 @@
 #include <QCoreApplication>
 #include <QFileInfo>
 #include <QDir>
+#include <QtDebug>
 
 #include "SystemProcess.h"
 
@@ -35,14 +36,14 @@ void SystemProcess::cancel()
     TRACE();
 
     run_canceled = true;
-    clearAll();
+    std_output.clear();
+    std_error.clear();
     if (run_process && run_process->state() != QProcess::NotRunning) {
         run_process->kill();
-        if (!QCoreApplication::closingDown()) {
+        if (!QCoreApplication::closingDown())
             run_process->waitForFinished(250);
-            emit canceled();
-        }
     }
+    emit canceled();
 }
 
 void SystemProcess::onErrorOccurred(QProcess::ProcessError errcode)
@@ -167,7 +168,7 @@ void SystemProcess::start()
         return;
     }
     if (run_command.isEmpty()) {
-        qWarning() << Q_FUNC_INFO << "No command to run";
+        qWarning() << Q_FUNC_INFO << "An empty command specified";
         return;
     }
     if (!std_out_file.isEmpty()) {
@@ -196,16 +197,20 @@ void SystemProcess::start()
             if (!run_canceled) {
                 QString text = QString::fromUtf8(run_process->readAllStandardOutput());
                 TRACE_ARG(text);
-                std_output.append(text.split('\n'));
-                emit stdOutputChanged(text);
+                if (!text.isEmpty()) {
+                    std_output.append(text.split('\n'));
+                    emit stdOutputChanged(text);
+                }
             }
         });
         connect(run_process, &QProcess::readyReadStandardError, this, [this]() {
             if (!run_canceled) {
                 QString text = QString::fromUtf8(run_process->readAllStandardError());
                 TRACE_ARG(text);
-                std_error.append(text.split('\n'));
-                emit stdErrorChanged(text);
+                if (!text.isEmpty()) {
+                    std_error.append(text.split('\n'));
+                    emit stdErrorChanged(text);
+                }
             }
         });
     } else if (run_process->state() != QProcess::NotRunning) {
@@ -213,10 +218,19 @@ void SystemProcess::start()
         return;
     }
     run_canceled = false;
-    clearAll();
+    std_output.clear();
+    std_error.clear();
     run_process->setStandardOutputFile(std_out_file);
     run_process->setStandardErrorFile(std_err_file);
+#if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
+    QStringList args = QProcess::splitCommand(run_command);
+    if (!args.isEmpty()) {
+        QString prog = args.takeFirst();
+        run_process->start(prog, args);
+    }
+#else
     run_process->startCommand(run_command);
+#endif
 }
 
 void SystemProcess::startCommand(const QString &cmd)
@@ -229,12 +243,6 @@ void SystemProcess::startCommand(const QString &cmd)
     }
     setCommand(cmd);
     start();
-}
-
-void SystemProcess::clearAll()
-{
-    std_output.clear();
-    std_error.clear();
 }
 
 QStringList SystemProcess::stdOutput() const
@@ -251,9 +259,11 @@ void SystemProcess::stdInput(const QStringList &lines)
 {
     TRACE_ARG(lines);
 
-    if (now_running && !run_canceled) {
-        for (const auto &line : lines) {
-            run_process->write(line.toUtf8() + '\n');
-        }
+    if (!run_process || !now_running || run_canceled) {
+        qWarning() << Q_FUNC_INFO << "No running command";
+        return;
+    }
+    for (const auto &line : lines) {
+        run_process->write(line.toUtf8() + '\n');
     }
 }

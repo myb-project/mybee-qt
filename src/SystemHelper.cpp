@@ -5,7 +5,7 @@
 #include <QFile>
 #include <QFileInfo>
 #include <QSaveFile>
-#include <QTemporaryFile>
+//#include <QTemporaryFile>
 #include <QTextStream>
 #include <QJsonDocument>
 #include <QClipboard>
@@ -56,10 +56,10 @@ static QDir standardDir(QStandardPaths::StandardLocation type)
     return (dir.exists() || dir.mkpath(".")) ? dir : QDir::current();
 }
 
-static QString fixFilePath(const QString &name)
+static QString fixFileName(const QString &name, const QString &suffix)
 {
-    QFileInfo info(name);
-    if (info.isAbsolute()) return name;
+    QFileInfo info(name.contains(QLatin1String(":/")) ? name : QDir::cleanPath(name));
+    if (info.isAbsolute()) return info.filePath();
 
     QString path = SystemHelper::appDataDir();
     if (!info.path().isEmpty() && info.path() != ".") {
@@ -67,22 +67,13 @@ static QString fixFilePath(const QString &name)
         path += info.path();
     }
     QDir dir(path);
-    return (dir.exists() || dir.mkpath(".")) ? dir.filePath(info.fileName())
-                                             : SystemHelper::appDataPath(info.fileName());
-}
-
-static QString fixFileName(const QString &name, const QString &suffix)
-{
-    QString path = name.contains(QLatin1String(":/")) ? name : QDir::cleanPath(name);
-
-    path = fixFilePath(path.isEmpty() ? QCoreApplication::applicationName() : path);
-
-    QFileInfo info(path);
+    QString full = (dir.exists() || dir.mkpath(".")) ? dir.filePath(info.fileName())
+                                                     : SystemHelper::appDataPath(info.fileName());
     if (info.suffix().isEmpty()) {
-        path.append('.');
-        path.append(!suffix.isEmpty() ? suffix : QStringLiteral("txt"));
+        full.append('.');
+        full.append(!suffix.isEmpty() ? suffix : QStringLiteral("txt"));
     }
-    return path;
+    return full;
 }
 
 static QString fileContainsLine(const QString &path, const QRegularExpression &re)
@@ -120,6 +111,13 @@ QString SystemHelper::appDataPath(const QString &name)
 }
 
 // static
+QString SystemHelper::appTempPath(const QString &name)
+{
+    return name.isEmpty() ? standardDir(QStandardPaths::TempLocation).absolutePath()
+                          : standardDir(QStandardPaths::TempLocation).absoluteFilePath(name);
+}
+
+// static
 QString SystemHelper::appConfigDir()
 {
     return standardDir(QStandardPaths::AppConfigLocation).absolutePath();
@@ -129,6 +127,12 @@ QString SystemHelper::appConfigDir()
 QString SystemHelper::appDataDir()
 {
     return standardDir(QStandardPaths::AppDataLocation).absolutePath();
+}
+
+// static
+QString SystemHelper::appTempDir()
+{
+    return standardDir(QStandardPaths::TempLocation).absolutePath();
 }
 
 // static
@@ -253,6 +257,9 @@ QString SystemHelper::userName()
 #ifdef  Q_OS_UNIX
         if (user_name.isEmpty()) user_name = qEnvironmentVariable("USER");
 #else // Windows?
+        char buf[UNLEN + 1];
+        DWORD len = UNLEN + 1;
+        if (GetUserNameA(buf, &len)) user_name = buf;
         if (user_name.isEmpty()) user_name = qEnvironmentVariable("USERNAME");
 #endif
         if (user_name.isEmpty()) user_name = QCoreApplication::applicationName();
@@ -361,10 +368,14 @@ QString SystemHelper::domainName()
 QStringList SystemHelper::sshKeyPairs()
 {
     static const QStringList name_filters = { "id_*" };
-
     QStringList key_files;
-    QString env_var = SystemHelper::envVariable(QStringLiteral("CLOUD_KEY"));
-    if (!env_var.isEmpty()) key_files.append(env_var);
+
+    QString path = SystemHelper::envVariable(QStringLiteral("CLOUD_KEY"));
+    if (!path.isEmpty()) key_files.append(path);
+
+    path = appSshKey();
+    if (!path.isEmpty()) key_files.append(path);
+
 #if defined(__mobile__)
     const auto search_paths = QStandardPaths::standardLocations(QStandardPaths::DocumentsLocation);
 #else
@@ -377,7 +388,7 @@ QStringList SystemHelper::sshKeyPairs()
 
             const auto names = dir.entryList(name_filters, QDir::Files | QDir::Readable, QDir::Name | QDir::IgnoreCase);
             for (const auto &name : names) {
-                QString path = dir.filePath(name);
+                path = dir.filePath(name);
                 if (SystemHelper::isSshKeyPair(path)) key_files.append(path);
             }
         }
@@ -395,14 +406,16 @@ bool SystemHelper::isSshKeyPair(const QString &path)
 bool SystemHelper::isSshPrivateKey(const QString &path)
 {
     static const QRegularExpression re("^-----BEGIN \\w+ PRIVATE KEY-----$");
-    return !fileContainsLine(path, re).isEmpty();
+
+    return path.isEmpty() ? false : !fileContainsLine(path, re).isEmpty();
 }
 
 // static
 QString SystemHelper::sshPublicKey(const QString &path)
 {
     static const QRegularExpression re("^ssh-\\w+\\s\\w+");
-    return fileContainsLine(path, re);
+
+    return path.isEmpty() ? QString() : fileContainsLine(path, re);
 }
 
 // static
@@ -414,7 +427,16 @@ QString SystemHelper::pathName(const QString &path)
 // static
 QString SystemHelper::fileName(const QString &path)
 {
-    return path.isEmpty() ? QTemporaryFile().fileTemplate() : QFileInfo(path).fileName();
+    static const QRegularExpression re("[<>:;,?\"*|\\ /]");
+
+    //if (path.isEmpty()) return QTemporaryFile().fileTemplate();
+    if (path.isEmpty()) return QString();
+    QString name = QFileInfo(path).fileName();
+    int pos = name.lastIndexOf('@');
+    if (pos >= 0) name = name.mid(pos + 1);
+    pos = name.indexOf(re);
+    if (pos >= 0) name.truncate(pos);
+    return name;
 }
 
 // static
@@ -465,7 +487,7 @@ bool SystemHelper::isExecutable(const QString &path)
 
     if (QFileInfo(fn).isRelative()) fn.prepend(SystemHelper::appDataDir() + '/');
     QFileInfo fi(fn);
-    return (fi.exists() && fi.isExecutable());
+    return (fi.exists() && fi.isFile() && fi.isExecutable());
 }
 
 // static
@@ -700,26 +722,24 @@ QJsonArray SystemHelper::loadArray(const QString &name)
     return QJsonArray();
 }
 
+static QString saveData(const QString &name, const QByteArray &data)
+{
+    if (!name.isEmpty()) {
+        QSaveFile save_file(fixFileName(name, QStringLiteral("json")));
+        if (save_file.open(QIODevice::WriteOnly | QIODevice::Text))
+            save_file.write(data);
+        if (save_file.isOpen() && save_file.commit()) {
+            QFile::setPermissions(save_file.fileName(), QFile::Permission(0x644));
+            return save_file.fileName();
+        }
+    }
+    return QString();
+}
+
 // static
 QString SystemHelper::saveArray(const QString &name, const QJsonArray &json)
 {
-    if (!name.isEmpty()) {
-        QString fn = fixFileName(name, QStringLiteral("json"));
-        if (!json.isEmpty()) {
-            const auto data = QJsonDocument(json).toJson();
-            if (data.size()) {
-                QSaveFile save_file(fn);
-                if (save_file.open(QIODevice::WriteOnly | QIODevice::Text))
-                    save_file.write(data);
-
-                if (save_file.isOpen() && save_file.commit()) {
-                    QFile::setPermissions(save_file.fileName(), QFile::Permission(0x644));
-                    return save_file.fileName();
-                }
-            }
-        } else if (!QFile::exists(fn) || QFile::remove(fn)) return fn;
-    }
-    return QString();
+    return saveData(name, QJsonDocument(json).toJson());
 }
 
 // static
@@ -738,23 +758,7 @@ QJsonObject SystemHelper::loadObject(const QString &name)
 // static
 QString SystemHelper::saveObject(const QString &name, const QJsonObject &json)
 {
-    if (!name.isEmpty()) {
-        QString fn = fixFileName(name, QStringLiteral("json"));
-        if (!json.isEmpty()) {
-            const auto data = QJsonDocument(json).toJson();
-            if (data.size()) {
-                QSaveFile save_file(fn);
-                if (save_file.open(QIODevice::WriteOnly | QIODevice::Text))
-                    save_file.write(data);
-
-                if (save_file.isOpen() && save_file.commit()) {
-                    QFile::setPermissions(save_file.fileName(), QFile::Permission(0x644));
-                    return save_file.fileName();
-                }
-            }
-        } else if (!QFile::exists(fn) || QFile::remove(fn)) return fn;
-    }
-    return QString();
+    return saveData(name, QJsonDocument(json).toJson());
 }
 
 // static
