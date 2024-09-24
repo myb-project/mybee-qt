@@ -12,11 +12,50 @@ MyBee-QT является cross-platform ПО. Используйте соотв
 
 
 
-# Установка через ISO на выделенный сервер
+# Android
 
+WIP..
 
-# Установка через FreeBSD rescue ( например Hetzner Rescue System )
+# Windows
 
+WIP..
+
+# MacOS
+
+WIP..
+
+# Linux
+
+WIP..
+
+# FreeBSD
+
+Установка из исходных кодов и дерева портов FreeBSD:
+
+```
+env BATCH=no make -C /usr/ports/emulators/mybee-qt install
+```
+
+Установка пакета из официального репозитория FreeBSD:
+```
+pkg install -y mybee-qt
+```
+
+Установка пакета (latest/unstable/testing) из pkg репозитория MyBee-QT:
+
+```
+cat > /usr/local/etc/pkg/repos/MyBee-QT.conf <<EOF
+MyBee-QT: {
+    url: "https://pkg.convectix.com/mybee-qt/\${ABI}/latest",
+    mirror_type: "none",
+    enabled: yes
+}
+EOF
+
+pkg update -r MyBee-QT
+pkg install -r MyBee-QT -y mybee-qt
+
+```
 
 
 ---
