@@ -26,9 +26,11 @@ WIP
 ## MyBee-QT Handbook
 
 * [Получение, установка и первоначальная настройка](docs/ru/get-myb-qt.md)
-* [Configuring Network Interfaces](docs/ru/network.md)
-* [Configuring Network Interfaces](docs/ru/network.md)
-* [Network profiles](docs/en/netprofile.md)
+* [Режим работы N1: локальный, CBSD интерпретатор](docs/ru/myb-qt-cbsd-local.md)
+* [Режим работы N2: через протокол SSH, CBSD интерпретатор/MyBee](myb-qt-cbsd-ssh.md)
+* [Режим работы N3: через RestAPI/MyBee](myb-qt-api.md)
+
+
 ..
 
 ## Demo

@@ -30,16 +30,24 @@ WIP..
 
 # FreeBSD
 
+### из исходных кодов, дерево портов
+
 Установка из исходных кодов и дерева портов FreeBSD:
 
 ```
 env BATCH=no make -C /usr/ports/emulators/mybee-qt install
 ```
 
+### из пакета, репозиторий FreeBSD
+
+
 Установка пакета из официального репозитория FreeBSD:
 ```
 pkg install -y mybee-qt
 ```
+
+### из пакета, репозиторий MyBee-QT-development
+
 
 Установка пакета (latest/unstable/testing) из pkg репозитория MyBee-QT:
 
@@ -60,4 +68,4 @@ pkg install -r MyBee-QT -y mybee-qt
 
 ---
 
-Дальше: [CLI/shell](shell.md)
+Дальше: [Режим работы N1: локальный CBSD интерпретатор](myb-qt-cbsd-local.md)
