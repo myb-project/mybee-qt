@@ -15,6 +15,7 @@
 #include <QSettings>
 #include <QMetaType>
 #include <QSysInfo>
+#include <QSslSocket>
 #include <QThread>
 #include <QCursor>
 #ifdef  Q_OS_ANDROID
@@ -35,6 +36,10 @@
 #include <grp.h>
 #endif
 
+#include "libssh/libssh_version.h"
+#include "freerdp/version.h"
+#include "rfb/rfbconfig.h"
+
 #include "SystemHelper.h"
 
 extern bool sshKeygenEd25519(const QString &filename, const QString &comm);
@@ -52,7 +57,11 @@ SystemHelper::~SystemHelper()
 
 static QDir standardDir(QStandardPaths::StandardLocation type)
 {
-    QDir dir(QStandardPaths::writableLocation(type));
+    QString path = QStandardPaths::writableLocation(type);
+#ifdef Q_OS_ANDROID
+    if (type == QStandardPaths::AppDataLocation) path += "/data";
+#endif
+    QDir dir(path);
     return (dir.exists() || dir.mkpath(".")) ? dir : QDir::current();
 }
 
@@ -97,6 +106,13 @@ static QString fileContainsLine(const QString &path, const QRegularExpression &r
 }
 
 // static
+QString SystemHelper::appCachePath(const QString &name)
+{
+    return name.isEmpty() ? standardDir(QStandardPaths::CacheLocation).absolutePath()
+                          : standardDir(QStandardPaths::CacheLocation).absoluteFilePath(name);
+}
+
+// static
 QString SystemHelper::appConfigPath(const QString &name)
 {
     return name.isEmpty() ? standardDir(QStandardPaths::AppConfigLocation).absolutePath()
@@ -115,6 +131,12 @@ QString SystemHelper::appTempPath(const QString &name)
 {
     return name.isEmpty() ? standardDir(QStandardPaths::TempLocation).absolutePath()
                           : standardDir(QStandardPaths::TempLocation).absoluteFilePath(name);
+}
+
+// static
+QString SystemHelper::appCacheDir()
+{
+    return standardDir(QStandardPaths::CacheLocation).absolutePath();
 }
 
 // static
@@ -365,8 +387,49 @@ QString SystemHelper::domainName()
 }
 
 // static
+QString SystemHelper::sslVersion()
+{
+    QString ver;
+#ifndef QT_NO_SSL
+    if (QSslSocket::supportsSsl()) {
+        ver = QSslSocket::sslLibraryBuildVersionString();
+        if (ver.isEmpty()) ver = QStringLiteral("Unavailable");
+        else if (ver != QSslSocket::sslLibraryVersionString()) {
+            ver += '/';
+            ver += QSslSocket::sslLibraryVersionString();
+        }
+    }
+#endif
+    return ver;
+}
+
+// static
+QString SystemHelper::sshVersion()
+{
+    int major = LIBSSH_VERSION_MAJOR;
+    int minor = LIBSSH_VERSION_MINOR;
+    int patch = LIBSSH_VERSION_MICRO;
+    return QString("%1.%2.%3").arg(major).arg(minor).arg(patch);
+}
+
+// static
+QString SystemHelper::rdpVersion()
+{
+    return FREERDP_VERSION_FULL;
+}
+
+// static
+QString SystemHelper::vncVersion()
+{
+    return LIBVNCSERVER_PACKAGE_VERSION;
+}
+
+// static
 QStringList SystemHelper::sshKeyPairs()
 {
+    static const char *sshKeySearchPaths[] = { // at ~/ for desktop and Docs/ for mobile
+        ".ssh", "ssh", APP_NAME "/.ssh", APP_NAME "/ssh"
+    };
     static const QStringList name_filters = { "id_*" };
     QStringList key_files;
 
@@ -376,7 +439,7 @@ QStringList SystemHelper::sshKeyPairs()
     path = appSshKey();
     if (!path.isEmpty()) key_files.append(path);
 
-#if defined(__mobile__)
+#if defined(Q_OS_ANDROID) || defined(Q_OS_IOS)
     const auto search_paths = QStandardPaths::standardLocations(QStandardPaths::DocumentsLocation);
 #else
     const auto search_paths = QStandardPaths::standardLocations(QStandardPaths::HomeLocation);
@@ -835,7 +898,7 @@ QString SystemHelper::camelCase(const QString &str, QChar sep)
 //static
 QString SystemHelper::shortcutText(const QVariant &key)
 {
-#if defined(__mobile__)
+#if defined(Q_OS_ANDROID) || defined(Q_OS_IOS)
     Q_UNUSED(key);
 #else
 #if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
@@ -862,3 +925,62 @@ void SystemHelper::setCursorShape(int shape)
     if (shape < 0) QGuiApplication::restoreOverrideCursor();
     else QGuiApplication::setOverrideCursor(QCursor((Qt::CursorShape)shape));
 }
+
+#ifdef Q_OS_ANDROID
+/*
+ * Request android permissions (actual list is in android-build/AndroidManifest.xml):
+ *      "android.permission.INTERNET",
+ *      "android.permission.WRITE_EXTERNAL_STORAGE",
+ *      "android.permission.ACCESS_NETWORK_STATE",
+ *      "android.permission.CAMERA",        // required for QtMultimedia module?
+ *      "android.permission.RECORD_AUDIO"   // required for QtMultimedia module?
+ */
+#if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
+#include <QtAndroid>
+//static
+bool SystemHelper::setAndroidPermission(const QStringList &permissions)
+{
+    QStringList request;
+    for (const auto &perm: permissions) {
+        if (QtAndroid::checkPermission(perm) == QtAndroid::PermissionResult::Denied)
+            request += perm;
+    }
+    if (!request.isEmpty()) {
+        auto map = QtAndroid::requestPermissionsSync(request);
+        for (auto it = map.constBegin(); it != map.constEnd(); ++it) {
+            if (it.value() == QtAndroid::PermissionResult::Denied) {
+                qWarning() << it.key() << "Required permissions denied!";
+                return false;
+            }
+        }
+    }
+    return true;
+}
+#else
+#include <QtCore/private/qandroidextras_p.h>
+//static
+bool SystemHelper::setAndroidPermission(const QStringList &permissions)
+{
+    QStringList request;
+    for (const auto &perm: permissions) {
+        auto result = QtAndroidPrivate::checkPermission(perm)
+                .then(qApp, [](QtAndroidPrivate::PermissionResult result) { return result; });
+        result.waitForFinished();
+        if (result.result() == QtAndroidPrivate::PermissionResult::Denied)
+            request += perm;
+    }
+    if (!request.isEmpty()) {
+        for (const auto &perm : request) {
+            auto result = QtAndroidPrivate::requestPermission(perm)
+                .then(qApp, [](QtAndroidPrivate::PermissionResult result) { return result; });
+            result.waitForFinished();
+            if (result.result() == QtAndroidPrivate::PermissionResult::Denied) {
+                qWarning() << perm << "Required permissions denied!";
+                return false;
+            }
+        }
+    }
+    return true;
+}
+#endif // !QT_VERSION
+#endif // !Q_OS_ANDROID

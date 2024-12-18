@@ -4,17 +4,9 @@ import QtQuick.Layouts 1.15
 
 import CppCustomModules 1.0
 
-Dialog {
+MyDialog {
     id: control
-    modal: true
-    focus: true
-    padding: 20
-    anchors.centerIn: parent //Overlay.overlay
-    width: Math.min(parent.width, 360)
-    title: qsTr("Access to <b>%1</b>").arg(urlModel.remote ? urlModel.adjusted(Url.RemoveUserInfo | Url.RemovePath) : urlModel.path)
-    enter: Transition {
-        NumberAnimation { property: "opacity"; from: 0.0; to: 1.0 }
-    }
+    title: qsTr("Access to %1").arg(urlModel.remote ? urlModel.adjusted(Url.RemoveUserInfo | Url.RemovePath) : urlModel.path)
     standardButtons: Dialog.Cancel | Dialog.Ok
 
     property alias url: urlModel.location

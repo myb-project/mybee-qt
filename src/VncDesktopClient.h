@@ -11,12 +11,12 @@ class VncDesktopClient : public DesktopClient
 {
     Q_OBJECT
 public:
-    explicit VncDesktopClient(const QUrl &url, QObject *parent = nullptr);
+    explicit VncDesktopClient(QObject *parent = nullptr);
     ~VncDesktopClient();
 
     void setLogging(bool enable) override;
-    void startSession();
-    void stopSession();
+    void startSession() override;
+    void stopSession() override;
 
 public slots:
     void sendInputAction(const QString &text) override;

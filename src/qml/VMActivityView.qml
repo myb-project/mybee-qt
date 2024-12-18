@@ -6,7 +6,7 @@ import QtQuick.Layouts 1.15
 import CppCustomModules 1.0
 import QmlCustomModules 1.0
 
-FocusScope {
+Item {
     id: control
 
     readonly property int textPadding: Math.max(Math.ceil(fontMetrics.font.pixelSize * 0.1), 2)
@@ -20,15 +20,9 @@ FocusScope {
             if (w > max) max = w
             loggerListModel.append({ "text": line })
         }
-        if (count) {
-            if (max > listView.contentWidth) listView.contentWidth = max
-            listView.contentHeight = count * control.rowHeight
-            listView.positionViewAtEnd()
-        } else {
-            listView.contentWidth = 0
-            listView.contentHeight = 0
-            listView.positionViewAtBeginning()
-        }
+        if (max > listView.contentWidth) listView.contentWidth = max
+        listView.contentHeight = listView.count * control.rowHeight
+        listView.positionViewAtEnd()
     }
 
     FontMetrics {
@@ -40,7 +34,7 @@ FocusScope {
         id: loggerListModel
     }
 
-    ListView {
+    MyListView {
         id: listView
         anchors.fill: parent
         focus: true
@@ -53,7 +47,7 @@ FocusScope {
             color: modelData.match(/^\d\d:\d\d:\d\d\./) ? Material.accent : Material.foreground
             wrapMode: Text.NoWrap
             verticalAlignment: Text.AlignVCenter
-            //textFormat: Text.MarkdownText
+            textFormat: Text.PlainText
         }
         ScrollBar.horizontal: ScrollBar { z: 5; active: listView.count }
         ScrollBar.vertical: ScrollBar { z: 5; active: listView.count }

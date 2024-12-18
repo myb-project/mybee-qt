@@ -22,7 +22,6 @@ SshChannelShell::SshChannelShell(ssh::Session &sshSession, const QString &termTy
     , later_timer(nullptr)
 {
     TRACE_ARG(term_type << env_vars);
-    setCallbacks();
     connect(this, &SshChannel::readyRead, this, [this]() {
         emit textReceived(QString::fromUtf8(readAll()));
     });
@@ -112,10 +111,6 @@ void SshChannelShell::libRequestShell()
         return;
     }
     callLater(nullptr);
-    if (!QIODevice::open(QIODevice::ReadWrite | QIODevice::Unbuffered)) {
-        emit errorOccurred(QStringLiteral("Open QIODevice failed"));
-        return;
-    }
     emit channelOpened();
 }
 

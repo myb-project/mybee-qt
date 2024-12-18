@@ -30,7 +30,6 @@ public:
     static constexpr char const *timeoutSecKey   = "sshTimeoutSec";
 
     SshSettings();
-    SshSettings(const QUrl &url, const QString &key);
     SshSettings(const QString &user, const QString &host, quint16 port, const QString &key = QString());
     SshSettings(const SshSettings &other);
     SshSettings &operator=(const SshSettings &other);
@@ -39,6 +38,7 @@ public:
     bool operator==(const SshSettings &other) const;
     bool operator!=(const SshSettings &other) const;
 
+    static SshSettings fromUrl(const QUrl &url, const QString &key = QString());
     Q_INVOKABLE bool isValid() const;
     Q_INVOKABLE QString toString(const QString &scheme = QString()) const; // ssh scheme by default
 

@@ -8,7 +8,7 @@ import QmlCustomModules 1.0
 
 Page {
     id: control
-    title: qsTr("VM profile")
+    title: qsTr("VM Profile")
     enabled: !VMConfigSet.isBusy
 
     readonly property string myClassName: control.toString().match(/.+?(?=_)/)[0]
@@ -47,7 +47,8 @@ Page {
         SshProcess.execError.connect(removeLastServer)
         SystemProcess.execError.connect(removeLastServer)
 
-        appDelay(appTinyDelay, VMConfigSet.getProfiles, lastServer)
+        appDelay(appTinyDelay, VMConfigSet.isCapabilities(lastServer) ?
+                 VMConfigSet.getCapabilities : VMConfigSet.getProfiles, lastServer)
     }
 
     Component.onDestruction: {
@@ -62,7 +63,24 @@ Page {
 
     Connections {
         target: VMConfigSet
+        function onParseCapabilities(url, array) {
+            if (url !== lastServer["server"]) return
+            if (array.length) {
+                var dlg = appDialog("EmulatorDialog.qml", { "currentServer": url, "capabilities": array })
+                if (dlg) {
+                    dlg.rejected.connect(appStackView.pop)
+                    dlg.accepted.connect(function() {
+                        if (dlg.currentEngine["name"]) {
+                            lastServer["emulator"] = dlg.currentEngine["name"]
+                            lastServer["prefix"] = dlg.currentEngine["prefix"]
+                            Qt.callLater(VMConfigSet.getProfiles, lastServer)
+                        } else appStackView.pop()
+                    })
+                }
+            } else Qt.callLater(VMConfigSet.getProfiles, lastServer)
+        }
         function onParseProfiles(url, array) {
+            //console.debug("onParseProfiles url:", url, "array.length", array.length)
             var count = 0, types = {}
             for (var obj of array) {
                 if (obj.hasOwnProperty("name") && obj.hasOwnProperty("type") && obj.hasOwnProperty("profile")) {
@@ -80,14 +98,17 @@ Page {
                 appInfo(qsTr("No compatible VM profiles"))
                 return
             }
-            if (url !== lastServer["server"]) {
-                console.warn("onParseProfiles: Unexpected URL change", lastServer["server"], "->", url)
-                lastServer["server"] = url
-            }
             currentType = ""
             profileTypes = types
             currentProfile = {}
             dropDownView.setIndexEnable(0, true)
+
+            if (url !== lastServer["server"]) {
+                appInfo(qsTr("During the request to %1, we received a response from %2\n\nUse a new URL instead of the original one?")
+                        .arg(lastServer["server"]).arg(url), Dialog.Yes | Dialog.No).accepted.connect(function() {
+                            lastServer["server"] = url
+                        })
+            }
         }
     }
 
@@ -98,9 +119,9 @@ Page {
             RowLayout {
                 anchors.fill: parent
                 ImageButton {
-                    source: "qrc:/image-profiles"
+                    source: "qrc:/image-drive-cdrom"
                     text: qsTr("Visit the project homepage")
-                    onClicked: Qt.openUrlExternally("https://www.bsdstore.ru")
+                    onClicked: Qt.openUrlExternally("https://github/cbsd/cbsd")
                 }
                 Label {
                     Layout.fillWidth: true
@@ -184,6 +205,8 @@ Page {
                 }
                 currentIndex = -1
             })
+            onAtYBeginningChanged: if (atYBeginning) dropDownView.flickUp()
+            onAtYEndChanged: if (atYEnd) dropDownView.flickDown()
         }
     }
 
@@ -220,6 +243,8 @@ Page {
                 }
                 currentIndex = -1
             })
+            onAtYBeginningChanged: if (atYBeginning) dropDownView.flickUp()
+            onAtYEndChanged: if (atYEnd) dropDownView.flickDown()
         }
     }
 
@@ -259,6 +284,8 @@ Page {
                 }
             }
             ScrollIndicator.vertical: ScrollIndicator { active: true }
+            onAtYBeginningChanged: if (atYBeginning) dropDownView.flickUp()
+            onAtYEndChanged: if (atYEnd) dropDownView.flickDown()
         }
     }
 

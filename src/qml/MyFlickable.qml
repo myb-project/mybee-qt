@@ -4,6 +4,14 @@ Flickable {
     id: control
     clip: true
 
+    function flickUp() {
+        flick(0, 600)
+    }
+
+    function flickDown() {
+        flick(0, -600)
+    }
+
     flickableDirection: Flickable.HorizontalAndVerticalFlick
 
     transform: [

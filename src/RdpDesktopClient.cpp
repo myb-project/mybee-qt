@@ -6,15 +6,15 @@
 #include <QPixmap>
 #include <QtDebug>
 
-#include <freerdp/freerdp.h>
-#include <freerdp/input.h>
-#include <freerdp/gdi/gdi.h>
-#include <freerdp/gdi/gfx.h>
-#include <freerdp/client/cmdline.h>
-#include <freerdp/client/channels.h>
-#include <freerdp/client/cliprdr.h>
+#include "freerdp/freerdp.h"
+#include "freerdp/input.h"
+#include "freerdp/gdi/gdi.h"
+#include "freerdp/gdi/gfx.h"
+#include "freerdp/client/cmdline.h"
+#include "freerdp/client/channels.h"
+#include "freerdp/client/cliprdr.h"
 #ifdef Q_OS_UNIX
-#include <freerdp/locale/keyboard.h>
+#include "freerdp/locale/keyboard.h"
 #endif
 
 #include "RdpDesktopClient.h"
@@ -74,14 +74,14 @@ static const MyPointer *myPointer(const rdpPointer *pointer)
     return reinterpret_cast<const MyPointer*>(pointer);
 }
 
-RdpDesktopClient::RdpDesktopClient(const QUrl &url, QObject *parent)
-    : DesktopClient(url, parent)
+RdpDesktopClient::RdpDesktopClient(QObject *parent)
+    : DesktopClient(parent)
     , client_instance(nullptr)
     , remote_width(0)
     , remote_height(0)
     , cursor_index(0)
 {
-    TRACE_ARG(url);
+    TRACE();
 
     connect(this, &DesktopClient::maxSizeChanged, this, [this]() {
         if (client_instance && !maxSize().isEmpty()) {
@@ -99,7 +99,7 @@ RdpDesktopClient::~RdpDesktopClient()
 {
     TRACE();
 
-    stopSession();
+    RdpDesktopClient::stopSession();
 }
 
 void RdpDesktopClient::setLogging(bool enable)

@@ -40,7 +40,7 @@ private:
     sftp_session lib_session;
     QTimer *later_timer;
     sftp_file lib_file;
-    int req_id;
+    sftp_aio lib_aio;
     QStringList mkdir_list;
     QString mkdir_path;
 };

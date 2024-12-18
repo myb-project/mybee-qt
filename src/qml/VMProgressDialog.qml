@@ -5,17 +5,10 @@ import QtQuick.Layouts 1.15
 import CppCustomModules 1.0
 import QmlCustomModules 1.0
 
-Dialog {
+MyDialog {
     id: control
-    modal: true
-    focus: true
-    padding: 20
-    anchors.centerIn: parent //Overlay.overlay
-    width: Math.min(parent.width, 360)
     title: qsTr("Please wait")
-    enter: Transition {
-        NumberAnimation { property: "opacity"; from: 0.0; to: 1.0 }
-    }
+    standardButtons: Dialog.Abort
     closePolicy: Popup.NoAutoClose
 
     property string currentState: qsTr("Work in progress...")
@@ -141,7 +134,6 @@ Dialog {
         }
     }
 
-    standardButtons: Dialog.Abort
     onRejected: {
         if (SshProcess.running) SshProcess.cancel()
         if (SystemProcess.running) SystemProcess.cancel()

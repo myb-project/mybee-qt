@@ -19,8 +19,6 @@ class HttpRequest : public QObject
 
     Q_PROPERTY(QStringList urlSchemes READ urlSchemes    CONSTANT FINAL)
     Q_PROPERTY(bool      sslAvailable READ sslAvailable  CONSTANT FINAL)
-    Q_PROPERTY(QString  sslVerCompile READ sslVerCompile CONSTANT FINAL)
-    Q_PROPERTY(QString  sslVerRuntime READ sslVerRuntime CONSTANT FINAL)
 
     Q_PROPERTY(QUrl     url READ url     NOTIFY urlChanged FINAL)
     Q_PROPERTY(bool running READ running NOTIFY runningChanged FINAL)
@@ -31,8 +29,6 @@ public:
 
     QStringList urlSchemes() const;
     static bool sslAvailable();
-    static QString sslVerCompile();
-    static QString sslVerRuntime();
 
     QUrl url() const;
     bool running() const;

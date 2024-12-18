@@ -4,16 +4,8 @@ import QtQuick.Layouts 1.15
 
 import CppCustomModules 1.0
 
-Dialog {
+MyDialog {
     id: control
-    modal: true
-    focus: true
-    padding: 20
-    anchors.centerIn: parent //Overlay.overlay
-    width: Math.min(parent.width, 360)
-    enter: Transition {
-        NumberAnimation { property: "opacity"; from: 0.0; to: 1.0 }
-    }
     standardButtons: Dialog.Cancel | Dialog.Ok
 
     property string info

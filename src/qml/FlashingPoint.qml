@@ -1,6 +1,5 @@
 import QtQuick 2.15
 import QtQuick.Controls 2.15
-import QtQuick.Controls.Material 2.15
 import QtGraphicalEffects 1.15
 
 Rectangle {
@@ -10,13 +9,13 @@ Rectangle {
     implicitWidth: diameter
     implicitHeight: diameter
     radius: diameter / 2
-    color: backgroundColor
+    color: "firebrick"
 
     property color foregroundColor: "white"
-    property color backgroundColor: Material.accent
+    property alias backgroundColor: control.color
     property bool flashing: visible && enabled
-    readonly property int diameter: Math.max(textMetrics.tightBoundingRect.width + 2,
-                                             textMetrics.tightBoundingRect.height + 2)
+    readonly property int diameter: Math.max(textMetrics.tightBoundingRect.width,
+                                             textMetrics.tightBoundingRect.height)
 
     TextMetrics {
         id: textMetrics

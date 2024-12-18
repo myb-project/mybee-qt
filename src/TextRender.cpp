@@ -27,6 +27,7 @@
 #include "Terminal.h"
 #include "TextRender.h"
 #include "SshSession.h"
+#include "SshChannelShell.h"
 
 //#define TRACE_TEXTRENDER
 #ifdef  TRACE_TEXTRENDER
@@ -902,14 +903,34 @@ void TextRender::setSession(QObject *obj)
         return;
     }
     ssh_session = ss;
-    ssh_session->createShell(this);
+    ssh_shell = ssh_session->createShell();
+    if (!ssh_shell) {
+        qWarning() << Q_FUNC_INFO << "createShell() return null pointer";
+        return;
+    }
+    auto shell = ssh_shell.toStrongRef().data();
+    connect(shell, &SshChannelShell::channelOpened, this, &TextRender::shellOpened, Qt::QueuedConnection);
+    connect(shell, &SshChannel::channelClosed, this, &TextRender::shellClosed);
+
+    connect(shell, &SshChannelShell::textReceived, this, [this](const QString &text) {
+        if (text.count('\n') != text.count('\r'))
+            m_terminal.insertInBuffer(QString(text).replace(QLatin1Char('\n'), QStringLiteral("\r\n")));
+        else m_terminal.insertInBuffer(text);
+    });
+    connect(&m_terminal, &Terminal::newTerminalChars, this, [this](const QString &text) {
+        if (ssh_shell) ssh_shell.toStrongRef()->sendText(text);
+    });
+
     m_terminal.closePty();
-    connect(&m_terminal, &Terminal::newTerminalChars, this, &TextRender::inputText);
     emit sessionChanged();
 }
 
-void TextRender::displayText(const QString &text)
+void TextRender::closeShell()
 {
-    TRACE_ARG(text);
-    m_terminal.insertInBuffer(text);
+    TRACE();
+    if (ssh_session && ssh_shell) {
+        ssh_session->abortChannel(ssh_shell.toStrongRef().data());
+        if (ssh_session->openChannels())
+            emit shellClosed();
+    }
 }

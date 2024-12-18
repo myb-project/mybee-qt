@@ -4,7 +4,7 @@ import QtQuick.Controls 2.15
 ToolButton {
     id: control
 
-    spacing: appTextPadding
+    spacing: 5
     focusPolicy: Qt.NoFocus
     display: appPortraitView ? AbstractButton.IconOnly : AbstractButton.TextBesideIcon
     font.pointSize: appTipSize

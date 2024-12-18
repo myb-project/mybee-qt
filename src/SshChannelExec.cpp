@@ -28,7 +28,14 @@ SshChannelExec::SshChannelExec(ssh::Session &sshSession, const QString &command)
         qCritical() << Q_FUNC_INFO << "Empty command specified";
         return;
     }
-    setCallbacks();
+    if (!isOpen()) return;
+
+    auto dp = reinterpret_cast<QIODevicePrivate*>(QIODevice::d_ptr.data());
+    if (!dp) {
+        qCritical() << Q_FUNC_INFO << "Can't serve stderr channel";
+        return;
+    }
+    dp->setReadChannelCount(2);
     callLater(&SshChannelExec::libOpenSession);
 }
 
@@ -87,12 +94,5 @@ void SshChannelExec::libRequestExec()
         return;
     }
     callLater(nullptr);
-    if (!QIODevice::open(QIODevice::ReadWrite | QIODevice::Unbuffered)) {
-        emit errorOccurred(QStringLiteral("Open QIODevice failed"));
-        return;
-    }
-    auto dp = reinterpret_cast<QIODevicePrivate*>(QIODevice::d_ptr.data());
-    if (dp) dp->setReadChannelCount(2);
-    else qWarning() << Q_FUNC_INFO << "Can't serve stderr channel";
     emit channelOpened();
 }

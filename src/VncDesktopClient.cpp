@@ -4,6 +4,7 @@
 #include <QBitmap>
 #include <QRgb>
 #include <QtDebug>
+#include <QIODevice>
 
 #include "VncDesktopClient.h"
 #include "DesktopAction.h"
@@ -11,8 +12,9 @@
 //#define TRACE_VNCDESKTOPCLIENT
 #ifdef TRACE_VNCDESKTOPCLIENT
 #include <QTime>
-#define TRACE()      qDebug() << QTime::currentTime().toString("hh:mm:ss.zzz") << Q_FUNC_INFO;
-#define TRACE_ARG(x) qDebug() << QTime::currentTime().toString("hh:mm:ss.zzz") << Q_FUNC_INFO << x;
+#include <QThread>
+#define TRACE()      qDebug() << QTime::currentTime().toString("hh:mm:ss.zzz") << QThread::currentThreadId() << Q_FUNC_INFO;
+#define TRACE_ARG(x) qDebug() << QTime::currentTime().toString("hh:mm:ss.zzz") << QThread::currentThreadId() << Q_FUNC_INFO << x;
 #else
 #define TRACE()
 #define TRACE_ARG(x)
@@ -106,8 +108,8 @@ static void reportVncErr(const char *format, ...)
     qWarning() << "VNC-Error:" << text.trimmed();
 }
 
-VncDesktopClient::VncDesktopClient(const QUrl &url, QObject *parent)
-    : DesktopClient(url, parent)
+VncDesktopClient::VncDesktopClient(QObject *parent)
+    : DesktopClient(parent)
     , client_instance(nullptr)
     , remote_setsize(false)
     , remote_width(0)
@@ -116,7 +118,7 @@ VncDesktopClient::VncDesktopClient(const QUrl &url, QObject *parent)
     , wheel_vr(0)
     , wheel_hr(0)
 {
-    TRACE_ARG(url);
+    TRACE();
 
     ::rfbClientLog = reportVncLog;
     ::rfbClientErr = reportVncErr;
@@ -135,7 +137,7 @@ VncDesktopClient::~VncDesktopClient()
 {
     TRACE();
 
-    if (client_instance) stopSession();
+    if (client_instance) VncDesktopClient::stopSession();
 }
 
 void VncDesktopClient::setLogging(bool enable)
@@ -162,6 +164,7 @@ void VncDesktopClient::startSession()
     client_instance->GotXCutText = gotXCutText;
     client_instance->GotCursorShape = gotCursorShape;
     client_instance->Bell = bell;
+
     ::rfbClientSetClientData(client_instance, dataTag(), this);
 
     QString opt = serverUrl().host();
@@ -173,12 +176,14 @@ void VncDesktopClient::startSession()
         emit errorChanged(serverUrl().host() + ": Connection failed");
         return;
     }
-    auto sn = new QSocketNotifier(client_instance->sock, QSocketNotifier::Read, this);
-    connect(sn, &QSocketNotifier::activated, this, [this]() {
-        if (client_instance && !::HandleRFBServerMessage(client_instance)) {
-            emit errorChanged(serverUrl().host() + ": Connection aborted");
-        }
-    });
+    if (client_instance->sock != RFB_INVALID_SOCKET) {
+        auto sn = new QSocketNotifier(client_instance->sock, QSocketNotifier::Read, this);
+        connect(sn, &QSocketNotifier::activated, this, [this]() {
+            if (client_instance && !::HandleRFBServerMessage(client_instance)) {
+                emit errorChanged(serverUrl().host() + ": Connection aborted");
+            }
+        });
+    }
 
     remote_setsize = ::SupportsClient2Server(client_instance, rfbSetDesktopSize);
     if (!remote_setsize) {

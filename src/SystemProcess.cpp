@@ -35,15 +35,20 @@ void SystemProcess::cancel()
 {
     TRACE();
 
+    bool was_run = now_running;
     run_canceled = true;
     std_output.clear();
     std_error.clear();
     if (run_process && run_process->state() != QProcess::NotRunning) {
+        was_run = true;
         run_process->kill();
         if (!QCoreApplication::closingDown())
             run_process->waitForFinished(250);
     }
-    emit canceled();
+    if (was_run) {
+        setRunning(false);
+        emit canceled();
+    }
 }
 
 void SystemProcess::onErrorOccurred(QProcess::ProcessError errcode)

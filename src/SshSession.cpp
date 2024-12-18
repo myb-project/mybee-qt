@@ -4,6 +4,7 @@
 #include <QFile>
 #include <QMetaMethod>
 #include <QtDebug>
+#include <QHostAddress>
 
 #include <poll.h>
 
@@ -11,7 +12,7 @@
 #include "SshChannelShell.h"
 #include "SshChannelExec.h"
 #include "SshChannelFtp.h"
-#include "TextRender.h"
+#include "SshChannelPort.h"
 
 //#define TRACE_SSHSESSION
 #ifdef  TRACE_SSHSESSION
@@ -187,21 +188,22 @@ bool SshSession::isCallLater() const
     return (later_timer && later_timer->isActive());
 }
 
-void SshSession::setSettings(const SshSettings &settings)
+bool SshSession::setSettings(const SshSettings &settings)
 {
     TRACE_ARG(settings);
     if (session_state != StateClosed) {
         qWarning() << Q_FUNC_INFO << "Bad state, disconnect first!";
-        return;
+        return false;
     }
     if (!settings.isValid()) {
         qWarning() << Q_FUNC_INFO << "The settings is invalid";
-        return;
+        return false;
     }
     if (settings != ssh_settings) {
         ssh_settings = settings;
         emit settingsChanged();
     }
+    return true;
 }
 
 void SshSession::setShareKey(bool enable)
@@ -211,6 +213,19 @@ void SshSession::setShareKey(bool enable)
         share_key = enable;
         emit shareKeyChanged();
     }
+}
+
+bool SshSession::setSshUrl(const QUrl &url, const QString &key)
+{
+    TRACE_ARG(url);
+    if (!url.isValid() || key.isEmpty() || !QFile::exists(key) || !setSettings(SshSettings::fromUrl(url, key)))
+        return false;
+
+    if (url != ssh_url) {
+        ssh_url = url;
+        emit sshUrlChanged();
+    }
+    return true;
 }
 
 void SshSession::setLogLevel(int level)
@@ -250,7 +265,7 @@ void SshSession::setLastError(const QString &text)
     TRACE_ARG(text);
     if (text != last_error) {
         last_error = text;
-        emit lastErrorChanged();
+        emit lastErrorChanged(last_error);
     }
 }
 
@@ -317,7 +332,7 @@ void SshSession::connectToHost()
     QUrl url(ssh_settings.toString());
     if (url != ssh_url) {
         ssh_url = url;
-        emit urlChanged();
+        emit sshUrlChanged();
     }
     if (!QHostAddress().setAddress(ssh_settings.host())) {
         setState(StateLookup);
@@ -347,6 +362,8 @@ void SshSession::disconnectFromHost()
 void SshSession::cancel()
 {
     TRACE();
+    if (::ssh_is_connected(lib_session.getCSession()))
+        ::ssh_disconnect(lib_session.getCSession());
     setState(StateClosed);
 }
 
@@ -419,12 +436,9 @@ void SshSession::setState(State state)
                 emit openChannelsChanged();
             }
         }
-        if (::ssh_is_connected(lib_session.getCSession())) {
-            if (isSocketNotifiers()) setSocketNotifiers(false);
-            ::ssh_disconnect(lib_session.getCSession());
-        }
-        if (session_state == StateClosing) callLater(&SshSession::cancel);
-        else if (session_state == StateClosed) callLater(&SshSession::emitHostDisconnected);
+        if (isSocketNotifiers()) setSocketNotifiers(false);
+        if (session_state != StateClosed) callLater(&SshSession::cancel);
+        else callLater(&SshSession::emitHostDisconnected);
         break;
     }
     emit stateChanged();
@@ -710,19 +724,33 @@ void SshSession::iterateUserAuth()
     setState(StateDenied);
 }
 
+static ssh_key getPublicKey(const QString &privateKey)
+{
+    if (privateKey.isEmpty() || !QFile::exists(privateKey)) return nullptr;
+
+    ssh_key key = nullptr;
+    if (::ssh_pki_import_pubkey_file(qPrintable(privateKey + ".pub"), &key) == SSH_OK) return key;
+    if (key) ::ssh_key_free(key);
+
+    ssh_key pkey = nullptr;
+    if (::ssh_pki_import_privkey_file(qPrintable(privateKey), nullptr, nullptr, nullptr, &pkey) != SSH_OK) {
+        if (pkey) ::ssh_key_free(pkey);
+        return nullptr;
+    }
+    key = nullptr;
+    int op = ::ssh_pki_export_privkey_to_pubkey(pkey, &key);
+    if (pkey) ::ssh_key_free(pkey);
+
+    return op == SSH_OK ? key : nullptr;
+}
+
 void SshSession::libUserAuthTryPublickey()
 {
     TRACE();
-    if (!lib_ssh_key) {
-        if (::ssh_pki_import_pubkey_file(qPrintable(ssh_settings.privateKey() + ".pub"),
-                                         &lib_ssh_key) != SSH_OK) {
-            setState(StateError);
-            return;
-        }
-        if (!lib_ssh_key) {
-            setState(StateError);
-            return;
-        }
+    if (!lib_ssh_key && (lib_ssh_key = getPublicKey(ssh_settings.privateKey())) == nullptr) {
+        user_auth &= ~SSH_AUTH_METHOD_PUBLICKEY;
+        iterateUserAuth();
+        return;
     }
     switch (::ssh_userauth_try_publickey(lib_session.getCSession(), nullptr, lib_ssh_key)) {
     case SSH_AUTH_AGAIN:
@@ -747,16 +775,11 @@ void SshSession::libUserAuthTryPublickey()
 void SshSession::libUserAuthPublickey()
 {
     TRACE();
-    if (!lib_ssh_key) {
-        if (::ssh_pki_import_privkey_file(qPrintable(ssh_settings.privateKey()),
-                                          nullptr, nullptr, nullptr, &lib_ssh_key) != SSH_OK) {
-            setState(StateError);
-            return;
-        }
-        if (!lib_ssh_key) {
-            setState(StateError);
-            return;
-        }
+    if (!lib_ssh_key && (::ssh_pki_import_privkey_file(qPrintable(ssh_settings.privateKey()),
+                                                       nullptr, nullptr, nullptr, &lib_ssh_key) != SSH_OK || !lib_ssh_key)) {
+        setLastError(QStringLiteral("Bad private key: ") + ssh_settings.privateKey());
+        setState(StateError);
+        return;
     }
     switch (::ssh_userauth_publickey(lib_session.getCSession(), nullptr, lib_ssh_key)) {
     case SSH_AUTH_AGAIN:
@@ -908,34 +931,38 @@ void SshSession::onChannelClosed()
     }
 }
 
+void SshSession::abortChannel(SshChannel *channel)
+{
+    TRACE_ARG(channel);
+    if (channel && closeChannel(channel)) {
+        channel->sendEof();
+        channel->close();
+        setOpenChannels();
+        if (!open_channels) disconnectFromHost();
+    }
+}
+
 void SshSession::emitHostDisconnected()
 {
     TRACE();
     emit hostDisconnected();
 }
 
-void SshSession::createShell(TextRender *render)
+QWeakPointer<SshChannelShell> SshSession::createShell()
 {
-    TRACE_ARG(render);
-    if (!render) {
-        qWarning() << Q_FUNC_INFO << "A null render specified?";
-        return;
-    }
+    static QWeakPointer<SshChannelShell> empty;
+    TRACE();
     if (!isReady()) {
         qWarning() << Q_FUNC_INFO << "Ssh session must be ready!";
-        return;
+        return empty;
     }
-    auto shell = new SshChannelShell(lib_session, ssh_settings.termType(), ssh_settings.envVars());
-    connect(shell, &SshChannelShell::channelOpened, this, &SshSession::setOpenChannels);
-    connect(shell, &SshChannelShell::channelOpened, render, &TextRender::shellOpened, Qt::QueuedConnection);
-    connect(shell, &SshChannelShell::textReceived, render, &TextRender::displayText);
-    connect(render, &TextRender::inputText, shell, &SshChannelShell::sendText);
+    auto cnl = new SshChannelShell(lib_session, ssh_settings.termType(), ssh_settings.envVars());
+    connect(cnl, &SshChannelShell::channelOpened, this, &SshSession::setOpenChannels);
+    connect(cnl, &SshChannel::channelClosed, this, &SshSession::onChannelClosed, Qt::QueuedConnection);
+    connect(cnl, &SshChannel::errorOccurred, this, &SshSession::setLastError);
 
-    connect(shell, &SshChannel::errorOccurred, this, &SshSession::setLastError);
-    connect(shell, &SshChannel::channelClosed, render, &TextRender::shellClosed);
-    connect(shell, &SshChannel::channelClosed, this, &SshSession::onChannelClosed, Qt::QueuedConnection);
-
-    channel_list.append(QSharedPointer<SshChannel>(shell));
+    channel_list.append(QSharedPointer<SshChannel>(cnl));
+    return qWeakPointerCast<SshChannelShell>(channel_list.constLast());
 }
 
 void SshSession::sendPublicKey()
@@ -955,12 +982,12 @@ void SshSession::sendPublicKey()
         setState(StateError);
         return;
     }
-    auto ftp = new SshChannelFtp(lib_session, QLatin1String(authorizedKeys));
-    connect(ftp, &SshChannelFtp::channelOpened, ftp, &SshChannelFtp::pull);
-    connect(ftp, &SshChannelFtp::readyRead, this, &SshSession::onPullDone);
-    connect(ftp, &SshChannel::errorOccurred, this, &SshSession::setLastError);
+    auto cnl = new SshChannelFtp(lib_session, QLatin1String(authorizedKeys));
+    connect(cnl, &SshChannelFtp::channelOpened, cnl, &SshChannelFtp::pull);
+    connect(cnl, &SshChannelFtp::readyRead, this, &SshSession::onPullDone);
+    connect(cnl, &SshChannel::errorOccurred, this, &SshSession::setLastError);
 
-    channel_list.append(QSharedPointer<SshChannel>(ftp));
+    channel_list.append(QSharedPointer<SshChannel>(cnl));
 }
 
 void SshSession::onPullDone()
@@ -1018,9 +1045,28 @@ QWeakPointer<SshChannelExec> SshSession::createExec(const QString &command)
         qWarning() << Q_FUNC_INFO << "Ssh session must be ready!";
         return empty;
     }
-    auto exec = new SshChannelExec(lib_session, command);
-    connect(exec, &SshChannel::errorOccurred, this, &SshSession::setLastError);
+    auto cnl = new SshChannelExec(lib_session, command);
+    connect(cnl, &SshChannel::errorOccurred, this, &SshSession::setLastError);
 
-    channel_list.append(QSharedPointer<SshChannel>(exec));
+    channel_list.append(QSharedPointer<SshChannel>(cnl));
     return qWeakPointerCast<SshChannelExec>(channel_list.constLast());
+}
+
+QWeakPointer<SshChannelPort> SshSession::createPort(const QString &host, quint16 port)
+{
+    static QWeakPointer<SshChannelPort> empty;
+    TRACE_ARG(host << port);
+    if (host.isEmpty() || !port) {
+        qWarning() << Q_FUNC_INFO << "An empty host/port specified?";
+        return empty;
+    }
+    if (!isReady()) {
+        qWarning() << Q_FUNC_INFO << "Ssh session must be ready!";
+        return empty;
+    }
+    auto cnl = new SshChannelPort(lib_session, host, port);
+    connect(cnl, &SshChannel::errorOccurred, this, &SshSession::setLastError);
+
+    channel_list.append(QSharedPointer<SshChannel>(cnl));
+    return qWeakPointerCast<SshChannelPort>(channel_list.constLast());
 }

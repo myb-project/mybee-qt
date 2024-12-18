@@ -17,6 +17,7 @@
 #endif
 
 #include "libssh/libsshpp.hpp" // just for ssh_init()/ssh_finalize()
+#include "DirSpaceUsed.h"
 #include "DesktopView.h"
 #include "HttpRequest.h"
 #include "KeyLoader.h"
@@ -34,7 +35,7 @@
 #define CPP_CUSTOM_MODULES "CppCustomModules"
 #endif
 
-#if defined(__mobile__)
+#if defined(Q_OS_ANDROID) || defined(Q_OS_IOS)
 const bool isMobile = true;
 static const char *quickControlStyle = "Material";
 static const char *materialStyleMode = "Normal";
@@ -44,65 +45,6 @@ static const char *quickControlStyle = "Material";
 static const char *materialStyleMode = "Dense";
 #endif
 static const char *embeddedFontFamily = "Roboto";
-
-#ifdef Q_OS_ANDROID
-static const char *android_permission[] = { // must match android/AndroidManifest.xml !!!
-    "android.permission.ACCESS_NETWORK_STATE",
-    "android.permission.ACCESS_WIFI_STATE",
-    "android.permission.CHANGE_WIFI_MULTICAST_STATE",
-    "android.permission.FOREGROUND_SERVICE",
-    "android.permission.INTERNET",
-    "android.permission.QUERY_ALL_PACKAGES",
-    "android.permission.RECEIVE_BOOT_COMPLETED",
-    "android.permission.WAKE_LOCK"
-};
-
-#if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
-#include <QtAndroid>
-bool setAndroidPermission()
-{
-    QStringList request;
-    for (uint i = 0; i < sizeof(android_permission) / sizeof(android_permission[0]); i++) {
-        if (QtAndroid::checkPermission(android_permission[i]) == QtAndroid::PermissionResult::Denied)
-            request += android_permission[i];
-    }
-    if (!request.isEmpty()) {
-        auto map = QtAndroid::requestPermissionsSync(request);
-        for (auto it = map.constBegin(); it != map.constEnd(); ++it) {
-            if (it.value() == QtAndroid::PermissionResult::Denied) {
-                qWarning() << it.key() << "Required permissions denied!";
-                return false;
-            }
-        }
-    }
-    return true;
-}
-#else
-bool setAndroidPermission()
-{
-    QStringList request;
-    for (uint i = 0; i < sizeof(android_permission) / sizeof(android_permission[0]); i++) {
-        auto result = QtAndroidPrivate::checkPermission(android_permission[i])
-                          .then([](QtAndroidPrivate::PermissionResult result) { return result; });
-        result.waitForFinished();
-        if (result.result() == QtAndroidPrivate::PermissionResult::Denied)
-            request += android_permission[i];
-    }
-    if (!request.isEmpty()) {
-        for (const auto &perm : request) {
-            auto result = QtAndroidPrivate::requestPermission(perm)
-                              .then([](QtAndroidPrivate::PermissionResult result) { return result; });
-            result.waitForFinished();
-            if (result.result() == QtAndroidPrivate::PermissionResult::Denied) {
-                qWarning() << perm << "Required permissions denied!";
-                return false;
-            }
-        }
-    }
-    return true;
-}
-#endif
-#endif
 
 static void setCbsdSearchPaths()
 {
@@ -143,7 +85,7 @@ int main(int argc, char *argv[])
 #if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
     QCoreApplication::setAttribute(Qt::AA_EnableHighDpiScaling);
 #endif
-#if defined(__mobile__)
+#if defined(Q_OS_ANDROID) || defined(Q_OS_IOS)
     QGuiApplication::setHighDpiScaleFactorRoundingPolicy(Qt::HighDpiScaleFactorRoundingPolicy::PassThrough);
 #else
     QGuiApplication::setHighDpiScaleFactorRoundingPolicy(Qt::HighDpiScaleFactorRoundingPolicy::Round);
@@ -153,12 +95,10 @@ int main(int argc, char *argv[])
     app.setApplicationName(APP_NAME);
     app.setApplicationVersion(APP_VERSION);
     app.setApplicationDisplayName(SystemHelper::camelCase(app.applicationName(), '-'));
-    app.setWindowIcon(QIcon(QStringLiteral(":/image-box")));
+    app.setWindowIcon(QIcon(QStringLiteral(":/image-logo")));
     QQuickStyle::setStyle(quickControlStyle);
 
 #ifdef Q_OS_ANDROID
-    setAndroidPermission();
-
     app.setOrganizationDomain(QStringLiteral("settings")); // just a fake for QSettings
     QSettings::setPath(QSettings::NativeFormat, QSettings::UserScope,
                        QStandardPaths::writableLocation(QStandardPaths::HomeLocation));
@@ -205,7 +145,7 @@ int main(int argc, char *argv[])
     if (!keyLoader.loadLayout(locale) && !keyLoader.loadLayout())
         qFatal("Failure loading keyboard layout");
 
-    QLoggingCategory::setFilterRules(QStringLiteral("qtc.ssh=true"));
+    //QLoggingCategory::setFilterRules(QStringLiteral("qtc.ssh=true"));
 
     qmlRegisterSingletonType(QUrl(QStringLiteral("qrc:/MaterialSet.qml")), QML_CUSTOM_MODULES, 1, 0, "MaterialSet");
     qmlRegisterSingletonType(QUrl(QStringLiteral("qrc:/RestApiSet.qml")), QML_CUSTOM_MODULES, 1, 0, "RestApiSet");
@@ -222,6 +162,7 @@ int main(int argc, char *argv[])
     qmlRegisterSingletonType<UrlModel>(CPP_CUSTOM_MODULES, 1, 0, "Url",
                                        [](QQmlEngine*, QJSEngine*)->QObject* { return new UrlModel(); });
 
+    qmlRegisterType<DirSpaceUsed>(CPP_CUSTOM_MODULES, 1, 0, "DirSpaceUsed");
     qmlRegisterType<DesktopView>(CPP_CUSTOM_MODULES, 1, 0, "DesktopView");
     qmlRegisterType<SshSession>(CPP_CUSTOM_MODULES, 1, 0, "SshSession");
     qmlRegisterType<TextRender>(CPP_CUSTOM_MODULES, 1, 0, "TextRender");

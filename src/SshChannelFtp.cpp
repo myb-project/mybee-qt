@@ -19,19 +19,18 @@
 #endif
 
 SshChannelFtp::SshChannelFtp(ssh::Session &sshSession, const QString &remotePath)
-    : SshChannel(sshSession)
+    : SshChannel(sshSession, false) // don't use default callbacks!
     , remote_path(remotePath)
     , lib_session(nullptr)
     , later_timer(nullptr)
     , lib_file(nullptr)
-    , req_id(-1)
+    , lib_aio(nullptr)
 {
     TRACE();
     if (remote_path.isEmpty()) {
         qCritical() << Q_FUNC_INFO << "An empty remote path specified";
         return;
     }
-    //setCallbacks(); -- don't setCallbacks()!
     lib_session = ::sftp_new_channel(lib_channel.getCSession(), lib_channel.getCChannel());
     if (!lib_session) {
         qCritical() << Q_FUNC_INFO << "sftp_new_channel:" << lastError();
@@ -45,6 +44,7 @@ SshChannelFtp::~SshChannelFtp()
 {
     TRACE();
     if (lib_session) {
+        if (lib_aio) ::sftp_aio_free(lib_aio);
         if (lib_file) ::sftp_close(lib_file);
         ::sftp_free(lib_session);
     }
@@ -134,10 +134,6 @@ void SshChannelFtp::libRequestFtp()
         return;
     }
     callLater(nullptr);
-    if (!QIODevice::open(QIODevice::ReadWrite | QIODevice::Unbuffered)) {
-        emit errorOccurred(QStringLiteral("Open QIODevice failed"));
-        return;
-    }
     emit channelOpened();
 }
 
@@ -187,6 +183,10 @@ bool SshChannelFtp::libOpenFile(int mode, mode_t perm)
     TRACE_ARG(mode << perm);
     if (!lib_file) {
         Q_ASSERT(!remote_path.isEmpty());
+        if (lib_aio) {
+            ::sftp_aio_free(lib_aio);
+            lib_aio = nullptr;
+        }
         lib_file = ::sftp_open(lib_session, qPrintable(remote_path), mode, perm);
         if (!lib_file) {
             clearBuffers();
@@ -199,10 +199,10 @@ bool SshChannelFtp::libOpenFile(int mode, mode_t perm)
 void SshChannelFtp::libAsyncReadBegin()
 {
     TRACE();
-    req_id = ::sftp_async_read_begin(lib_file, maxIOChunkSize);
-    if (req_id < 0) {
+    int rc = ::sftp_aio_begin_read(lib_file, maxIOChunkSize, &lib_aio);
+    if (rc == SSH_ERROR) {
         clearBuffers();
-        emit errorOccurred(QStringLiteral("sftp_async_read_begin: ") + lastError());
+        emit errorOccurred(QStringLiteral("sftp_aio_begin_read: ") + lastError());
         return;
     }
     callLater(&SshChannelFtp::libAsyncRead);
@@ -211,24 +211,23 @@ void SshChannelFtp::libAsyncReadBegin()
 void SshChannelFtp::libAsyncRead()
 {
     TRACE();
-    if (!lib_file || req_id < 0) return;
+    if (!lib_aio) return;
     char buf[maxIOChunkSize];
-    int rc = ::sftp_async_read(lib_file, buf, maxIOChunkSize, req_id);
+    int rc = ::sftp_aio_wait_read(&lib_aio, buf, maxIOChunkSize);
     if (rc == SSH_AGAIN) {
         callLater(&SshChannelFtp::libAsyncRead, SshSession::callAgainDelay);
         return;
     }
-    if (rc < 0) {
-        req_id = -1;
+    lib_aio = nullptr;
+    if (rc == SSH_ERROR) {
         clearBuffers();
-        emit errorOccurred(QStringLiteral("sftp_async_read: ") + lastError());
+        emit errorOccurred(QStringLiteral("sftp_aio_wait_read: ") + lastError());
         return;
     }
     if (rc && appendBuffer(buf, rc)) {
         libAsyncReadBegin();
         return;
     }
-    req_id = -1;
     emit readyRead();
 }
 
@@ -265,6 +264,10 @@ void SshChannelFtp::close()
 {
     TRACE();
     if (lib_file) {
+        if (lib_aio) {
+            ::sftp_aio_free(lib_aio);
+            lib_aio = nullptr;
+        }
         if (::sftp_close(lib_file) != SSH_OK)
             qWarning() << Q_FUNC_INFO << "sftp_close:" << lastError();
         lib_file = nullptr;

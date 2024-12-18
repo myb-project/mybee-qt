@@ -10,6 +10,10 @@ Drawer {
     id: control
     modal: true
 
+    onOpened: {
+        VMConfigSet.currentProgress = -1
+    }
+
     component ItemDelegateTemplate : ItemDelegate {
         width: control.availableWidth
         height: appWindow.header.height
@@ -20,23 +24,22 @@ Drawer {
     Column {
         anchors.fill: parent
         Pane {
-            Material.elevation: 4
+            Material.background: MaterialSet.theme[Material.theme]["highlight"]
+            Material.elevation: MaterialSet.theme[Material.theme]["elevation"]
             padding: 10
             width: control.availableWidth
             RowLayout {
                 anchors.fill: parent
                 ImageButton {
-                    Layout.bottomMargin: 10
-                    source: "qrc:/image-cloud"
+                    source: "qrc:/image-logo"
                     text: qsTr("Visit the project homepage")
                     onClicked: {
-                        Qt.openUrlExternally("https://www.bsdstore.ru")
+                        Qt.openUrlExternally("https://github/cbsd/cbsd")
                         control.close()
                     }
                 }
                 Label {
                     Layout.fillWidth: true
-                    Layout.bottomMargin: 10
                     horizontalAlignment: Text.AlignHCenter
                     font.pointSize: appTitleSize
                     font.bold: true
@@ -48,7 +51,7 @@ Drawer {
         ItemDelegateTemplate {
             icon.source: "qrc:/icon-preferences"
             text: qsTr("Preferences")
-            onClicked: appPage("PreferencesPage.qml")
+            onClicked: appPage("AppPreferPage.qml")
         }
         ItemDelegateTemplate {
             icon.source: "qrc:/icon-about"
@@ -56,6 +59,11 @@ Drawer {
             onClicked: appPage("AppAboutPage.qml")
         }
         MenuSeparator { }
+        ItemDelegateTemplate {
+            icon.source: "qrc:/icon-sweep"
+            text: qsTr("Wipe")
+            onClicked: appPage("AppWipeDataPage.qml")
+        }
         ItemDelegateTemplate {
             icon.source: "qrc:/icon-quit"
             text: qsTr("Quit")

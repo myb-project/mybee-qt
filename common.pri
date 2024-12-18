@@ -9,7 +9,6 @@ else: APP_RELEASE = "$${APP_RELEASE}-x86_64"
 
 DEFINES += APP_NAME='\\"$${APP_NAME}\\"'
 DEFINES += APP_VERSION='\\"$${APP_VERSION}\\"'
-CONFIG += c++17 release
 
 QMAKE_CFLAGS += -fPIC
 QMAKE_CFLAGS_RELEASE += \
@@ -18,8 +17,7 @@ QMAKE_CFLAGS_RELEASE += \
     -Wno-deprecated-declarations \
     -Wno-tautological-constant-out-of-range-compare \
     -Wno-incompatible-pointer-types \
-    -Wno-incompatible-pointer-types-discards-qualifiers \
-    -Wno-implicit-const-int-float-conversion
+    -Wno-incompatible-pointer-types-discards-qualifiers
 
 QMAKE_CXXFLAGS += -fPIC
 QMAKE_CXXFLAGS_RELEASE += -fdata-sections -ffunction-sections
@@ -43,6 +41,13 @@ TAR_COMMAND = $$system($${WHERE_COMMAND} tar)
     error("The tar command was not found in the system path")
 }
 
+PATCH_COMMAND = $$system($${WHERE_COMMAND} patch)
+!isEmpty(PATCH_COMMAND) {
+    PATCH_COMMAND += -p0 <
+} else {
+    error("The patch command was not found in the system path")
+}
+
 WGET_COMMAND = $$system($${WHERE_COMMAND} wget)
 !isEmpty(WGET_COMMAND) {
     WGET_COMMAND += -O
@@ -57,21 +62,43 @@ WGET_COMMAND = $$system($${WHERE_COMMAND} wget)
 
 CMAKE_COMMAND = $$system($${WHERE_COMMAND} cmake)
 isEmpty(CMAKE_COMMAND) {
-    error("The cmake command was not found in the system path")
+    error("The cmake executable was not found in the system path")
+}
+
+android {
+    QMAKE_CFLAGS += -D__USE_BSD
+    QMAKE_CFLAGS_RELEASE += -Wno-unused-command-line-argument
+
+    OPENSSL_ROOT_DIR = $$(OPENSSL_ROOT_DIR)
+    isEmpty(OPENSSL_ROOT_DIR): OPENSSL_ROOT_DIR = $$(ANDROID_SDK_ROOT)/android_openssl/ssl_3/$${ANDROID_TARGET_ARCH}
+
+    ANDROID_SDK_ROOT = $$(ANDROID_SDK_ROOT)
+    isEmpty(ANDROID_SDK_ROOT): ANDROID_SDK_ROOT = $$(HOME)/Android/Sdk
+
+    ANDROID_NDK_ROOT = $$(ANDROID_NDK_ROOT)
+    isEmpty(ANDROID_NDK_ROOT): ANDROID_NDK_ROOT = $${ANDROID_SDK_ROOT}/ndk/25.1.8937393
+
+    ANDROID_NDK_PLATFORM = $$(ANDROID_NDK_PLATFORM)
+    isEmpty(ANDROID_NDK_PLATFORM): ANDROID_NDK_PLATFORM = 24 # getifaddrs() and IPv6 ifname
+
+    OS_SPECIFIC_DEFINES = \
+        -DCMAKE_FIND_ROOT_PATH=\"$${OPENSSL_ROOT_DIR}\" \
+        -DOPENSSL_CRYPTO_LIBRARY=\"$${OPENSSL_ROOT_DIR}/libcrypto_3.so\" \
+        -DANDROID_ABI=$${ANDROID_TARGET_ARCH} \
+        -DANDROID_NATIVE_API_LEVEL=$${ANDROID_NDK_PLATFORM} \
+        -DANDROID_NDK=\"$${ANDROID_NDK_ROOT}\" \
+        -DCMAKE_TOOLCHAIN_FILE=\"$${ANDROID_NDK_ROOT}/build/cmake/android.toolchain.cmake\"
 }
 
 CMAKE_CONFIG_LIBS = \
     $${CMAKE_COMMAND} -B build \
-#   -GNinja -DCMAKE_TOOLCHAIN_FILE=<full path to toolchain.cmake> -DANDROID_NDK=<path> -DANDROID_NATIVE_API_LEVEL=<API level you want> \
     -DCMAKE_BUILD_TYPE=Release \
     -DCMAKE_SKIP_INSTALL_ALL_DEPENDENCY=ON \
     -DCMAKE_INSTALL_PREFIX=\"$${OUT_PWD}/..\" \
     -DCMAKE_C_COMPILER=\"$${QMAKE_CC}\" \
     -DCMAKE_C_FLAGS=\"$${QMAKE_CFLAGS}\" \
     -DCMAKE_C_FLAGS_RELEASE=\"$${QMAKE_CFLAGS_RELEASE}\" \
-#    -DCMAKE_CXX_COMPILER=\"$${QMAKE_CXX}\" \
-#    -DCMAKE_CXX_FLAGS=\"$${QMAKE_CXXFLAGS}\" \
-#    -DCMAKE_CXX_FLAGS_RELEASE=\"$${QMAKE_CXXFLAGS_RELEASE}\"
+    $${OS_SPECIFIC_DEFINES}
 
 CMAKE_BUILD_LIBS = \
     $${CMAKE_COMMAND} --build build && \

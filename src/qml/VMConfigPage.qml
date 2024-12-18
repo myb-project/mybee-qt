@@ -8,7 +8,7 @@ import QmlCustomModules 1.0
 
 Page {
     id: control
-    title: isCreated ? qsTr("VM config") : qsTr("VM create")
+    title: isCreated ? qsTr("VM Adjust") : qsTr("VM Create")
     enabled: !VMConfigSet.isBusy
 
     readonly property string myClassName: control.toString().match(/.+?(?=_)/)[0]
@@ -93,17 +93,27 @@ Page {
             RowLayout {
                 anchors.fill: parent
                 ImageButton {
-                    source: control.isCreated ? "qrc:/image-settings-ok" : "qrc:/image-settings"
+                    source: "qrc:/image-drive-change"
                     text: qsTr("Visit Wikipedia")
                     onClicked: Qt.openUrlExternally("https://wikipedia.org/wiki/Virtual_machine")
+                    Image {
+                        visible: !control.isCreated
+                        source: "qrc:/image-overlay-proceed"
+                        ScaleAnimator on scale {
+                            running: visible
+                            loops: Animation.Infinite
+                            from: 1.05; to: 0.95; duration: 1000
+                            onStopped: Qt.callLater(function() { control.scale = 1.0 })
+                        }
+                    }
                 }
                 Label {
                     Layout.fillWidth: true
                     font.pointSize: appTitleSize
                     wrapMode: Text.Wrap
                     text: control.isCreated ?
-                              qsTr("Configuring a virtial machine using the <i>%1</i> profile").arg(profileName) :
-                              qsTr("Creating a new virtial machine using the <i>%1</i> profile").arg(profileName)
+                              qsTr("Adjust virtial machine within profile <i>%1</i>").arg(profileName) :
+                              qsTr("Creating a new virtial machine using profile <i>%1</i>").arg(profileName)
                 }
             }
         }
@@ -316,6 +326,8 @@ Page {
                 }
             }
             ScrollIndicator.vertical: ScrollIndicator { active: true }
+            onAtYBeginningChanged: if (atYBeginning) dropDownView.flickUp()
+            onAtYEndChanged: if (atYEnd) dropDownView.flickDown()
         }
     }
 

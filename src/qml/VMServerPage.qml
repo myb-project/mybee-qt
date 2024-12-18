@@ -4,17 +4,17 @@ import QtQuick.Controls.Material 2.15
 import QtQuick.Layouts 1.15
 
 import CppCustomModules 1.0
-//import QmlCustomModules 1.0
+import QmlCustomModules 1.0
 
 Page {
     id: control
-    title: qsTr("Cloud server")
+    title: qsTr("Cloud Server")
     enabled: !VMConfigSet.isBusy
 
     readonly property string myClassName: control.toString().match(/.+?(?=_)/)[0]
     readonly property var urlSchemeModel: [ "http", "https", "ssh", "file" ] // must be lower case!
     readonly property var urlPortModel:   [ 80, 443, 22, 0 ]
-    property int schemeIndex: 0
+    property int currentScheme: 0
     property string lastServers
     property string currentServer
     property string currentSshKey
@@ -22,14 +22,14 @@ Page {
     readonly property var dropDownModel: [
         {   // index 0
             icon: "qrc:/icon-cloud-server",
-            text: QT_TR_NOOP("Setup Server connection"),
+            text: QT_TR_NOOP("%1 connection").arg(VMConfigSet.cbsdName.toUpperCase()),
             list: [ { item: schemeComponent },
                     { text: QT_TR_NOOP("History"), item: historyComponent },
                     { text: QT_TR_NOOP("Address"), item: addressComponent },
                     { text: QT_TR_NOOP("Path"), item: pathComponent } ]
         },{ // index 1
             icon: "qrc:/icon-ssh-key",
-            text: QT_TR_NOOP("Select SSH access key"),
+            text: QT_TR_NOOP("SSH key"),
             list: [ { item: sshKeyComponent } ]
         }
     ]
@@ -40,8 +40,10 @@ Page {
             var env = SystemHelper.envVariable("CLOUD_URL")
             if (Url.isValidAt(env)) lastServers = env
         }
-        if (!lastServers && VMConfigSet.cbsdPath)
-            lastServers = "file:" + VMConfigSet.cbsdPath
+        if (VMConfigSet.cbsdPath && !lastServers.includes(VMConfigSet.cbsdPath)) {
+            if (lastServers) lastServers += ' '
+            lastServers += "file:" + VMConfigSet.cbsdPath
+        }
         if (lastServers) {
             var list = lastServers.split(' ').filter(Boolean)
             for (var i = list.length - 1; i >= 0; i--) {
@@ -49,10 +51,15 @@ Page {
                 if (urlInModel.valid && ~urlSchemeModel.indexOf(urlInModel.scheme) && VMConfigSet.isSchemeEnabled(urlInModel.scheme))
                     historyListModel.insert(0, { "text": urlInModel.text })
             }
-            if (historyListModel.count) historyListModel.currentIndex = 0
         }
-        dropDownView.setIndexEnable(0, true)
-        dropDownView.setIndexEnable(1, true)
+        var idx = control.urlSchemeModel.indexOf(urlInModel.scheme)
+        currentScheme = ~idx ? idx : 0
+
+        appDelay(appTinyDelay, function() {
+            dropDownView.setIndexEnable(0, true)
+            dropDownView.setIndexEnable(1, true)
+            urlOutModel.location = urlInModel.location
+        })
     }
 
     Component.onDestruction: {
@@ -100,30 +107,16 @@ Page {
 
     UrlModel {
         id: urlInModel
+        scheme: urlSchemeModel[currentScheme]
     }
 
     UrlModel {
         id: urlOutModel
+        scheme: urlSchemeModel[currentScheme]
     }
 
     ListModel {
         id: historyListModel
-        property int currentIndex: -1
-        function findScheme(scheme) : string {
-            var prefix = ""
-            if (~urlSchemeModel.indexOf(scheme)) {
-                prefix += scheme + ":/"
-                if (scheme !== "file") prefix += '/'
-                for (var i = 0; i < count; i++) {
-                    if (get(i).text.startsWith(prefix)) {
-                        currentIndex = i
-                        return get(i).text
-                    }
-                }
-            }
-            currentIndex = -1
-            return prefix
-        }
     }
 
     TextMetrics {
@@ -138,29 +131,22 @@ Page {
             width: control.availableWidth
             RowLayout {
                 anchors.fill: parent
-                TintedImage {
-                    source: "qrc:/image-cbsd-logo"
-                    HoverHandler {
-                        id: hoverHandler
-                        //cursorShape: Qt.PointingHandCursor
-                        onHoveredChanged: SystemHelper.setCursorShape(hovered ? Qt.PointingHandCursor : -1)
+                ImageButton {
+                    source: urlOutModel.remote ? "qrc:/image-drive-network" : (urlOutModel.local ? "qrc:/image-drive" : "qrc:/image-drive-offline")
+                    text: qsTr("Visit the project homepage")
+                    onClicked: Qt.openUrlExternally("https://github/cbsd/cbsd")
+                    Image {
+                        anchors.bottom: parent.bottom
+                        visible: urlOutModel.valid
+                        source: "qrc:/image-overlay-database"
+                        sourceSize: Qt.size(parent.width / 2, parent.height / 2)
                     }
-                    TapHandler {
-                        id: tapHandler
-                        onTapped: Qt.openUrlExternally("https://www.bsdstore.ru")
-                    }
-                    scale: hoverHandler.hovered ? 1.05 : 1.0
-                    ToolTip.visible: hoverHandler.hovered
-                    ToolTip.text: qsTr("Visit the project homepage")
-                    ToolTip.delay: appTipDelay
-                    ToolTip.timeout: appTipTimeout
-
                 }
                 Label {
                     Layout.fillWidth: true
                     font.pointSize: appTitleSize
                     wrapMode: Text.Wrap
-                    text: qsTr("Create a virtual machine using the appropriate <i>%1 cloud Server</i> and <i>Ssh access key</i>").arg(VMConfigSet.cbsdName.toUpperCase())
+                    text: qsTr("Create a virtual machine using the appropriate <i>%1 cloud server</i> and <i>SSH access key</i>").arg(VMConfigSet.cbsdName.toUpperCase())
                 }
             }
         }
@@ -176,21 +162,21 @@ Page {
                 RadioButton {
                     focusPolicy: Qt.NoFocus
                     enabled: VMConfigSet.isSchemeEnabled(modelData)
-                    checked: urlInModel.scheme === modelData
+                    checked: index === control.currentScheme
                     text: modelData.toUpperCase()
-                    onCheckedChanged: {
-                        if (checked) {
-                            urlInModel.location = historyListModel.findScheme(modelData)
-                            urlOutModel.location = urlInModel.location
+                    onToggled: {
+                        if (!checked) return
+                        urlInModel.clear()
+                        urlOutModel.clear()
+                        control.currentScheme = index
+                        for (var i = 0; i < historyListModel.count; i++) {
+                            var txt = historyListModel.get(i).text
+                            if (txt.startsWith(modelData + ':')) {
+                                urlInModel.location = txt
+                                urlOutModel.location = txt
+                            }
                         }
                     }
-                }
-                Component.onCompleted: {
-                    if (!count) return
-                    for (var i = 0; i < count; i++) {
-                        if (itemAt(i).checked) return
-                    }
-                    itemAt(0).toggle()
                 }
             }
         }
@@ -201,11 +187,13 @@ Page {
         ComboBox {
             enabled: count
             model: historyListModel
-            currentIndex: historyListModel.currentIndex
             onActivated: function(index) {
-                historyListModel.currentIndex = index
-                urlInModel.location = currentText
-                urlOutModel.location = currentText
+                var idx = control.urlSchemeModel.indexOf(Url.schemeAt(currentText))
+                if (~idx) {
+                    control.currentScheme = idx
+                    urlInModel.location = currentText
+                    urlOutModel.location = currentText
+                } else urlOutModel.clear()
             }
         }
     }
@@ -216,8 +204,7 @@ Page {
             MyTextField {
                 id: hostTextField
                 Layout.fillWidth: true
-                enabled: urlInModel.scheme !== "file"
-                onEnabledChanged: if (enabled) forceActiveFocus()
+                enabled: control.urlSchemeModel[control.currentScheme] !== "file"
                 placeholderText: urlInModel.scheme === "ssh" ? qsTr("User@Host") : qsTr("Host")
                 validator: RegularExpressionValidator { regularExpression: /^[^<>:;,?"*|\\ /]+$/ }
                 text: (urlInModel.scheme === "ssh" && urlInModel.userName) ?
@@ -254,8 +241,7 @@ Page {
             MyTextField {
                 id: pathTextField
                 Layout.fillWidth: true
-                enabled: urlInModel.scheme === "file"
-                onEnabledChanged: if (enabled) forceActiveFocus()
+                enabled: control.urlSchemeModel[control.currentScheme] === "file"
                 placeholderText: qsTr("Executable")
                 validator: RegularExpressionValidator { regularExpression: /^[^<>:;,?"*|\\ ]+$/ }
                 text: urlInModel.path
@@ -290,7 +276,7 @@ Page {
     Component {
         id: sshKeyComponent
         AppSshKeyPane {
-            currentFolder: historyListModel.count ? SystemHelper.fileName(historyListModel.get(0).text) : ""
+            currentServer: urlInModel.text
             onSshKeyFileChanged: {
                 if (!sshKeyFile || SystemHelper.isSshPrivateKey(sshKeyFile))
                     control.currentSshKey = sshKeyFile
@@ -324,12 +310,12 @@ Page {
                 Layout.fillWidth: true
                 horizontalAlignment: Text.AlignRight
                 font.pointSize: appTitleSize
-                text: currentSshKey ? currentSshKey : qsTr("Please select ssh key")
+                text: control.currentSshKey ? control.currentSshKey : qsTr("Please select ssh key")
                 elide: Text.ElideLeft
             }
             SquareButton {
                 Layout.rowSpan: appPortraitView ? 2 : 1
-                enabled: urlOutModel.valid && currentSshKey
+                enabled: control.currentSshKey
                 highlighted: true
                 text: qsTr("Profile")
                 icon.source: "qrc:/icon-page-next"

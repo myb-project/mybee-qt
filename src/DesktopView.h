@@ -9,10 +9,15 @@
 #include <QSizeF>
 #include <QRectF>
 #include <QCoreApplication>
+#include <QPointer>
+#include <QWeakPointer>
 
 #include "RdpDesktopClient.h"
 #include "VncDesktopClient.h"
 #include "BaseThread.h"
+
+class SshSession;
+class SshChannelPort;
 
 class DesktopView : public QQuickPaintedItem
 {
@@ -66,10 +71,15 @@ public:
     QPointF viewCenter() const;
     void setViewCenter(const QPointF &center);
 
-    Q_INVOKABLE bool start(const QUrl &url);
+    Q_INVOKABLE bool setSshTunnel(QObject *ssh, const QUrl &url, const QString &key,
+                                  const QString &addr, int port);
+    Q_INVOKABLE bool start(const QUrl &url); // desktop url
 
     // Reimplemented from QQuickPaintedItem
     void paint(QPainter *painter) override;
+
+public slots:
+    void cancel();
 
 signals:
     void loggingChanged();
@@ -83,6 +93,8 @@ signals:
     void viewRectChanged();
     void viewScaleChanged();
     void viewCenterChanged();
+    void sshTunnelListen(const QString &addr, int port);
+    void canceled();
 
 protected:
     // Reimplemented from QQuickItem
@@ -103,6 +115,8 @@ private:
     void onSizeChanged(int width, int height);
     void onAreaChanged(int x, int y, int width, int height);
     void emitMouseAction(const QPointF &pos, int button, bool move, bool down);
+    void onStateChanged();
+    void onNewConnection();
 
     DesktopClient *desktop_client;
 
@@ -126,19 +140,23 @@ private:
     bool release_buttons;
     int mouse_buttons;
     QPoint mouse_pos;
+
+    QString tunnel_addr;
+    int tunnel_port;
+    QPointer<SshSession> ssh_session;
+    QWeakPointer<SshChannelPort> ssh_channel;
 };
 
 class RdpDesktopThread : public BaseThread<RdpDesktopClient>
 {
     Q_OBJECT
 public:
-    explicit RdpDesktopThread(const QUrl &url, QObject *parent = nullptr)
-        : BaseThread<RdpDesktopClient>(new RdpDesktopClient(url), parent)
-    {
+    explicit RdpDesktopThread(QObject *parent = nullptr)
+        : BaseThread<RdpDesktopClient>(new RdpDesktopClient, parent) {
         connect(this, &QThread::started,
-                worker(), &RdpDesktopClient::startSession, Qt::QueuedConnection);
+                worker(), &DesktopClient::startSession, Qt::QueuedConnection);
         connect(QCoreApplication::instance(), &QCoreApplication::aboutToQuit,
-                worker(), &RdpDesktopClient::stopSession, Qt::QueuedConnection);
+                worker(), &DesktopClient::stopSession, Qt::QueuedConnection);
     }
 };
 
@@ -146,13 +164,12 @@ class VncDesktopThread : public BaseThread<VncDesktopClient>
 {
     Q_OBJECT
 public:
-    explicit VncDesktopThread(const QUrl &url, QObject *parent = nullptr)
-        : BaseThread<VncDesktopClient>(new VncDesktopClient(url), parent)
-    {
+    explicit VncDesktopThread(QObject *parent = nullptr)
+        : BaseThread<VncDesktopClient>(new VncDesktopClient, parent) {
         connect(this, &QThread::started,
-                worker(), &VncDesktopClient::startSession, Qt::QueuedConnection);
+                worker(), &DesktopClient::startSession, Qt::QueuedConnection);
         connect(QCoreApplication::instance(), &QCoreApplication::aboutToQuit,
-                worker(), &VncDesktopClient::stopSession, Qt::QueuedConnection);
+                worker(), &DesktopClient::stopSession, Qt::QueuedConnection);
     }
 };
 

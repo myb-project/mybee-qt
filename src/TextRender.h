@@ -22,6 +22,7 @@
 
 #include <QQuickItem>
 #include <QPointer>
+#include <QWeakPointer>
 
 #include "Terminal.h"
 
@@ -110,8 +111,6 @@ public:
     QObject *session() const;
     void setSession(QObject *obj);
 
-    void displayText(const QString &text);
-
 signals:
     void contentItemChanged();
     void fontChanged();
@@ -141,9 +140,9 @@ signals:
     void sessionChanged();
     void shellOpened();
     void shellClosed();
-    void inputText(const QString &text);
 
 public slots:
+    void closeShell();
     void redraw();
     void mousePress(float eventX, float eventY);
     void mouseMove(float eventX, float eventY);
@@ -231,6 +230,7 @@ private:
     Terminal m_terminal;
 
     QPointer<SshSession> ssh_session;
+    QWeakPointer<SshChannelShell> ssh_shell;
 };
 
 #endif // TEXTRENDER_H

@@ -2,15 +2,20 @@
 #include <QTimer>
 #include <QMetaObject>
 #include <QtMath>
+#include <QTcpServer>
+#include <QTcpSocket>
 
 #include "DesktopView.h"
 #include "DesktopAction.h"
+#include "SshSession.h"
+#include "SshChannelPort.h"
 
 //#define TRACE_DESKTOPVIEW
 #ifdef TRACE_DESKTOPVIEW
 #include <QTime>
-#define TRACE()      qDebug() << QTime::currentTime().toString("hh:mm:ss.zzz") << Q_FUNC_INFO;
-#define TRACE_ARG(x) qDebug() << QTime::currentTime().toString("hh:mm:ss.zzz") << Q_FUNC_INFO << x;
+#include <QThread>
+#define TRACE()      qDebug() << QTime::currentTime().toString("hh:mm:ss.zzz") << QThread::currentThreadId() << Q_FUNC_INFO;
+#define TRACE_ARG(x) qDebug() << QTime::currentTime().toString("hh:mm:ss.zzz") << QThread::currentThreadId() << Q_FUNC_INFO << x;
 #else
 #define TRACE()
 #define TRACE_ARG(x)
@@ -28,9 +33,9 @@ DesktopView::DesktopView(QQuickItem *parent)
     , view_scale(0.0)
     , release_buttons(false)
     , mouse_buttons(0)
+    , tunnel_port(0)
 {
     TRACE();
-
     qRegisterMetaType<DesktopAction>("DesktopAction");
 
     setOpaquePainting(true);
@@ -137,12 +142,12 @@ bool DesktopView::start(const QUrl &url)
     DesktopClient *client = nullptr;
     QString scheme = url.scheme().toLower();
     if (scheme == "rdp") {
-        auto rdp = new RdpDesktopThread(url, this);
+        auto rdp = new RdpDesktopThread(this);
         thread = rdp;
         client = rdp->worker();
         release_buttons = true;
     } else if (scheme == "vnc") {
-        auto vnc = new VncDesktopThread(url, this);
+        auto vnc = new VncDesktopThread(this);
         thread = vnc;
         client = vnc->worker();
         release_buttons = false;
@@ -152,6 +157,7 @@ bool DesktopView::start(const QUrl &url)
         return false;
     }
 
+    client->setServerUrl(url);
     client->setLogging(client_logging);
     client->setQuality(client_quality);
     if (!client_maxsize.isEmpty()) client->setMaxSize(client_maxsize);
@@ -466,4 +472,82 @@ void DesktopView::wheelEvent(QWheelEvent *event)
         }
         event->accept();
     } else event->ignore();
+}
+
+void DesktopView::cancel()
+{
+    if (!desktop_client) return;
+    desktop_client->deleteLater();
+    desktop_client = nullptr;
+    emit canceled();
+}
+
+bool DesktopView::setSshTunnel(QObject *obj, const QUrl &url, const QString &key, const QString &addr, int port)
+{
+    TRACE_ARG(obj << url << key << addr << port);
+    if (ssh_session) {
+        qWarning() << Q_FUNC_INFO << "SshSession already set";
+        return false;
+    }
+    auto ss = qobject_cast<SshSession*>(obj);
+    if (!ss) {
+        qWarning() << Q_FUNC_INFO << "Bad Object type, SshSession expected";
+        return false;
+    }
+    if (!ss->setSshUrl(url, key) || addr.isEmpty() || port < 1) {
+        qWarning() << Q_FUNC_INFO << "Invalid parameters specified";
+        return false;
+    }
+    connect(ss, &SshSession::stateChanged, this, &DesktopView::onStateChanged);
+    tunnel_addr = addr;
+    tunnel_port = port;
+    ssh_session = ss;
+    ss->connectToHost();
+    return true;
+}
+
+void DesktopView::onStateChanged()
+{
+    TRACE();
+    if (!ssh_session || !ssh_session->isReady()) return;
+
+    auto tcp_serv = new QTcpServer(this);
+    tcp_serv->setMaxPendingConnections(1);
+    connect(tcp_serv, &QTcpServer::newConnection, this, &DesktopView::onNewConnection);
+
+    if (!tcp_serv->listen()) onErrorChanged(tcp_serv->errorString());
+    else emit sshTunnelListen(tcp_serv->serverAddress().toString(), tcp_serv->serverPort());
+}
+
+void DesktopView::onNewConnection()
+{
+    TRACE();
+    if (!ssh_session || !ssh_session->isReady()) return;
+
+    auto tcp_serv = qobject_cast<QTcpServer*>(sender());
+    if (!tcp_serv) return; // should not happend
+    QTcpSocket *sock = tcp_serv->nextPendingConnection();
+    if (!sock) return; // should not happend
+
+    tcp_serv->close();
+    sock->setSocketOption(QAbstractSocket::LowDelayOption, 1);
+    connect(sock, &QAbstractSocket::errorOccurred, this, [this,sock](QAbstractSocket::SocketError) {
+        onErrorChanged(sock->errorString());
+    });
+    connect(sock, &QTcpSocket::disconnected, tcp_serv, &QTcpServer::deleteLater);
+
+    ssh_channel = ssh_session->createPort(tunnel_addr, tunnel_port);
+    if (!ssh_channel) {
+        qWarning() << Q_FUNC_INFO << "createPort() return null pointer";
+        return;
+    }
+    auto cnl = ssh_channel.toStrongRef().data();
+    connect(cnl, &SshChannel::readyRead, this, [this,sock]() {
+        if (ssh_channel && sock->state() == QAbstractSocket::ConnectedState)
+            sock->write(ssh_channel.toStrongRef()->readAll());
+    });
+    connect(sock, &QTcpSocket::readyRead, this, [this,sock]() {
+        if (ssh_channel && sock->state() == QAbstractSocket::ConnectedState)
+            ssh_channel.toStrongRef()->write(sock->readAll());
+    });
 }

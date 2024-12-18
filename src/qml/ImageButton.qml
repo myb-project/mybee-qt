@@ -10,11 +10,11 @@ AbstractButton {
     padding: 0
     focusPolicy: Qt.NoFocus
     display: AbstractButton.IconOnly
-    scale: down ? 0.95 : (hovered ? 1.05 : 1.0)
+    scale: down ? 0.97 : (hovered ? 1.05 : 1.0)
     implicitHeight: appButtonSize
     implicitWidth: appButtonSize
 
-    required property url source
+    property url source
 
     background: Image {
         id: backgroundImage

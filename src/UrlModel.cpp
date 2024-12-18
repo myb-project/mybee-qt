@@ -27,10 +27,13 @@ bool UrlModel::isRemoteAt(const QUrl &url)
         return false;
 #ifndef QT_NO_SSL
     QString scheme = url.scheme().toLower();
-    return (scheme.startsWith('s') || scheme.endsWith('s')) ? QSslSocket::supportsSsl() : true;
-#else
-    return true;
+    if (scheme.endsWith('s'))
+        return QSslSocket::supportsSsl();
+
+    if (scheme == "ssh" || scheme == "sftp" || scheme == "scp")
+        return !url.userName().isEmpty();
 #endif
+    return true;
 }
 
 // static
@@ -121,7 +124,8 @@ QString UrlModel::fileNameAt(const QUrl &url)
 // static
 QString UrlModel::textAt(const QUrl &url)
 {
-    return url.isLocalFile() ? QStringLiteral("file:") + url.path() : url.toDisplayString();
+    return url.isLocalFile() ? QStringLiteral("file:") + url.path()
+                             : url.toDisplayString(QUrl::RemovePassword | QUrl::RemoveQuery);
 }
 
 // static

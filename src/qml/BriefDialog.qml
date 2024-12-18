@@ -4,17 +4,9 @@ import QtQuick.Layouts 1.15
 
 import CppCustomModules 1.0
 
-Dialog {
+MyDialog {
     id: control
-    modal: true
-    focus: true
-    padding: 20
-    anchors.centerIn: parent //Overlay.overlay
-    width: Math.min(parent.width, 360)
     title: titleType[control.type]
-    enter: Transition {
-        NumberAnimation { property: "opacity"; from: 0.0; to: 1.0 }
-    }
 
     enum Type { Input, Info, Warning, Error }
     property int type: 1

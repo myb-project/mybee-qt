@@ -42,26 +42,6 @@ bool HttpRequest::sslAvailable()
 #endif
 }
 
-// static
-QString HttpRequest::sslVerCompile()
-{
-#ifdef QT_NO_SSL
-    return QString();
-#else
-    return QSslSocket::sslLibraryBuildVersionString();
-#endif
-}
-
-// static
-QString HttpRequest::sslVerRuntime()
-{
-#ifdef QT_NO_SSL
-    return QString();
-#else
-    return QSslSocket::sslLibraryVersionString();
-#endif
-}
-
 QUrl HttpRequest::url() const
 {
     return request_url;

@@ -2,7 +2,8 @@
 #define RDPAUDIOPLUGIN_H
 
 #include <QPointer>
-#include <freerdp/client/rdpsnd.h>
+
+#include "freerdp/client/rdpsnd.h"
 
 class QIODevice;
 class QAudioOutput;

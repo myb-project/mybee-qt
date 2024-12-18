@@ -7,13 +7,12 @@ import CppCustomModules 1.0
 Item {
     id: control
 
-    required property var appWindow
     readonly property string myClassName: control.toString().match(/.+?(?=_)/)[0]
     readonly property string configFile: "VirtualMachines.json"
     readonly property string cbsdName: "cbsd"
     readonly property string cbsdHome: SystemHelper.userHome(cbsdName)
     readonly property bool cbsdEnabled: cbsdHome && SystemHelper.groupMembers(cbsdName).includes(SystemHelper.userName)
-    readonly property string cbsdSshKey: cbsdEnabled ? cbsdHome + "/.ssh/id_rsa" : ""
+    //readonly property string cbsdSshKey: cbsdEnabled ? cbsdHome + "/.ssh/id_rsa" : ""
     property string cbsdPath: cbsdEnabled ? SystemHelper.findExecutable(cbsdName) : ""
     property var configMap: ({})
     property int configCount: 0
@@ -26,14 +25,15 @@ Item {
 
     readonly property string sudoPswd: "Password:"
     readonly property string sudoExec: "sudo -Sp" + sudoPswd
-    readonly property string cbsdPrefix: Qt.platform.os === "unix" ? "b" : "q"
 
+    readonly property string defCbsdCapabilities: "capabilities json=1"
     readonly property string defCbsdProfiles: "get-profiles src=cloud json=1"
     readonly property string defCbsdCluster:  "cluster"
-    readonly property string defCbsdCreate:   cbsdPrefix + "create runasap=1 ci_ip4_addr=DHCP ci_gw4=10.0.0.1"
-    readonly property string defCbsdStart:    cbsdPrefix + "start quiet=1 inter=0"
-    readonly property string defCbsdStop:     cbsdPrefix + "stop quiet=1"
-    readonly property string defCbsdDestroy:  cbsdPrefix + "destroy"
+    readonly property string defCbsdCreate:   "create runasap=1 ci_ip4_addr=DHCP ci_gw4=10.0.0.1"
+    readonly property string defCbsdStart:    "start quiet=1 inter=0"
+    readonly property string defCbsdStop:     "stop quiet=1"
+    readonly property string defCbsdDestroy:  "destroy"
+    property string cbsdCapabilities: defCbsdCapabilities
     property string cbsdProfiles: defCbsdProfiles
     property string cbsdCluster:  defCbsdCluster
     property string cbsdCreate:   defCbsdCreate
@@ -57,6 +57,7 @@ Item {
 
     signal message(string text)
     signal error(string text)
+    signal parseCapabilities(string url, var array)
     signal parseProfiles(string url, var array)
     signal listDone(string url)
 
@@ -74,6 +75,7 @@ Item {
         property alias clusterPeriod:  control.clusterPeriod
         property alias progressPeriod: control.progressPeriod
 
+        property alias cbsdCapabilities: control.cbsdCapabilities
         property alias cbsdProfiles: control.cbsdProfiles
         property alias cbsdCluster:  control.cbsdCluster
         property alias cbsdCreate:   control.cbsdCreate
@@ -86,6 +88,7 @@ Item {
         clusterPeriod  = 60
         progressPeriod = 3
         cbsdSshExec  = defCbsdSshExec
+        cbsdCapabilities = defCbsdCapabilities
         cbsdProfiles = defCbsdProfiles
         cbsdCluster  = defCbsdCluster
         cbsdCreate   = defCbsdCreate
@@ -95,15 +98,15 @@ Item {
     }
 
     Component.onCompleted: {
+        // fix old settings from previous version
+        var prefix = (Qt.platform.os === "unix") ? "b" : "q"
+        if (cbsdCreate[0] === prefix) cbsdCreate = cbsdCreate.slice(1)
+        if (cbsdStart[0] === prefix) cbsdStart = cbsdStart.slice(1)
+        if (cbsdStop[0] === prefix) cbsdStop = cbsdStop.slice(1)
+        if (cbsdDestroy[0] === prefix) cbsdDestroy = cbsdDestroy.slice(1)
+
         setConfigMap()
         setCurrent(control.lastSelected)
-    }
-
-    Component.onDestruction: {
-        var list = SystemHelper.fileList(null, null, true)
-        for (var folder of list) {
-            SystemHelper.removeFile(SystemHelper.appDataPath(folder + "/lastCommand.json"))
-        }
     }
 
     Timer {
@@ -134,11 +137,9 @@ Item {
                 }
                 var list = SystemHelper.fileList(null, null, true)
                 for (var folder of list) {
-                    if (!SystemHelper.isFile(SystemHelper.appDataPath(folder + "/lastCommand.json"))) {
-                        var cfg = SystemHelper.loadObject(folder + "/lastServer")
-                        if (cfg.hasOwnProperty("server") && cfg.hasOwnProperty("ssh_key"))
-                            getList(cfg)
-                    }
+                    var cfg = SystemHelper.loadObject(folder + "/lastServer")
+                    if (cfg.hasOwnProperty("server") && cfg.hasOwnProperty("ssh_key"))
+                        getList(cfg)
                 }
             } else if (interval !== clusterDelay) {
                 interval = clusterDelay
@@ -187,10 +188,10 @@ Item {
         target: SshProcess
         function onCanceled() { currentProgress = -1 }
         function onFinished(code) {
-            message(SshProcess.url.toString() + " return " + code)
-            if (!code) parseCbsdOutput(SshProcess.command,
-                                       Url.adjustedAt(SshProcess.url, Url.RemoveQuery),
-                                       Url.hostAt(SshProcess.url))
+            message(SshProcess.sshUrl.toString() + " return " + code)
+            if (!code) {
+                parseCbsdOutput(SshProcess.command, Url.textAt(SshProcess.sshUrl), Url.hostAt(SshProcess.sshUrl))
+            }
         }
     }
 
@@ -199,15 +200,22 @@ Item {
         function onCanceled() { currentProgress = -1 }
         function onFinished(code) {
             message(cbsdPath + " return " + code)
-            if (!code) parseCbsdOutput(SystemProcess.command, "file:" + cbsdPath, cbsdName)
+            if (!code) {
+                parseCbsdOutput(SystemProcess.command, "file:" + cbsdPath, cbsdName)
+            }
         }
     }
 
     function parseCbsdOutput(command, url, dir) {
+        //console.debug("parseCbsdOutput command:", command, "url:", url, "dir:", dir)
         var cmd = command
         var pos = cmd.indexOf(cbsdName + ' ')
         if (pos < 0) return
         cmd = cmd.slice(pos + cbsdName.length + 1)
+        if (cmd.startsWith(cbsdCapabilities)) {
+            parseCapabilities(url, SystemHelper.loadArray(dir + "/capabilities.json"))
+            return
+        }
         if (cmd.startsWith(cbsdProfiles)) {
             parseProfiles(url, SystemHelper.loadArray(dir + "/profiles.json"))
             return
@@ -216,6 +224,7 @@ Item {
             parseCluster(url, SystemHelper.loadObject(dir + "/cluster.json"))
             return
         }
+        cmd = cmd.slice(1) // skip cbsdPrefix
         if (cmd.startsWith(cbsdCreate)) {
             parseCreate(url)
         } else if (!cmd.startsWith(cbsdStart) && !cmd.startsWith(cbsdStop) && !cmd.startsWith(cbsdDestroy)) {
@@ -234,6 +243,8 @@ Item {
             error("The ssh server and/or private key are not configured")
             return
         }
+        SshProcess.cancel()
+
         if (!file) SshProcess.stdOutFile = ""
         else if (SystemHelper.isAbsolute(file)) SshProcess.stdOutFile = file
         else SshProcess.stdOutFile = SystemHelper.appDataPath(Url.hostAt(url)) + '/' + file
@@ -255,6 +266,11 @@ Item {
         message(SystemProcess.command)
     }
 
+    function isCapabilities(cfg) : bool {
+        var scheme = Url.schemeAt(cfg["server"])
+        return (scheme === "ssh" || scheme === "file")
+    }
+
     function isSchemeEnabled(scheme) : bool {
         switch (scheme) {
         case "http":    return true
@@ -265,7 +281,23 @@ Item {
         return false
     }
 
+    function getCapabilities(cfg) {
+        var scheme = Url.schemeAt(cfg["server"])
+        if (isSchemeEnabled(scheme)) {
+            switch (scheme) {
+            case "ssh":
+                executeSsh(cfg, cbsdCapabilities, "capabilities.json")
+                return
+            case "file":
+                executeCbsd(cbsdCapabilities, "capabilities.json")
+                return
+            }
+        }
+        error("getCapabilities: Unsupported URL scheme: " + scheme)
+    }
+
     function getProfiles(cfg) {
+        //for (var key in cfg) print(key, cfg[key])
         var scheme = Url.schemeAt(cfg["server"])
         if (isSchemeEnabled(scheme)) {
             switch (scheme) {
@@ -303,6 +335,12 @@ Item {
         error("getList: Unsupported URL scheme: " + scheme)
     }
 
+    function cbsdPrefix(cfg) : string {
+        if (cfg["prefix"]) return cfg["prefix"]
+        if (cfg["emulator"]) return cfg["emulator"][0]
+        return (Qt.platform.os === "unix" ? "b" : "q")
+    }
+
     function createVm(cfg) {
         if (control.isCreated) return // just for sanity
         var scheme = Url.schemeAt(cfg["server"])
@@ -314,7 +352,7 @@ Item {
                 return
             case "ssh":
             case "file":
-                var cmd = cbsdCreate + " inter=0 jname=" + cfg["alias"]
+                var cmd = cbsdPrefix(cfg) + cbsdCreate + " inter=0 jname=" + cfg["alias"]
                 cmd += " vm_os_type=" + (cfg["vm_os_type"] ? cfg["vm_os_type"] : cfg["type"])
                 cmd += " vm_os_profile=" + (cfg["vm_os_profile"] ? cfg["vm_os_profile"] : cfg["profile"])
 
@@ -371,10 +409,10 @@ Item {
                 RestApiSet.getDestroy(obj)
                 return
             case "ssh":
-                executeSsh(obj, cbsdDestroy + " jname=" + obj["id"])
+                executeSsh(obj, cbsdPrefix(obj) + cbsdDestroy + " jname=" + obj["id"])
                 return
             case "file":
-                executeCbsd(cbsdDestroy + " jname=" + obj["id"])
+                executeCbsd(cbsdPrefix(obj) + cbsdDestroy + " jname=" + obj["id"])
                 return
             }
         }
@@ -394,10 +432,10 @@ Item {
                 RestApiSet.getStart(cfg)
                 return
             case "ssh":
-                executeSsh(cfg, cbsdStart + " jname=" + cfg["id"])
+                executeSsh(cfg, cbsdPrefix(cfg) + cbsdStart + " jname=" + cfg["id"])
                 return
             case "file":
-                executeCbsd(cbsdStart + " jname=" + cfg["id"])
+                executeCbsd(cbsdPrefix(cfg) + cbsdStart + " jname=" + cfg["id"])
                 return
             }
         }
@@ -417,10 +455,10 @@ Item {
                 RestApiSet.getStop(cfg)
                 return
             case "ssh":
-                executeSsh(cfg, cbsdStop + " jname=" + cfg["id"])
+                executeSsh(cfg, cbsdPrefix(cfg) + cbsdStop + " jname=" + cfg["id"])
                 return
             case "file":
-                executeCbsd(cbsdStop + " jname=" + cfg["id"])
+                executeCbsd(cbsdPrefix(cfg) + cbsdStop + " jname=" + cfg["id"])
                 return
             }
         }
@@ -453,19 +491,17 @@ Item {
         parseCluster(cbsdPath, list)
     }*/
 
-    function desktopUrl() : url {
+    /*function desktopUrl() : url {
         var url = currentConfig.hasOwnProperty("desktop") ? currentConfig["desktop"].toLowerCase() : ""
         if (control.isRdpHost && (!url || url === "rdp")) {
             url = "rdp://"
             if (currentConfig.hasOwnProperty("rdp_user")) url += currentConfig["rdp_user"]
             else if (currentConfig.hasOwnProperty("id"))  url += currentConfig["id"]
             else url += Qt.application.name
-            if (currentConfig.hasOwnProperty("rdp_password"))
-                url += ':' + currentConfig["rdp_password"]
+            if (currentConfig.hasOwnProperty("rdp_password")) url += ':' + currentConfig["rdp_password"]
             if (!currentConfig.hasOwnProperty("rdp_host")) return null
             url += '@' + (Url.schemeAt(currentConfig["server"]) === "file" ? "127.0.0.1" : currentConfig["rdp_host"])
-            if (currentConfig.hasOwnProperty("rdp_port"))
-                url += ':' + currentConfig["rdp_port"]
+            if (currentConfig.hasOwnProperty("rdp_port")) url += ':' + currentConfig["rdp_port"]
             return url
         }
         if (control.isVncHost && (!url || url === "vnc")) {
@@ -473,8 +509,7 @@ Item {
             if (currentConfig.hasOwnProperty("vnc_user")) url += currentConfig["vnc_user"]
             else if (currentConfig.hasOwnProperty("id"))  url += currentConfig["id"]
             else url += Qt.application.name
-            if (currentConfig.hasOwnProperty("vnc_password"))
-                url += ':' + currentConfig["vnc_password"]
+            if (currentConfig.hasOwnProperty("vnc_password")) url += ':' + currentConfig["vnc_password"]
             if (!currentConfig.hasOwnProperty("vnc_host")) return null
             url += '@' + (Url.schemeAt(currentConfig["server"]) === "file" ? "127.0.0.1" : currentConfig["vnc_host"])
             if (currentConfig.hasOwnProperty("vnc_port")) url += ':' + currentConfig["vnc_port"]
@@ -482,7 +517,7 @@ Item {
         }
         error("Desktop feature not available")
         return null
-    }
+    }*/
 
     function setConfigMap() {
         var map = {}, cnt = 0, list = SystemHelper.fileList(null, null, true)
@@ -582,7 +617,7 @@ Item {
                     if (!ssh_key) {
                         var obj = SystemHelper.loadObject(base + "/lastServer")
                         if (obj["ssh_key"]) ssh_key = obj["ssh_key"]
-                        else if (cbsdSshKey) ssh_key = cbsdSshKey
+                        //else if (cbsdSshKey) ssh_key = cbsdSshKey
                         else ssh_key = SystemHelper.appSshKey
                     }
                     if (ssh_key) next_map[key]["ssh_key"] = ssh_key

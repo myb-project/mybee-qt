@@ -11,6 +11,7 @@ class SystemHelper : public QObject
     Q_OBJECT
     Q_DISABLE_COPY(SystemHelper)
 
+    Q_PROPERTY(QString   appCacheDir  READ appCacheDir   CONSTANT FINAL)
     Q_PROPERTY(QString   appConfigDir READ appConfigDir  CONSTANT FINAL)
     Q_PROPERTY(QString     appDataDir READ appDataDir    CONSTANT FINAL)
     Q_PROPERTY(QString     appTempDir READ appTempDir    CONSTANT FINAL)
@@ -25,16 +26,18 @@ class SystemHelper : public QObject
     Q_PROPERTY(QString       userName READ userName      CONSTANT FINAL)
     Q_PROPERTY(QString       hostName READ hostName      CONSTANT FINAL)
     Q_PROPERTY(QString     domainName READ domainName    CONSTANT FINAL)
+    Q_PROPERTY(QString     sslVersion READ sslVersion    CONSTANT FINAL)
+    Q_PROPERTY(QString     sshVersion READ sshVersion    CONSTANT FINAL)
+    Q_PROPERTY(QString     rdpVersion READ rdpVersion    CONSTANT FINAL)
+    Q_PROPERTY(QString     vncVersion READ vncVersion    CONSTANT FINAL)
 
 public:
     static constexpr char const *defaultSshKeyName = "id_ed25519"; // ED25519 supported only!
-    static constexpr char const *sshKeySearchPaths[] = { // at ~/ for desktop and Docs/ for mobile
-        ".ssh", "ssh", APP_NAME "/.ssh", APP_NAME "/ssh"
-    };
 
     explicit SystemHelper(QObject *parent = nullptr);
     ~SystemHelper();
 
+    static QString appCacheDir();
     static QString appConfigDir();
     static QString appDataDir();
     static QString appTempDir();
@@ -49,7 +52,12 @@ public:
     static QString userName();
     static QString hostName();
     static QString domainName();
+    static QString sslVersion();
+    static QString sshVersion();
+    static QString rdpVersion();
+    static QString vncVersion();
 
+    Q_INVOKABLE static QString appCachePath(const QString &name);
     Q_INVOKABLE static QString appConfigPath(const QString &name);
     Q_INVOKABLE static QString appDataPath(const QString &name);
     Q_INVOKABLE static QString appTempPath(const QString &name);
@@ -101,4 +109,8 @@ public:
     Q_INVOKABLE static QString shortcutText(const QVariant &key);
 
     Q_INVOKABLE static void setCursorShape(int shape = -1); // Qt::CursorShape, -1 to restore
+
+#ifdef Q_OS_ANDROID
+    Q_INVOKABLE static bool setAndroidPermission(const QStringList &permissions);
+#endif
 };

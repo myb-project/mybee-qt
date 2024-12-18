@@ -6,15 +6,6 @@
 #include <QCoreApplication>
 #include <QDebug>
 
-#ifdef  Q_OS_ANDROID
-#if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
-#include <QtAndroidExtras>
-#else
-#include <QJniEnvironment>
-#include <QJniObject>
-#endif
-#endif
-
 #ifdef Q_OS_WIN
 #include <windows.h>
 #include <lmcons.h>
@@ -70,7 +61,7 @@ static QString defaultPrivateKey()
 {
     static QString private_key;
     if (private_key.isEmpty()) {
-#if defined(__mobile__)
+#if defined(Q_OS_ANDROID) || defined(Q_OS_IOS)
         QString path = QStandardPaths::writableLocation(QStandardPaths::AppConfigLocation);
 #else
         QString path = QStandardPaths::writableLocation(QStandardPaths::HomeLocation) + "/.ssh";
@@ -122,17 +113,6 @@ SshSettings::SshSettings()
 {
 }
 
-SshSettings::SshSettings(const QUrl &url, const QString &key)
-    : d(new SshSettingsData)
-{
-    if (url.isValid()) {
-        if (!url.userName().isEmpty()) setUser(url.userName());
-        if (!url.host().isEmpty())     setHost(url.host());
-        if (isPort(url.port()))        setPort(url.port());
-        if (!key.isEmpty())            setPrivateKey(key);
-    }
-}
-
 SshSettings::SshSettings(const QString &user, const QString &host, quint16 port, const QString &key)
     : d(new SshSettingsData)
 {
@@ -181,6 +161,12 @@ bool SshSettings::operator!=(const SshSettings &other) const
             d->env_vars != other.d->env_vars);
 }
 
+// static
+SshSettings SshSettings::fromUrl(const QUrl &url, const QString &key)
+{
+    return (url.isValid() ? SshSettings(url.userName(), url.host(), url.port(defaultPortNumber), key) : SshSettings());
+}
+
 bool SshSettings::isValid() const
 {
     return (!d->host.isEmpty() && isPort(d->port) && (!d->password.isEmpty() || !d->private_key.isEmpty()));
@@ -201,6 +187,18 @@ QString SshSettings::toString(const QString &scheme) const
 
     return url;
 }
+
+/*void SshSettings::clear()
+{
+    d->user.clear();
+    d->host.clear();
+    d->port = 0;
+    d->timeout = 0;
+    d->password.clear();
+    d->private_key.clear();
+    d->term_type.clear();
+    d->env_vars.clear();
+}*/
 
 QString SshSettings::user() const
 {

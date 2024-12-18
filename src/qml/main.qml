@@ -55,6 +55,7 @@ ApplicationWindow {
     Material.primary:    active ? MaterialSet.theme[Material.theme]["primary"]
                                 : MaterialSet.theme[Material.theme]["shadePrimary"]
 
+    // for debugging purposes only
     //onActiveFocusControlChanged: console.debug("activeFocusControl", activeFocusControl)
     //onActiveFocusItemChanged: console.debug("activeFocusItem", activeFocusItem)
 
@@ -64,11 +65,12 @@ ApplicationWindow {
         property alias height: appWindow.height
         property alias materialTheme: appWindow.appMaterialTheme
         property alias origFontSize: appWindow.appOrigFontSize
+        property alias splitHFactor: appMainPage.splitHFactor
+        property alias splitVFactor: appMainPage.splitVFactor
     }
     onFontChanged: appSettings.setValue("lastFontSize", appWindow.font.pointSize)
 
     Component.onCompleted: {
-        VMConfigSet.appWindow = appWindow
         if (appWindow.width === appStartWidth && appWindow.height === appStartHeight) {
             appWindow.width = appFitWidth
             appWindow.height = appFitHeight
@@ -119,6 +121,16 @@ ApplicationWindow {
             }
         }
         VMConfigSet.clusterEnabled = true
+
+        if (Qt.application.os === "android") {
+            Qt.callLater(function() {
+                if (!SystemHelper.setAndroidPermission(
+                            ["android.permission.INTERNET",
+                             "android.permission.WRITE_EXTERNAL_STORAGE",
+                             "android.permission.ACCESS_NETWORK_STATE"]))
+                    appError(qsTr("Insufficient Android permissions"))
+            })
+        }
     }
 
     onClosing: function(close) {
@@ -135,10 +147,10 @@ ApplicationWindow {
     }
 
     function appTimeLogger(text) {
-        if (appShowDebug) appSplitView.appendText(Qt.formatTime(new Date(), Qt.ISODateWithMs) + ' ' + text)
+        if (appShowDebug) appMainPage.appendText(Qt.formatTime(new Date(), Qt.ISODateWithMs) + ' ' + text)
     }
     function appTextLogger(text) {
-        if (appShowDebug && VMConfigSet.currentProgress < 0) appSplitView.appendText(text)
+        if (appShowDebug && VMConfigSet.currentProgress < 0) appMainPage.appendText(text)
     }
 
     function cbsdOutputProgress(text) {
@@ -207,7 +219,7 @@ ApplicationWindow {
 
     function sshPasswordDialog(sshSession, info, prompts) {
         if (!prompts.length) return // should not happend
-        var dlg = appDialog("SshPromptsDialog.qml", { title: qsTr("Access to <b>%1</b>").arg(sshSession.url.toString()),
+        var dlg = appDialog("SshPromptsDialog.qml", { title: qsTr("Access to %1").arg(Url.textAt(sshSession.sshUrl)),
                             info: info ? info : qsTr("Host <b>%1</b> asks the following questions").arg(SystemHelper.camelCase(sshSession.hostAddress)),
                             prompts: prompts, publicKey: SystemHelper.isSshKeyPair(sshSession.settings.privateKey) })
         dlg.accepted.connect(function() {
@@ -274,23 +286,6 @@ ApplicationWindow {
         onTriggered: appPage("VMDesktopPage.qml")
     }
     Action {
-        id: appConfigAction
-        enabled: VMConfigSet.isValid && !VMConfigSet.isPowerOn && appStackView.depth === 1
-        icon.source: "qrc:/icon-config"
-        text: qsTr("Config")
-        onTriggered: appPage("VMConfigPage.qml")
-    }
-    Action {
-        id: appRemoveAction
-        enabled: VMConfigSet.isValid && appStackView.depth === 1
-        icon.source: "qrc:/icon-remove"
-        text: qsTr("Remove")
-        onTriggered: {
-            appWarning(qsTr("Do you want to remove %1?").arg(VMConfigSet.valueAt("alias")),
-                       Dialog.Yes | Dialog.No).accepted.connect(VMConfigSet.removeVm)
-        }
-    }
-    Action {
         id: appFullScreenAction
         checkable: true
         checked: visibility === ApplicationWindow.FullScreen
@@ -315,10 +310,14 @@ ApplicationWindow {
             }
         }
     }
+    Shortcut {
+        sequence: StandardKey.Quit
+        context: Qt.ApplicationShortcut
+        onActivated: Qt.quit()
+    }
 
     component ToolButtonTemplate: ToolButton {
         Layout.fillWidth: display === AbstractButton.TextUnderIcon
-        Layout.preferredWidth: 100
         Layout.fillHeight: true
         focusPolicy: Qt.NoFocus
         spacing: appTextPadding
@@ -328,6 +327,7 @@ ApplicationWindow {
     }
 
     header: ToolBar {
+        Material.elevation: MaterialSet.theme[Material.theme]["elevation"]
         StackLayout {
             anchors.fill: parent
             currentIndex: VMConfigSet.isBusy ? 1 : 0
@@ -341,13 +341,8 @@ ApplicationWindow {
                     icon.source: appStackView.depth > 1 ? "qrc:/icon-return" : "qrc:/icon-menu"
                     rotation: -appSidebarDrawer.position * 90
                 }
-                Label {
+                TitleLabel {
                     Layout.fillWidth: true
-                    horizontalAlignment: Text.AlignHCenter
-                    font.pointSize: appTitleSize
-                    style: Text.Raised
-                    styleColor: "gray"
-                    elide: Text.ElideRight
                     text: (appStackView.currentItem && appStackView.currentItem.title) ? appStackView.currentItem.title : VMConfigSet.valueAt("name")
                 }
                 ToolButtonTemplate {
@@ -376,7 +371,10 @@ ApplicationWindow {
                     enabled: !appSidebarDrawer.visible
                     focusPolicy: Qt.NoFocus
                     icon.source: "qrc:/icon-more"
-                    onClicked: appContextMenu.popup()
+                    onClicked: {
+                        if (appContextMenu.visible) appContextMenu.close()
+                        else appContextMenu.popup(this, 0, height)
+                    }
                 }
             }
             RowLayout {
@@ -388,7 +386,7 @@ ApplicationWindow {
                 }
                 Label {
                     text: HttpRequest.running ? HttpRequest.url.toString() :
-                           (SshProcess.running ? SshProcess.url.toString() : SystemProcess.command)
+                           (SshProcess.running ? Url.textAt(SshProcess.sshUrl) : SystemProcess.command)
                     elide: Text.ElideRight
                     TapHandler {
                         onTapped: appEscapeAction.trigger()
@@ -409,12 +407,7 @@ ApplicationWindow {
         focus: true // turn-on active focus here
         transform: Translate { x: appSidebarDrawer.position * appSidebarDrawer.width }
         onDepthChanged: VMConfigSet.clusterEnabled = (depth === 1)
-        initialItem: FocusScope {
-            AppSplitView {
-                id: appSplitView
-                anchors.fill: parent
-            }
-        }
+        initialItem: AppMainPage { id: appMainPage }
     }
     function appPage(qml, prop = {}) { // prevent dups
         if (appStackView.find(function(item) { return (item.objectName === qml) })) return null
@@ -438,37 +431,37 @@ ApplicationWindow {
         }
     }
 
-    Menu {
-        id: appContextMenu
-        MenuItem { action: appConfigAction }
-        MenuItem { action: appRemoveAction }
-        MenuSeparator {}
-        MenuItem {
-            action: appFullScreenAction
-            arrow: Text {
-                visible: !isMobile
-                anchors { right: parent.right; verticalCenter: parent.verticalCenter }
-                padding: parent.padding
-                font: parent.font
-                text: SystemHelper.shortcutText(parent.action.shortcut)
-                color: Material.foreground
-            }
-        }
-        MenuItem {
-            action: appCompactAction
-            arrow: Text {
-                visible: !isMobile
-                anchors { right: parent.right; verticalCenter: parent.verticalCenter }
-                padding: parent.padding
-                font: parent.font
-                text: SystemHelper.shortcutText(parent.action.shortcut)
-                color: Material.foreground
-            }
+    component MenuItemTemplate: MenuItem {
+        arrow: Text {
+            visible: !isMobile && parent.enabled
+            anchors { right: parent.right; rightMargin: parent.rightPadding; verticalCenter: parent.verticalCenter }
+            font: parent.font
+            text: SystemHelper.shortcutText(parent.action.shortcut)
+            color: Material.foreground
         }
     }
-    TapHandler {
-       acceptedButtons: Qt.RightButton
-       onTapped: appContextMenu.popup()
+
+    Menu {
+        id: appContextMenu
+        Material.background: MaterialSet.theme[Material.theme]["highlight"]
+        Material.elevation: MaterialSet.theme[Material.theme]["elevation"]
+        MenuItemTemplate { action: appFullScreenAction }
+        MenuItemTemplate { action: appCompactAction }
+        MenuSeparator {}
+
+        property int fixedItems: 0
+        Component.onCompleted: fixedItems = count
+        onAboutToShow: {
+            var i
+            for (i = count - 1; i >= fixedItems; i--) {
+                takeAction(i)
+            }
+            if (appStackView.currentItem && appStackView.currentItem.actionsList) {
+                for (i = 0; i < appStackView.currentItem.actionsList.length; i++) {
+                    addAction(appStackView.currentItem.actionsList[i])
+                }
+            }
+        }
     }
 
     AppSidebarDrawer {

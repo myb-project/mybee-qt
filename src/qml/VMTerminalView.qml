@@ -5,7 +5,6 @@ import CppCustomModules 1.0
 
 TextRender {
     id: control
-    focus: !isMobile
     dragMode: isMobile ? TextRender.DragScroll : TextRender.DragSelect
 
     property int cutAfter: height

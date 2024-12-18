@@ -15,7 +15,7 @@
 #define TRACE_ARG(x)
 #endif
 
-SshChannel::SshChannel(ssh::Session &sshSession)
+SshChannel::SshChannel(ssh::Session &sshSession, bool set_callbacks)
     : QIODevice()
     , lib_channel(sshSession)
     , eof_sent(false)
@@ -27,28 +27,31 @@ SshChannel::SshChannel(ssh::Session &sshSession)
     read0_buffer.reserve(read0_bufsize);
     write_buffer.reserve(write_bufsize);
     TRACE_ARG(read0_bufsize << write_bufsize);
+
+    if (set_callbacks) {
+        ::memset(&lib_callback, 0, sizeof(lib_callback));
+        lib_callback.userdata                     = this;
+        lib_callback.channel_data_function        = libDataCallback;
+        lib_callback.channel_eof_function         = libEofCallback;
+        lib_callback.channel_close_function       = libCloseCallback;
+        lib_callback.channel_signal_function      = libSignalCallback;
+        lib_callback.channel_exit_status_function = libExitStatusCallback;
+        lib_callback.channel_exit_signal_function = libExitSignalCallback;
+        ssh_callbacks_init(&lib_callback);
+        if (::ssh_set_channel_callbacks(lib_channel.getCChannel(), &lib_callback) != SSH_OK) {
+            qCritical() << Q_FUNC_INFO << "ssh_set_channel_callbacks:" << ::ssh_get_error(lib_channel.getCSession());
+            return;
+        }
+    }
+    if (!QIODevice::open(QIODevice::ReadWrite | QIODevice::Unbuffered)) {
+        qCritical() << Q_FUNC_INFO << "QIODevice::open() failed";
+        return;
+    }
 }
 
 SshChannel::~SshChannel()
 {
     TRACE();
-}
-
-void SshChannel::setCallbacks()
-{
-    TRACE();
-    ::memset(&lib_callback, 0, sizeof(lib_callback));
-    lib_callback.userdata                     = this;
-    lib_callback.channel_data_function        = libDataCallback;
-    lib_callback.channel_eof_function         = libEofCallback;
-    lib_callback.channel_close_function       = libCloseCallback;
-    lib_callback.channel_signal_function      = libSignalCallback;
-    lib_callback.channel_exit_status_function = libExitStatusCallback;
-    lib_callback.channel_exit_signal_function = libExitSignalCallback;
-    ssh_callbacks_init(&lib_callback);
-    if (::ssh_set_channel_callbacks(lib_channel.getCChannel(), &lib_callback) != SSH_OK) {
-        qCritical() << Q_FUNC_INFO << "ssh_set_channel_callbacks:" << ::ssh_get_error(lib_channel.getCSession());
-    }
 }
 
 // This functions will be called when there is data available:
@@ -215,6 +218,7 @@ void SshChannel::sendEof()
 
 void SshChannel::clearBuffers()
 {
+    TRACE();
     read0_buffer.clear();
     read1_buffer.clear();
     write_buffer.clear();
@@ -310,10 +314,11 @@ bool SshChannel::atEnd() const
 
 qint64 SshChannel::readData(char *data, qint64 max_len)
 {
-    TRACE_ARG(max_len);
+    TRACE_ARG(data << max_len);
     if (!data || max_len < 1) return 0;
     bool std_err = (readChannelCount() && currentReadChannel());
     int size = std_err ? read1_buffer.size() : read0_buffer.size();
+    TRACE_ARG(std_err << size);
     if (size > 0) {
         if (size > max_len) size = max_len;
         if (std_err) {
@@ -329,7 +334,7 @@ qint64 SshChannel::readData(char *data, qint64 max_len)
 
 qint64 SshChannel::writeData(const char *data, qint64 len)
 {
-    TRACE_ARG(len);
+    TRACE_ARG(data << len);
     if (!data || len < 1 || (!isChannelOpen() || ::ssh_channel_is_eof(lib_channel.getCChannel()) != 0))
         return 0;
 

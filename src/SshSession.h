@@ -13,10 +13,12 @@
 
 class QTimer;
 class SshChannel;
+class SshChannelShell;
 class SshChannelExec;
+class SshChannelPort;
+
 class SshSession;
 typedef void (SshSession::*libSessionFunc)();
-class TextRender;
 
 class SshSession : public QObject
 {
@@ -24,7 +26,7 @@ class SshSession : public QObject
     Q_PROPERTY(int           logLevel READ logLevel     WRITE setLogLevel NOTIFY logLevelChanged FINAL)
     Q_PROPERTY(SshSettings   settings READ settings     WRITE setSettings NOTIFY settingsChanged FINAL)
     Q_PROPERTY(bool          shareKey READ shareKey     WRITE setShareKey NOTIFY shareKeyChanged FINAL)
-    Q_PROPERTY(QUrl               url READ url          NOTIFY urlChanged FINAL)
+    Q_PROPERTY(QUrl            sshUrl READ sshUrl       NOTIFY sshUrlChanged FINAL)
     Q_PROPERTY(int              state READ state        NOTIFY stateChanged FINAL)
     Q_PROPERTY(bool           running READ running      NOTIFY runningChanged FINAL)
     Q_PROPERTY(QString    hostAddress READ hostAddress  NOTIFY hostAddressChanged FINAL)
@@ -86,8 +88,9 @@ public:
     Q_ENUM(KnownHost)
 
     void setLogLevel(int level);
-    void setSettings(const SshSettings &settings);
+    bool setSettings(const SshSettings &settings);
     void setShareKey(bool enable);
+    Q_INVOKABLE bool setSshUrl(const QUrl &url, const QString &key);
 
     bool isConnected() const;
     bool isEstablished() const;
@@ -96,7 +99,7 @@ public:
     int logLevel() const { return log_level; }
     SshSettings settings() const { return ssh_settings; }
     bool shareKey() const { return share_key; }
-    QUrl url() const { return ssh_url; }
+    QUrl sshUrl() const { return ssh_url; }
     int state() const { return session_state; }
     bool running() const { return ssh_running; }
     QString hostAddress() const { return host_address; }
@@ -120,8 +123,8 @@ signals:
     void logLevelChanged();
     void settingsChanged();
     void shareKeyChanged();
-    void lastErrorChanged();
-    void urlChanged();
+    void lastErrorChanged(const QString &text);
+    void sshUrlChanged();
     void stateChanged();
     void runningChanged();
     void hostAddressChanged();
@@ -137,8 +140,11 @@ signals:
 protected:
     friend class TextRender;
     friend class SshProcess;
-    void createShell(TextRender *render);
+    friend class DesktopView;
+    QWeakPointer<SshChannelShell> createShell();
     QWeakPointer<SshChannelExec> createExec(const QString &command);
+    QWeakPointer<SshChannelPort> createPort(const QString &host, quint16 port);
+    void abortChannel(SshChannel *channel);
 
 private:
     void cleanUp(bool abort = false);

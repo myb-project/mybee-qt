@@ -102,7 +102,9 @@ PtyIFace::PtyIFace(const QString &charset, const QString &term, const QString &s
         ::exit(1);
 
     } else if (pid == 0) {
-        qputenv("TERM", term.isEmpty() ? QByteArrayLiteral(defaultTermType) : term.toLatin1());
+        if (!term.isEmpty())
+             qputenv("TERM", term.toLatin1());
+        else qputenv("TERM", defaultTermType);
 
         QString execCmd = shell;
         if (execCmd.isEmpty()) { // execute the user's default shell
@@ -149,8 +151,9 @@ PtyIFace::PtyIFace(const QString &charset, const QString &term, const QString &s
     }
     ::fcntl(iMasterFd, F_SETFL, O_NONBLOCK); // reads from the descriptor should be non-blocking
 
-    iTextCodec = QTextCodec::codecForName(!charset.isEmpty() ? charset.toLatin1()
-                                                             : QByteArrayLiteral(defaultCharset));
+    if (!charset.isEmpty())
+         iTextCodec = QTextCodec::codecForName(charset.toLatin1());
+    else iTextCodec = QTextCodec::codecForName(defaultCharset);
 }
 
 PtyIFace::~PtyIFace()

@@ -17,13 +17,16 @@ class DesktopClient : public QObject
 public:
     static constexpr char const *defaultBellSound = "short-pulse.wav";
 
-    explicit DesktopClient(const QUrl &serverUrl, QObject *parent = nullptr);
+    explicit DesktopClient(QObject *parent = nullptr);
     virtual ~DesktopClient();
 
     enum Quality { QualityFast, QualityAve, QualityBest };
 
     virtual void setLogging(bool enable); // do nothing by default
+    virtual void startSession() = 0;
+    virtual void stopSession() = 0;
 
+    void setServerUrl(const QUrl &url);
     QUrl serverUrl() const;
 
     QSize maxSize() const;

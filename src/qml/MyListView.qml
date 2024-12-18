@@ -38,12 +38,12 @@ ListView {
 
     highlightMoveDuration: 250
     highlightResizeDuration: 0
-    highlightFollowsCurrentItem: true
+    highlightFollowsCurrentItem: control.underline
     highlightRangeMode: ListView.ApplyRange
     preferredHighlightBegin: 48
     preferredHighlightEnd: width - 48
     highlight: Item {
-        visible: control.count && ~control.currentIndex
+        visible: control.underline && control.count && ~control.currentIndex
         z: 2
         Rectangle {
             height: 2

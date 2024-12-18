@@ -9,27 +9,34 @@ Pane {
     padding: 0
 
     property int maxLines: 4
-    //property int rowHeight: listView.currentItem ? Math.round(listView.currentItem.implicitHeight) : appRowHeight
-    property string currentFolder
+    required property string currentServer
     readonly property string sshKeyFile: (listView.currentIndex >= 0 && listView.currentIndex < listModel.count) ?
                                              listModel.get(listView.currentIndex).text : ""
 
     Component.onCompleted: {
-        addSshKey(VMConfigSet.cbsdSshKey)
-        var i, list = SystemHelper.sshKeyPairs()
-        for (i = 0; i < list.length; i++) addSshKey(list[i])
+        //addSshKey(VMConfigSet.cbsdSshKey)
+        var list = SystemHelper.sshKeyPairs()
+        for (var i = 0; i < list.length; i++) addSshKey(list[i])
 
-        if (currentFolder) {
-            var obj = SystemHelper.loadObject(currentFolder + "/lastServer")
+        setCurrentIndex()
+    }
+
+    onCurrentServerChanged: setCurrentIndex()
+
+    function setCurrentIndex() {
+        if (!listModel.count) return
+        if (Url.isValidAt(currentServer)) {
+            var obj = SystemHelper.loadObject(SystemHelper.fileName(currentServer) + "/lastServer")
             if (obj.hasOwnProperty("ssh_key")) {
-                for (i = 0; i < listModel.count; i++) {
+                for (var i = 0; i < listModel.count; i++) {
                     if (listModel.get(i).text === obj["ssh_key"]) {
                         listView.currentIndex = i
-                        break
+                        return
                     }
                 }
             }
         }
+        listView.currentIndex = 0
     }
 
     function addSshKey(path) : int {
@@ -58,9 +65,11 @@ Pane {
             implicitWidth: 250
             implicitHeight: appRowHeight * control.maxLines
             focus: true
+            underline: true
             currentIndex: count === 1 ? 0 : -1
             model: listModel
             delegate: ItemDelegate {
+                //enabled: !index || Url.schemeAt(control.currentServer) !== "file"
                 padding: appTextPadding
                 spacing: 0
                 width: ListView.view.width
@@ -68,7 +77,7 @@ Pane {
                 highlighted: ListView.isCurrentItem
                 text: model.text
                 icon.source: model.icon
-                icon.color: "transparent"
+                icon.color: enabled ? "transparent" : "gray"
                 onClicked: {
                     listView.forceActiveFocus()
                     ListView.view.currentIndex = index
@@ -105,10 +114,10 @@ Pane {
                 FlashingPoint { visible: !listView.count }
             }
             SquareButton {
-                enabled: sshKeyFile
+                enabled: control.sshKeyFile
                 icon.source: "qrc:/icon-open-view"
                 ToolTip.text: qsTr("View file")
-                onClicked: appPage("AppFileView.qml", { "filePath": sshKeyFile })
+                onClicked: appPage("AppFileView.qml", { "filePath": control.sshKeyFile })
             }
             SquareButton {
                 enabled: listView.count && ~listView.currentIndex

@@ -319,7 +319,7 @@ static void generate_seed(u8 *a, u32 size) {
 #ifdef Q_OS_WIN
     HCRYPTPROV prov;
     if (CryptAcquireContext(&prov, NULL, NULL, PROV_RSA_FULL, CRYPT_VERIFYCONTEXT)) {
-        ok = CryptGenRandom(prov, size, (BYTE*)a));
+        ok = CryptGenRandom(prov, size, (BYTE*)a);
         CryptReleaseContext(prov, 0);
     }
 #else

@@ -6,24 +6,42 @@
 
 #include "DesktopClient.h"
 
-DesktopClient::DesktopClient(const QUrl &url, QObject *parent)
+//#define TRACE_DESKTOPCLIENT
+#ifdef  TRACE_DESKTOPCLIENT
+#include <QTime>
+#include <QThread>
+#define TRACE()      qDebug() << QTime::currentTime().toString("hh:mm:ss.zzz") << QThread::currentThreadId() << Q_FUNC_INFO;
+#define TRACE_ARG(x) qDebug() << QTime::currentTime().toString("hh:mm:ss.zzz") << QThread::currentThreadId() << Q_FUNC_INFO << x;
+#else
+#define TRACE()
+#define TRACE_ARG(x)
+#endif
+
+DesktopClient::DesktopClient(QObject *parent)
     : QObject(parent)
-    , server_url(url)
     , image_quality(QualityAve)
     , sound_effect(new QSoundEffect(this))
 {
+    TRACE();
     setBellSound(defaultBellSound);
     connect(sound_effect, &QSoundEffect::sourceChanged, this, &DesktopClient::bellSoundChanged);
 }
 
 DesktopClient::~DesktopClient()
 {
+    TRACE();
 }
 
 void DesktopClient::setLogging(bool enable)
 {
     Q_UNUSED(enable)
     // do nothing by default
+}
+
+void DesktopClient::setServerUrl(const QUrl &url)
+{
+    TRACE_ARG(url);
+    server_url = url;
 }
 
 QUrl DesktopClient::serverUrl() const
@@ -38,6 +56,7 @@ QSize DesktopClient::maxSize() const
 
 void DesktopClient::setMaxSize(const QSize &size)
 {
+    TRACE_ARG(size);
     if (!size.isEmpty() && size != image_maxsize) {
         image_maxsize = size;
         emit maxSizeChanged();
@@ -51,6 +70,7 @@ DesktopClient::Quality DesktopClient::quality() const
 
 void DesktopClient::setQuality(Quality quality)
 {
+    TRACE_ARG(quality);
     if (quality != image_quality) {
         image_quality = quality;
         emit qualityChanged();
@@ -64,6 +84,7 @@ QString DesktopClient::bellSound() const
 
 bool DesktopClient::setBellSound(const QString &wavFile)
 {
+    TRACE_ARG(wavFile);
     if (wavFile.isEmpty()) return false;
     QString path = wavFile;
     if (QFileInfo(wavFile).isRelative()) {
@@ -85,6 +106,7 @@ QImage DesktopClient::scaledImage(const QSize &size) const
 
 void DesktopClient::setBufferImage(const QImage &image)
 {
+    TRACE_ARG(image.size());
     image_mutex.lockForWrite();
     buffer_image = image;
     image_mutex.unlock();
@@ -92,6 +114,7 @@ void DesktopClient::setBufferImage(const QImage &image)
 
 void DesktopClient::setImageLocked(bool on)
 {
+    TRACE_ARG(on);
     if (on) image_mutex.lockForWrite();
     else    image_mutex.unlock();
 }

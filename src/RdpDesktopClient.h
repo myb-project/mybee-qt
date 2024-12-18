@@ -3,7 +3,7 @@
 
 #include <QMap>
 
-#include <freerdp/freerdp.h>
+#include "freerdp/freerdp.h"
 
 #include "DesktopClient.h"
 
@@ -11,12 +11,12 @@ class RdpDesktopClient : public DesktopClient
 {
     Q_OBJECT
 public:
-    explicit RdpDesktopClient(const QUrl &url, QObject *parent = nullptr);
+    explicit RdpDesktopClient(QObject *parent = nullptr);
     ~RdpDesktopClient();
 
     void setLogging(bool enable) override;
-    void startSession();
-    void stopSession();
+    void startSession() override;
+    void stopSession() override;
 
 public slots:
     void sendInputAction(const QString &text) override;

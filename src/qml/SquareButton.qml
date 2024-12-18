@@ -5,7 +5,6 @@ RoundButton {
     id: control
 
     property bool stretchable: false
-    focusPolicy: Qt.ClickFocus
     font: textMetric.font
     radius: appTextPadding
     display: AbstractButton.TextUnderIcon

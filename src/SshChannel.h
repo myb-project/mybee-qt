@@ -40,10 +40,9 @@ signals:
     void channelClosed();
 
 protected:
-    explicit SshChannel(ssh::Session &sshSession);
+    explicit SshChannel(ssh::Session &sshSession, bool set_callbacks = true);
     mutable ssh::Channel lib_channel;
 
-    void setCallbacks(); // initialize the following callbacks if required
     virtual int dataReceived(const char *data, int len, bool std_err); // append to read_buffer
     virtual void eofReceived();   // emit readChannelFinished() by default
     virtual void closeReceived(); // call QIODevice::close() and emit channelClosed() by default

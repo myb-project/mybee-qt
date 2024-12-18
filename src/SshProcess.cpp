@@ -141,12 +141,7 @@ void SshProcess::start(const QUrl &url, const QString &key)
         qWarning() << Q_FUNC_INFO << "An empty command specified";
         return;
     }
-    SshSettings settings(url, key);
-    if (!settings.isValid()) {
-        qWarning() << Q_FUNC_INFO << "The settings is invalid";
-        return;
-    }
-    setSettings(settings);
+    setSettings(SshSettings::fromUrl(url, key));
 
     if (!ssh_session) {
         auto ss = new SshSession(this);
@@ -172,9 +167,9 @@ void SshProcess::start(const QUrl &url, const QString &key)
 
     QUrl cmd(ssh_settings.toString());
     cmd.setQuery(run_command);
-    if (cmd != cmd_url) {
-        cmd_url = cmd;
-        emit urlChanged();
+    if (cmd != ssh_url) {
+        ssh_url = cmd;
+        emit sshUrlChanged();
     }
     exit_status = -1;
     ssh_session->connectToHost();
@@ -244,15 +239,13 @@ void SshProcess::onChannelClosed()
     emit finished(exit_status);
 }
 
-void SshProcess::onLastErrorChanged()
+void SshProcess::onLastErrorChanged(const QString &text)
 {
     TRACE();
 
     onChannelClosed();
     if (ssh_session) {
-        QString text = ssh_session->lastError();
-        if (text.isEmpty()) text = QStringLiteral("Unknown error");
-        emit execError(cmd_url.toString() + "\n\n" + text);
+        emit execError(ssh_url.toString() + "\n\n" + (!text.isEmpty() ? text : QStringLiteral("Unknown error")));
     }
 }
 
@@ -332,9 +325,10 @@ void SshProcess::giveAnswers(const QStringList &answers)
     TRACE_ARG(answers);
     if (ssh_session) ssh_session->giveAnswers(answers);
 }
-
+/*
 // static
 SshSettings SshProcess::sshSettings(const QString &user, const QString &host, quint16 port, const QString &key)
 {
     return SshSettings(user, host, port, key);
 }
+*/

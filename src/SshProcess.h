@@ -23,7 +23,7 @@ class SshProcess : public QObject
     Q_PROPERTY(QString    stdErrFile READ stdErrFile WRITE setStdErrFile NOTIFY stdErrFileChanged FINAL)
     Q_PROPERTY(QStringList stdOutput READ stdOutput  NOTIFY stdOutputChanged FINAL)
     Q_PROPERTY(QStringList  stdError READ stdError   NOTIFY stdErrorChanged FINAL)
-    Q_PROPERTY(QUrl              url READ url        NOTIFY urlChanged FINAL)
+    Q_PROPERTY(QUrl           sshUrl READ sshUrl     NOTIFY sshUrlChanged FINAL)
     Q_PROPERTY(bool          running READ running    NOTIFY runningChanged FINAL)
     Q_PROPERTY(bool        executing READ executing  NOTIFY executingChanged FINAL)
     // The following properties are inherited from the SshSession class
@@ -50,7 +50,7 @@ public:
 
     QStringList stdOutput() const { return std_output; }
     QStringList stdError() const { return std_error; }
-    QUrl url() const { return cmd_url; }
+    QUrl sshUrl() const { return ssh_url; }
     bool running() const { return now_running; }
     bool executing() const { return now_executing; }
 
@@ -66,8 +66,8 @@ public:
     Q_INVOKABLE static QString defaultTermType() { return SshSettings::defaultTermType; }
     Q_INVOKABLE static QString portNumberKey() { return SshSettings::portNumberKey; }
     Q_INVOKABLE static QString timeoutSecKey() { return SshSettings::timeoutSecKey; }
-    Q_INVOKABLE static SshSettings sshSettings(const QString &user, const QString &host,
-                                               quint16 port, const QString &key);
+    /*Q_INVOKABLE static SshSettings sshSettings(const QString &user, const QString &host,
+                                               quint16 port, const QString &key);*/
 
 public slots:
     void start(const QUrl &url, const QString &key);
@@ -82,7 +82,7 @@ signals:
     void commandChanged();
     void stdOutFileChanged();
     void stdErrFileChanged();
-    void urlChanged();
+    void sshUrlChanged();
     void runningChanged();
     void executingChanged();
     void stdOutputChanged(const QString &text);
@@ -103,14 +103,14 @@ private:
     void onStateChanged();
     void onChannelOpened();
     void onChannelClosed();
-    void onLastErrorChanged();
+    void onLastErrorChanged(const QString &text);
     void readStdoutData(const QByteArray &data);
     void readStderrData(const QByteArray &data);
 
     SshSettings ssh_settings;
     QString run_command;
     QFile std_out_file, std_err_file;
-    QUrl cmd_url;
+    QUrl ssh_url;
 
     QPointer<SshSession> ssh_session;
     QWeakPointer<SshChannelExec> ssh_exec;
