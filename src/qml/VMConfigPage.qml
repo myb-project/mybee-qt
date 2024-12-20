@@ -132,6 +132,7 @@ Page {
     Component {
         id: aliasComponent
         MyTextField {
+            validator: RegularExpressionValidator { regularExpression: /^[a-zA-Z][a-zA-Z0-9_]+/ }
             text: currentProfile.hasOwnProperty("alias") ? currentProfile["alias"] : ""
             onTextChanged: aliasLabel.text = text
             onEditingFinished: currentProfile["alias"] = text

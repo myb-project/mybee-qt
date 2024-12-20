@@ -2,6 +2,7 @@
 #define SYSTEMPROCESS_H
 
 #include <QProcess>
+#include <QProcessEnvironment>
 
 class SystemProcess : public QObject
 {
@@ -9,6 +10,7 @@ class SystemProcess : public QObject
     Q_DISABLE_COPY(SystemProcess)
 
     Q_PROPERTY(QString       command READ command    WRITE setCommand    NOTIFY commandChanged FINAL)
+    Q_PROPERTY(QStringList   envList READ envList    WRITE setEnvList    NOTIFY envListChanged)
     Q_PROPERTY(QString    stdOutFile READ stdOutFile WRITE setStdOutFile NOTIFY stdOutFileChanged FINAL)
     Q_PROPERTY(QString    stdErrFile READ stdErrFile WRITE setStdErrFile NOTIFY stdErrFileChanged FINAL)
     Q_PROPERTY(QStringList stdOutput READ stdOutput  NOTIFY stdOutputChanged FINAL)
@@ -22,6 +24,10 @@ public:
 
     QString command() const;
     void setCommand(const QString &cmd);
+
+    QStringList envList() const;
+    void setEnvList(const QStringList &env_list);
+    Q_INVOKABLE static QStringList sysEnvList();
 
     QString stdOutFile() const;
     void setStdOutFile(const QString &filename);
@@ -42,6 +48,7 @@ public slots:
 
 signals:
     void commandChanged();
+    void envListChanged();
     void stdOutFileChanged();
     void stdErrFileChanged();
     void runningChanged();
@@ -57,6 +64,7 @@ private:
     void onFinished(int code, QProcess::ExitStatus status);
 
     QString run_command;
+    QProcessEnvironment proc_env;
     QString std_out_file, std_err_file;
 
     QProcess *run_process;

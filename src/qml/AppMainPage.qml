@@ -92,7 +92,13 @@ Page {
                 var obj = map[key]
                 var icon = !obj.hasOwnProperty("id") ? "qrc:/icon-template" :
                     (obj["is_power_on"] === true || obj["is_power_on"] === "true") ? "qrc:/icon-power-on" : "qrc:/icon-power-off"
-                configListModel.append({ "key": key, "icon": icon, "text": obj["alias"], "tip": qsTr("%1 on %2").arg(obj["name"]).arg(obj["server"]), "server": obj["server"] })
+                configListModel.append({
+                    "key": key,
+                    "icon": icon,
+                    "text": obj["alias"],
+                    "tip": qsTr("%1 on %2 %3").arg(obj["name"]).arg(obj["server"]).arg(obj["emulator"]),
+                    "server": obj["server"]
+                })
             }
             for (var i = 0; i < count; i++) {
                 if (get(i).key === VMConfigSet.lastSelected) {
@@ -167,7 +173,7 @@ Page {
             delegate: ItemDelegate {
                 padding: appTextPadding
                 spacing: appTextPadding
-                width: appPortraitView ? Math.max(control.buttonWidth, Math.floor(ListView.view.width / Math.max(ListView.view.count, 1))) : ListView.view.width
+                width: appPortraitView ? Math.max(control.buttonWidth, Math.floor(listView.width / Math.max(listView.count, 1))) : listView.width
                 display: appPortraitView ? AbstractButton.TextUnderIcon : AbstractButton.TextBesideIcon
                 highlighted: ListView.isCurrentItem
                 text: model.text
@@ -193,7 +199,7 @@ Page {
                 property: appPortraitView ? null : "server"
                 delegate: Label {
                     anchors.left: parent.left
-                    width: Math.min(ListView.view.width, implicitWidth)
+                    width: Math.min(listView.width, implicitWidth)
                     padding: appRowHeight / 2
                     font.pointSize: appTitleSize
                     text: section

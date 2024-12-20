@@ -319,27 +319,27 @@
 <context>
     <name>AppSidebarDrawer</name>
     <message>
-        <location filename="../qml/AppSidebarDrawer.qml" line="31"/>
+        <location filename="../qml/AppSidebarDrawer.qml" line="35"/>
         <source>Visit the project homepage</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/AppSidebarDrawer.qml" line="49"/>
+        <location filename="../qml/AppSidebarDrawer.qml" line="53"/>
         <source>Preferences</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/AppSidebarDrawer.qml" line="54"/>
+        <location filename="../qml/AppSidebarDrawer.qml" line="58"/>
         <source>About</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/AppSidebarDrawer.qml" line="60"/>
+        <location filename="../qml/AppSidebarDrawer.qml" line="64"/>
         <source>Wipe</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/AppSidebarDrawer.qml" line="65"/>
+        <location filename="../qml/AppSidebarDrawer.qml" line="69"/>
         <source>Quit</source>
         <translation type="unfinished"></translation>
     </message>
@@ -1038,7 +1038,7 @@ Please choose another alias</source>
         <location filename="../qml/VMProfilePage.qml" line="107"/>
         <source>During the request to %1, we received a response from %2
 
-Use new URL instead of original?</source>
+Use a new URL instead of the original one?</source>
         <translation type="unfinished"></translation>
     </message>
     <message>

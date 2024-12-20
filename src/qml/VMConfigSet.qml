@@ -256,7 +256,10 @@ Item {
 
     function executeCbsd(args, file) {
         //console.debug("executeCbsd", args, file)
-        if (!cbsdPath) return
+        if (!cbsdPath) {
+            error("The path to cbsd is not configured")
+            return
+        }
         if (!file) SystemProcess.stdOutFile = ""
         else if (SystemHelper.isAbsolute(file)) SystemProcess.stdOutFile = file
         else SystemProcess.stdOutFile = SystemHelper.appDataPath(cbsdName) + '/' + file
@@ -352,6 +355,11 @@ Item {
                 return
             case "ssh":
             case "file":
+                var key = SystemHelper.sshPublicKey(cfg["ssh_key"] + ".pub")
+                if (!key) {
+                    error("createVm: No public ssh key at " + cfg["ssh_key"])
+                    return
+                }
                 var cmd = cbsdPrefix(cfg) + cbsdCreate + " inter=0 jname=" + cfg["alias"]
                 cmd += " vm_os_type=" + (cfg["vm_os_type"] ? cfg["vm_os_type"] : cfg["type"])
                 cmd += " vm_os_profile=" + (cfg["vm_os_profile"] ? cfg["vm_os_profile"] : cfg["profile"])
@@ -371,6 +379,7 @@ Item {
                 else cmd += RestApiSet.defCpuCount
 
                 currentProgress = 0
+                cmd += " app_frontend=mybqt ci_user_pubkey='" + key + "'"
                 if (scheme === "ssh") executeSsh(cfg, cmd)
                 else executeCbsd(cmd)
                 return

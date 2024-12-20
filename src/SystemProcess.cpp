@@ -105,6 +105,41 @@ void SystemProcess::setCommand(const QString &cmd)
     }
 }
 
+QStringList SystemProcess::envList() const
+{
+    return proc_env.toStringList();
+}
+
+void SystemProcess::setEnvList(const QStringList &env_list)
+{
+    TRACE_ARG(env_list);
+
+    if (now_running) {
+        qWarning() << Q_FUNC_INFO << "The command is currently running";
+        return;
+    }
+    QProcessEnvironment env;
+    for (const auto &var : env_list) {
+        int pos = var.indexOf('=');
+        if (pos > 1) {
+            QString name = var.left(pos).trimmed();
+            QString value = var.mid(pos + 1).trimmed();
+            if (!env.contains(name) || env.value(name) != value)
+                env.insert(name, value);
+        } else qWarning() << Q_FUNC_INFO << "Bad env variable" << var;
+    }
+    if (env != proc_env) {
+        proc_env = env;
+        emit envListChanged();
+    }
+}
+
+//static
+QStringList SystemProcess::sysEnvList()
+{
+    return QProcessEnvironment::systemEnvironment().toStringList();
+}
+
 QString SystemProcess::stdOutFile() const
 {
     return std_out_file;
@@ -223,6 +258,7 @@ void SystemProcess::start()
         return;
     }
     run_canceled = false;
+    if (!proc_env.isEmpty()) run_process->setProcessEnvironment(proc_env);
     std_output.clear();
     std_error.clear();
     run_process->setStandardOutputFile(std_out_file);

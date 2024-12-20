@@ -1,6 +1,7 @@
 #include <QDir>
 #include <QDirIterator>
 #include <QThreadPool>
+#include <QtDebug>
 
 #include "DirSpaceUsed.h"
 
