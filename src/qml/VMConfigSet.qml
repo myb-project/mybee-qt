@@ -357,7 +357,7 @@ Item {
             case "file":
                 var key = SystemHelper.sshPublicKey(cfg["ssh_key"] + ".pub")
                 if (!key) {
-                    error("createVm: No public ssh key at " + cfg["ssh_key"])
+                    error("createVm: No ssh public key at " + cfg["ssh_key"])
                     return
                 }
                 var cmd = cbsdPrefix(cfg) + cbsdCreate + " inter=0 jname=" + cfg["alias"]
@@ -379,9 +379,14 @@ Item {
                 else cmd += RestApiSet.defCpuCount
 
                 currentProgress = 0
-                cmd += " app_frontend=mybqt ci_user_pubkey='" + key + "'"
-                if (scheme === "ssh") executeSsh(cfg, cmd)
-                else executeCbsd(cmd)
+                cmd += " app_frontend=mybqt"
+                if (scheme === "ssh") {
+                    cmd += " ci_user_pubkey='" + key + "'"
+                    executeSsh(cfg, cmd)
+                } else {
+                    cmd += " \"ci_user_pubkey='" + key + "'\""
+                    executeCbsd(cmd)
+                }
                 return
             }
         }

@@ -63,7 +63,7 @@ QtObject {
         //console.debug("getCluster", cfg["server"])
         var key = SystemHelper.sshPublicKey(cfg["ssh_key"] + ".pub")
         if (!key) {
-            error("getCluster: No public ssh key at " + cfg["ssh_key"])
+            error("getCluster: No ssh public key at " + cfg["ssh_key"])
             return
         }
         var url = cfg["server"]
@@ -81,7 +81,7 @@ QtObject {
         //console.debug("postCreate", cfg["server"])
         var key = SystemHelper.sshPublicKey(cfg["ssh_key"] + ".pub")
         if (!key) {
-            error("postCreate: No public ssh key at " + cfg["ssh_key"])
+            error("postCreate: No ssh public key at " + cfg["ssh_key"])
             return
         }
         var obj = {}
@@ -137,7 +137,7 @@ QtObject {
     function sendKeyGet(cfg, cmd) {
         var key = SystemHelper.sshPublicKey(cfg["ssh_key"] + ".pub")
         if (!key) {
-            error("sendKeyGet: No public ssh key at " + cfg["ssh_key"])
+            error("sendKeyGet: No ssh public key at " + cfg["ssh_key"])
             return
         }
         var url = cfg["server"]

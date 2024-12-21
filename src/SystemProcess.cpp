@@ -207,7 +207,8 @@ void SystemProcess::start()
         qWarning() << Q_FUNC_INFO << "The command is currently running";
         return;
     }
-    if (run_command.isEmpty()) {
+    QStringList args = QProcess::splitCommand(run_command);
+    if (args.isEmpty()) {
         qWarning() << Q_FUNC_INFO << "An empty command specified";
         return;
     }
@@ -263,15 +264,16 @@ void SystemProcess::start()
     std_error.clear();
     run_process->setStandardOutputFile(std_out_file);
     run_process->setStandardErrorFile(std_err_file);
-#if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
-    QStringList args = QProcess::splitCommand(run_command);
-    if (!args.isEmpty()) {
-        QString prog = args.takeFirst();
-        run_process->start(prog, args);
+
+    run_process->setProgram(args.takeFirst());
+    if (!args.isEmpty()) run_process->setArguments(args);
+#ifdef TRACE_SYSTEMPROCESS
+    qDebug() << Q_FUNC_INFO << "\n\tRun" << run_process->program();
+    for (const auto &arg : run_process->arguments()) {
+        qDebug() << "\tArg" << arg;
     }
-#else
-    run_process->startCommand(run_command);
 #endif
+    run_process->start();
 }
 
 void SystemProcess::startCommand(const QString &cmd)
