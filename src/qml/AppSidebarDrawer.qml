@@ -34,7 +34,7 @@ Drawer {
                     source: "qrc:/image-logo"
                     text: qsTr("Visit the project homepage")
                     onClicked: {
-                        Qt.openUrlExternally("https://github/cbsd/cbsd")
+                        Qt.openUrlExternally("https://github.com/myb-project/mybee-qt")
                         control.close()
                     }
                 }

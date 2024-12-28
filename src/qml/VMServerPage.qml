@@ -134,7 +134,7 @@ Page {
                 ImageButton {
                     source: urlOutModel.remote ? "qrc:/image-drive-network" : (urlOutModel.local ? "qrc:/image-drive" : "qrc:/image-drive-offline")
                     text: qsTr("Visit the project homepage")
-                    onClicked: Qt.openUrlExternally("https://github/cbsd/cbsd")
+                    onClicked: Qt.openUrlExternally("https://github.com/myb-project/mybee-qt")
                     Image {
                         anchors.bottom: parent.bottom
                         visible: urlOutModel.valid

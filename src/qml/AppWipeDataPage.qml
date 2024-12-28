@@ -114,7 +114,7 @@ Page {
                 ImageButton {
                     source: "qrc:/image-wipe-data"
                     text: qsTr("Visit the project homepage")
-                    onClicked: Qt.openUrlExternally("https://github/cbsd/cbsd")
+                    onClicked: Qt.openUrlExternally("https://github.com/myb-project/mybee-qt")
                 }
                 Label {
                     Layout.fillWidth: true
