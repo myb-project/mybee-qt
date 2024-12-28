@@ -29,7 +29,7 @@ Item {
     readonly property string defCbsdCapabilities: "capabilities json=1"
     readonly property string defCbsdProfiles: "get-profiles src=cloud json=1"
     readonly property string defCbsdCluster:  "cluster"
-    readonly property string defCbsdCreate:   "create runasap=1 ci_ip4_addr=DHCP ci_gw4=10.0.0.1"
+    readonly property string defCbsdCreate:   "create runasap=1 ci_ip4_addr=DHCP"
     readonly property string defCbsdStart:    "start quiet=1 inter=0"
     readonly property string defCbsdStop:     "stop quiet=1"
     readonly property string defCbsdDestroy:  "destroy"
@@ -45,9 +45,10 @@ Item {
     readonly property bool isValid:   currentConfig.hasOwnProperty("server")
     readonly property bool isCreated: isValid && currentConfig.hasOwnProperty("id")
     readonly property bool isPowerOn: isCreated && (currentConfig["is_power_on"] === "true" || currentConfig["is_power_on"] === true)
-    readonly property bool isSshUser: isPowerOn && currentConfig.hasOwnProperty("ssh_user") && currentConfig.hasOwnProperty("ssh_key")
-    readonly property bool isRdpHost: isPowerOn && currentConfig.hasOwnProperty("rdp_user") && currentConfig.hasOwnProperty("rdp_host")
-    readonly property bool isVncHost: isPowerOn && currentConfig.hasOwnProperty("vnc_host")
+    readonly property bool isSshUser: isPowerOn && currentConfig.hasOwnProperty("ssh_user")
+    readonly property bool isAttachCmd: isPowerOn && currentConfig.hasOwnProperty("attach_cmd")
+    readonly property bool isRdpHost: isPowerOn && parseInt(currentConfig["rdp_port"])
+    readonly property bool isVncHost: isPowerOn && parseInt(currentConfig["vnc_port"])
 
     readonly property string templateId: "vmTemplate"
     property string lastSelected: ""

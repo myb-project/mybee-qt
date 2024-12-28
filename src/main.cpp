@@ -165,6 +165,7 @@ int main(int argc, char *argv[])
     qmlRegisterType<DirSpaceUsed>(CPP_CUSTOM_MODULES, 1, 0, "DirSpaceUsed");
     qmlRegisterType<DesktopView>(CPP_CUSTOM_MODULES, 1, 0, "DesktopView");
     qmlRegisterType<SshSession>(CPP_CUSTOM_MODULES, 1, 0, "SshSession");
+    qmlRegisterType<SystemProcess>(CPP_CUSTOM_MODULES, 1, 0, "RunProcess");
     qmlRegisterType<TextRender>(CPP_CUSTOM_MODULES, 1, 0, "TextRender");
     qmlRegisterType<UrlModel>(CPP_CUSTOM_MODULES, 1, 0, "UrlModel");
 

@@ -8,25 +8,28 @@ import QmlCustomModules 1.0
 
 Page {
     id: control
-    enabled: VMConfigSet.isSshUser
-    title: enabled ? sshSession.sshUrl : qsTr("No SSH settings")
+    title: qsTr("Terminal")
 
+    readonly property string myClassName: control.toString().match(/.+?(?=_)/)[0]
+    readonly property string attachCmd: VMConfigSet.valueAt("attach_cmd")
+    property var sshSession: null
     readonly property list<Action> actionsList: [
         Action {
-            enabled: swipeView.count
-            checkable: true
-            checked: !stackLayout.currentIndex
+            id: progressLogAction
+            enabled: control.sshSession && swipeView.currentIndex !== swipeView.count - 1
             text: qsTr("Progress log")
-            onToggled: stackLayout.currentIndex = checked ? 0 : 1
+            icon.source: "qrc:/icon-info"
+            onTriggered: swipeView.setCurrentIndex(swipeView.count - 1)
         },
         Action {
-            enabled: sshSession.established
-            text: qsTr("Open new")
+            id: newTermAction
+            enabled: (control.sshSession && control.sshSession.state === SshSession.StateReady) ||
+                     (control.attachCmd && serverUrl.scheme === "file")
+            text: qsTr("New Terminal")
             icon.source: "qrc:/icon-create"
-            onTriggered: sshListModel.addShellView()
+            onTriggered: termListModel.addShellView()
         }
     ]
-    readonly property string myClassName: control.toString().match(/.+?(?=_)/)[0]
 
     // On Mac, Ctrl == Cmd. For Linux and Windows, Alt is more natural I think.
     //readonly property string tabChangeKey: Qt.platform.os === "osx" ? "Ctrl" : "Alt"
@@ -54,137 +57,169 @@ Page {
     }
 
     Component.onCompleted: {
-        if (control.enabled) sshSession.connectToHost()
-        else progressPane.text = control.title
+        if (attachCmd) {
+            if (serverUrl.scheme === "file")     termListModel.addShellView()
+            else if (serverUrl.scheme === "ssh") sshSession = sshSessionComponent.createObject(control)
+        } else if (VMConfigSet.isSshUser)        sshSession = sshSessionComponent.createObject(control)
     }
 
-    SshSession {
-        id: sshSession
-        //logLevel: SshSession.LogLevelFunctions -- use env var LIBSSH_DEBUG=[0..4] instead
-        settings {
-            user:       VMConfigSet.valueAt("ssh_user")
-            host:       VMConfigSet.valueAt("ssh_host")
-            port:       parseInt(VMConfigSet.valueAt("ssh_port"))
-            privateKey: VMConfigSet.valueAt("ssh_key")
-            termType:   VMConfigSet.valueAt("ssh_term")
-        }
-        onStateChanged: {
-            switch (state) {
-            case SshSession.StateClosed:
-                progressPane.text += qsTr("Connection closed")
-                break
-            case SshSession.StateLookup:
-                progressPane.text += qsTr("Lookup for %1").arg(settings.host)
-                break
-            case SshSession.StateConnecting:
-                progressPane.text += qsTr("Connecting %1").arg(sshUrl)
-                break
-            case SshSession.StateServerCheck:
-                progressPane.text += qsTr("Checking the server for safe use")
-                break
-            case SshSession.StateUserAuth:
-                progressPane.text += qsTr("User authentication")
-                break
-            case SshSession.StateEstablished:
-                if (!shareKey) return
-                progressPane.text += qsTr("Sending %1").arg(settings.privateKey + ".pub")
-                break
-            case SshSession.StateReady:
-                progressPane.text += qsTr("Requesting a remote shell")
-                appDelay(appTinyDelay, sshListModel.addShellView)
-                break
-            case SshSession.StateError:
-                progressPane.text += lastError
-                break
-            case SshSession.StateDenied:
-                progressPane.text += qsTr("Authentication failed")
-                break
-            case SshSession.StateTimeout:
-                progressPane.text += qsTr("Connection timed out (max %1 sec)").arg(settings.timeout)
-                break
-            case SshSession.StateClosing:
-                progressPane.text += qsTr("Closing connection")
-                break
+    UrlModel {
+        id: serverUrl
+        location: VMConfigSet.valueAt("server")
+    }
+
+    Component {
+        id: sshSessionComponent
+        SshSession {
+            //logLevel: SshSession.LogLevelFunctions -- use env var LIBSSH_DEBUG=[0..4] instead
+            settings {
+                user:       control.attachCmd ? serverUrl.userName : VMConfigSet.valueAt("ssh_user")
+                host:       control.attachCmd ? serverUrl.host : VMConfigSet.valueAt("ssh_host")
+                port:       control.attachCmd ? serverUrl.port : parseInt(VMConfigSet.valueAt("ssh_port"))
+                privateKey: VMConfigSet.valueAt("ssh_key")
+                termType:   VMConfigSet.valueAt("ssh_term")
             }
-            progressPane.text += "\n\n"
+            onRunningChanged: progressPane.active = running
+            onStateChanged: {
+                switch (state) {
+                case SshSession.StateClosed:
+                    progressPane.show = false
+                    progressPane.text += qsTr("Connection closed")
+                    break
+                case SshSession.StateLookup:
+                    progressPane.show = true
+                    progressPane.text += qsTr("Lookup for %1").arg(settings.host)
+                    break
+                case SshSession.StateConnecting:
+                    progressPane.show = true
+                    progressPane.text += qsTr("Connecting %1").arg(sshUrl)
+                    break
+                case SshSession.StateServerCheck:
+                    progressPane.show = true
+                    progressPane.text += qsTr("Checking the server for safe use")
+                    break
+                case SshSession.StateUserAuth:
+                    progressPane.show = true
+                    progressPane.text += qsTr("User authentication")
+                    break
+                case SshSession.StateEstablished:
+                    progressPane.show = true
+                    if (!shareKey) return
+                    progressPane.text += qsTr("Sending %1").arg(settings.privateKey + ".pub")
+                    break
+                case SshSession.StateReady:
+                    progressPane.show = true
+                    progressPane.text += qsTr("Requesting a remote shell")
+                    appDelay(appTipDelay, termListModel.addShellView)
+                    break
+                case SshSession.StateError:
+                    progressPane.show = false
+                    progressPane.text += lastError
+                    break
+                case SshSession.StateDenied:
+                    progressPane.show = false
+                    progressPane.text += qsTr("Authentication failed")
+                    break
+                case SshSession.StateTimeout:
+                    progressPane.show = false
+                    progressPane.text += qsTr("Connection timed out (max %1 sec)").arg(settings.timeout)
+                    break
+                case SshSession.StateClosing:
+                    progressPane.show = false
+                    progressPane.text += qsTr("Closing connection")
+                    break
+                }
+                progressPane.text += "\n\n"
+            }
+            onHostConnected: progressPane.text += qsTr("Connected to host %1 port %2").arg(hostAddress).arg(settings.port) + "\n\n"
+            onHostDisconnected: progressPane.text += qsTr("Host disconnected") + "\n\n"
+            onHelloBannerChanged: progressPane.text += helloBanner + "\n\n"
+            onPubkeyHashChanged: progressPane.text += qsTr("Host public key hash:\n%1").arg(pubkeyHash) + "\n\n"
+            onKnownHostChanged: sshServerDialog(control.sshSession)
+            onAskQuestions: function(info, prompts) { sshPasswordDialog(control.sshSession, info, prompts) }
+            //onOpenChannelsChanged: if (!openChannels) appDelay(appTipDelay, appStackView.pop)
+            Component.onCompleted: connectToHost()
         }
-        onHostConnected: progressPane.text += qsTr("Connected to %1 (%2)").arg(hostAddress).arg(settings.port) + "\n\n"
-        onHostDisconnected: if (sshListModel.count) appStackView.pop()
-        onHelloBannerChanged: progressPane.text += helloBanner + "\n\n"
-        onPubkeyHashChanged: progressPane.text += qsTr("Host public key hash:\n%1").arg(pubkeyHash) + "\n\n"
-        onKnownHostChanged: sshServerDialog(sshSession)
-        onAskQuestions: function(info, prompts) { sshPasswordDialog(sshSession, info, prompts) }
-        //onOpenChannelsChanged: console.debug("openChannels", openChannels)
     }
 
     ListModel {
-        id: sshListModel
+        id: termListModel
+        property int lastIndex: 0
         function addShellView() {
-            append({ text: qsTr("Term %1").arg(sshSession.openChannels + 1) })
-            tabBar.currentIndex = count - 1
+            append({ text: qsTr("Term %1").arg(++lastIndex) })
         }
+        function delShellView(name) {
+            for (var i = 0; i < count; i++) {
+                if (get(i).text === name) {
+                    remove(i)
+                    break
+                }
+            }
+        }
+        onCountChanged: if (!count) appStackView.pop()
     }
 
     header: TabBar {
-        id: tabBar
+        currentIndex: swipeView.currentIndex
         Repeater {
-            model: sshListModel
+            model: termListModel
             TabButton {
                 focusPolicy: Qt.NoFocus
                 rightPadding: spacing + removeTabButton.width
                 width: implicitWidth
-                height: tabBar.height
-                down: checked
+                down: swipeView.currentIndex === index
                 text: modelData
-                onClicked: stackLayout.currentIndex = 1
-                Component.onCompleted: if (tabBar.count === 1) checked = true
+                onClicked: swipeView.setCurrentIndex(index)
                 MyToolButton {
                     id: removeTabButton
                     anchors.right: parent.right
                     focusPolicy: Qt.NoFocus
                     icon.source: "qrc:/icon-close"
-                    highlighted: parent.checked
-                    onClicked: swipeView.itemAt(parent.TabBar.index).closeShell()
+                    highlighted: parent.down
+                    onClicked: termListModel.delShellView(parent.text)
                 }
-                TapHandler {
-                   acceptedButtons: Qt.RightButton
-                   onTapped: {
-                       appContextMenu.popup()
-                   }
-                }
+            }
+        }
+        TabButton {
+            width: implicitWidth
+            focusPolicy: Qt.NoFocus
+            display: AbstractButton.IconOnly
+            action: newTermAction
+            ToolTip.text: action.text
+            ToolTip.visible: hovered
+            ToolTip.delay: appTipDelay
+            ToolTip.timeout: appTipTimeout
+            onPressAndHold: {
+                if (progressLogAction.enabled)
+                    swipeView.setCurrentIndex(swipeView.count - 1)
             }
         }
     }
 
-    StackLayout {
-        id: stackLayout
+    SwipeView {
+        id: swipeView
         anchors.fill: parent
-        currentIndex: !swipeView.count ? 0 : 1
+        focus: true // turn-on active focus here
+        contentItem.focus: true // propagate active focus to SwipeView childrens
+        background: Rectangle { color: control.termBackground }
+        Repeater {
+            model: termListModel
+            VMTerminalView {
+                id: termView
+                session: control.sshSession
+                onTerminalReady: {
+                    progressPane.show = false
+                    swipeView.setCurrentIndex(index)
+                    forceActiveFocus()
+                    if (control.attachCmd)
+                        putString("exec " + control.attachCmd + '\r')
+                }
+                onHangupReceived: termListModel.remove(index)
+            }
+        }
         ProgressPane {
             id: progressPane
-            active: sshSession.running
-            show: sshSession.state === SshSession.StateConnecting ||
-                  sshSession.state === SshSession.StateServerCheck ||
-                  sshSession.state === SshSession.StateUserAuth
-        }
-        SwipeView {
-            id: swipeView
-            currentIndex: tabBar.currentIndex
-            focus: true // turn-on active focus here
-            contentItem.focus: true // propagate active focus to SwipeView childrens
-            background: Rectangle { color: control.termBackground }
-            onCurrentIndexChanged: {
-                if (tabBar.currentIndex !== currentIndex)
-                    tabBar.setCurrentIndex(currentIndex)
-            }
-            Repeater {
-                model: sshListModel
-                VMTerminalView {
-                    session: sshSession
-                    onShellOpened: forceActiveFocus()
-                    onShellClosed: sshListModel.remove(index)
-                }
-            }
+            enabled: control.sshSession
         }
     }
 }

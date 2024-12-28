@@ -111,11 +111,11 @@ ApplicationWindow {
         VMConfigSet.error.connect(appWarning)
         VMConfigSet.message.connect(appTimeLogger)
 
-        if (SystemHelper.userHome(VMConfigSet.cbsdName)) {
+        if (VMConfigSet.cbsdHome && !VMConfigSet.cbsdEnabled) {
             var path = SystemHelper.findExecutable(VMConfigSet.cbsdName)
-            if (path && !SystemHelper.groupMembers(VMConfigSet.cbsdName).includes(SystemHelper.userName)) {
-                appError(qsTr("User <b>%1</b> must be a member of the <b>%2</b> group to use <i>%3</i>")
-                         .arg(SystemHelper.userName).arg(VMConfigSet.cbsdName).arg(path))
+            if (path) {
+                appWarning(qsTr("User <b>%1</b> must be a member of the <b>%2</b> group to use <i>%3</i>")
+                           .arg(SystemHelper.userName).arg(VMConfigSet.cbsdName).arg(path))
                             .accepted.connect(function() { VMConfigSet.clusterEnabled = true })
                 return
             }
@@ -273,7 +273,7 @@ ApplicationWindow {
     }
     Action {
         id: appTerminalAction
-        enabled: VMConfigSet.isSshUser
+        enabled: VMConfigSet.isAttachCmd || VMConfigSet.isSshUser
         icon.source: "qrc:/icon-terminal"
         text: qsTr("Terminal")
         onTriggered: appPage("VMTerminalPage.qml")
@@ -452,14 +452,15 @@ ApplicationWindow {
         property int fixedItems: 0
         Component.onCompleted: fixedItems = count
         onAboutToShow: {
-            var i
-            for (i = count - 1; i >= fixedItems; i--) {
-                takeAction(i)
-            }
             if (appStackView.currentItem && appStackView.currentItem.actionsList) {
-                for (i = 0; i < appStackView.currentItem.actionsList.length; i++) {
+                for (var i = 0; i < appStackView.currentItem.actionsList.length; i++) {
                     addAction(appStackView.currentItem.actionsList[i])
                 }
+            }
+        }
+        onAboutToHide: {
+            for (var i = count - 1; i >= fixedItems; i--) {
+                takeAction(i)
             }
         }
     }

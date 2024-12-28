@@ -9,8 +9,9 @@ import QmlCustomModules 1.0
 Page {
     id: control
     enabled: desktopUrl.remote
-    title: sshSession.established ? qsTr("%1 --> %2").arg(desktopUrl.text).arg(sshSession.sshUrl)
-                                  : (enabled ? desktopUrl.text : qsTr("No VNC or RDP settings"))
+    /*title: sshSession.state === SshSession.StateReady ? qsTr("%1 --> %2").arg(desktopUrl.text).arg(sshSession.sshUrl)
+                                                      : (enabled ? desktopUrl.text : qsTr("No VNC or RDP settings"))*/
+    title: qsTr("Desktop")
 
     readonly property var qualityNames: [ "fast", "ave", "best" ]
     readonly property list<Action> actionsList: [

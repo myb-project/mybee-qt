@@ -7,11 +7,11 @@ import QmlCustomModules 1.0
 
 MyDialog {
     id: control
-    title: qsTr("Please wait")
+    title: qsTr("Creating a Virtual Machine")
     standardButtons: Dialog.Abort
     closePolicy: Popup.NoAutoClose
 
-    property string currentState: qsTr("Work in progress...")
+    property string currentState: qsTr("Please wait...")
     property string mirrorNumber: ""
     property string loadFile: ""
     property string loadSize: ""
@@ -40,7 +40,7 @@ MyDialog {
         if (text.startsWith("vm_iso_path:")) {
             var iso = text.slice(12).trim()
             if (iso !== "changed") {
-                control.currentState = qsTr("Find %1...").arg(iso)
+                control.currentState = iso
             }
         } else if (text.startsWith("Processing:")) {
             urlModel.location = text.slice(11).trim()
@@ -93,7 +93,7 @@ MyDialog {
 
     ColumnLayout {
         anchors.fill: parent
-        spacing: control.padding
+        spacing: 10
 
         RowLayout {
             Layout.fillWidth: true
@@ -107,7 +107,6 @@ MyDialog {
                 Layout.fillWidth: true
                 font.pointSize: appTitleSize
                 text: control.currentState
-                //wrapMode: Text.Wrap
                 elide: Text.ElideRight
             }
         }
@@ -116,12 +115,19 @@ MyDialog {
             currentIndex: control.totalSize ? 1 : 0
             RowLayout {
                 Label { text: control.mirrorNumber }
-                Item { Layout.fillWidth: true }
-                Label { text: urlModel.host }
+                Label {
+                    Layout.fillWidth: true
+                    horizontalAlignment: Text.AlignRight
+                    text: urlModel.host
+                    elide: Text.ElideRight
+                }
             }
             RowLayout {
-                Label { text: control.loadFile }
-                Item { Layout.fillWidth: true }
+                Label {
+                    Layout.fillWidth: true
+                    text: control.loadFile
+                    elide: Text.ElideRight
+                }
                 Label { text: control.loadSize ? (control.loadSize + " / " + control.totalSize) : "" }
             }
         }

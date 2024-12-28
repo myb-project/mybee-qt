@@ -289,8 +289,11 @@ void Terminal::setTermSize(QSize size)
     }
 }
 
-void Terminal::putString(QString str)
+void Terminal::putString(const QString &txt)
 {
+    if (txt.isEmpty()) return;
+
+    QString str = txt;
     str.replace("\\r", "\r");
     str.replace("\\n", "\n");
     str.replace("\\e", QChar('\e'));
@@ -510,7 +513,7 @@ void Terminal::keyPress(int key, int modifiers, const QString& text)
         if (asciiVal >= 0x41 && asciiVal <= 0x5f) {
             // Turn uppercase characters into their control code equivalent
             toWrite.append(QChar(asciiVal - 0x40));
-        } else {
+        } else if (!c.isNull()) {
             qWarning() << "Ctrl+" << c << " does not translate into a control code";
         }
     } else {

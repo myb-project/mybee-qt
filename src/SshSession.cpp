@@ -39,7 +39,6 @@ SshSession::SshSession(QObject *parent)
     , connect_timer(nullptr)
     , later_timer(nullptr)
     , ssh_running(false)
-    , ssh_established(false)
     , open_channels(0)
 {
     qRegisterMetaType<SshSettings>("SshSettings");
@@ -77,10 +76,7 @@ void SshSession::cleanUp(bool abort)
     if (abort) {
         auto cs = lib_session.getCSession();
         if (::ssh_is_connected(cs) != 0) ::ssh_silent_disconnect(cs);
-    } else {
-        if (ssh_established) setEstablished(false);
-        if (ssh_running) setRunning(false);
-    }
+    } else setRunning(false);
 }
 
 bool SshSession::closeChannel(SshChannel *channel)
@@ -251,15 +247,6 @@ void SshSession::setRunning(bool on)
     }
 }
 
-void SshSession::setEstablished(bool on)
-{
-    TRACE_ARG(on);
-    if (on != ssh_established) {
-        ssh_established = on;
-        emit establishedChanged();
-    }
-}
-
 void SshSession::setLastError(const QString &text)
 {
     TRACE_ARG(text);
@@ -407,7 +394,6 @@ void SshSession::setState(State state)
         callLater(&SshSession::libUserAuthNone);
         break;
     case StateEstablished:
-        setEstablished(true);
         callLater(&SshSession::sendPublicKey);
         break;
     case StateReady:

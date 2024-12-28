@@ -26,12 +26,15 @@ Pane {
     function setCurrentIndex() {
         if (!listModel.count) return
         if (Url.isValidAt(currentServer)) {
-            var obj = SystemHelper.loadObject(SystemHelper.fileName(currentServer) + "/lastServer")
-            if (obj.hasOwnProperty("ssh_key")) {
-                for (var i = 0; i < listModel.count; i++) {
-                    if (listModel.get(i).text === obj["ssh_key"]) {
-                        listView.currentIndex = i
-                        return
+            var path = SystemHelper.appDataPath(SystemHelper.fileName(currentServer))
+            if (SystemHelper.isDir(path)) {
+                var obj = SystemHelper.loadObject(path + "/lastServer")
+                if (obj.hasOwnProperty("ssh_key")) {
+                    for (var i = 0; i < listModel.count; i++) {
+                        if (listModel.get(i).text === obj["ssh_key"]) {
+                            listView.currentIndex = i
+                            return
+                        }
                     }
                 }
             }

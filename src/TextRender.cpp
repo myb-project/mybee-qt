@@ -127,9 +127,10 @@ QStringList TextRender::printableLinesFromCursor(int lines) const
     return m_terminal.printableLinesFromCursor(lines);
 }
 
-void TextRender::putString(QString str)
+void TextRender::putString(const QString &str)
 {
-    m_terminal.putString(str);
+    if (!str.isEmpty())
+        m_terminal.putString(str);
 }
 
 QStringList TextRender::grabURLsFromBuffer() const
@@ -141,8 +142,12 @@ void TextRender::componentComplete()
 {
     QQuickItem::componentComplete();
 
-    if (!ssh_session && !m_terminal.openPty())
+    if (ssh_session) return;
+    if (m_terminal.openPty()) {
+        emit terminalReady();
+    } else {
         handleTitleChanged(tr("Pseudo TTY unavailable"));
+    }
 }
 
 void TextRender::copy()
@@ -883,19 +888,27 @@ QPointF TextRender::scrollBackBuffer(QPointF now, QPointF last)
 
 QObject *TextRender::session() const
 {
-    return ssh_session.data();
+    return ssh_session ? ssh_session.data() : nullptr;
 }
 
 void TextRender::setSession(QObject *obj)
 {
     TRACE_ARG(obj);
+    if (!obj) {
+        if (ssh_session) {
+            ssh_session->cancel();
+            ssh_session->deleteLater();
+            ssh_session.clear();
+        }
+        return;
+    }
     if (ssh_session) {
         qWarning() << Q_FUNC_INFO << "SshSession already set";
         return;
     }
     auto ss = qobject_cast<SshSession*>(obj);
     if (!ss) {
-        qWarning() << Q_FUNC_INFO << "Bad Object type, SshSession expected";
+        qWarning() << Q_FUNC_INFO << "Bad Object type, SystemProcess or SshSession expected";
         return;
     }
     if (!ss->isReady()) {
@@ -909,8 +922,8 @@ void TextRender::setSession(QObject *obj)
         return;
     }
     auto shell = ssh_shell.toStrongRef().data();
-    connect(shell, &SshChannelShell::channelOpened, this, &TextRender::shellOpened, Qt::QueuedConnection);
-    connect(shell, &SshChannel::channelClosed, this, &TextRender::shellClosed);
+    connect(shell, &SshChannelShell::channelOpened, this, &TextRender::terminalReady, Qt::QueuedConnection);
+    connect(shell, &SshChannel::channelClosed, this, &TextRender::hangupReceived);
 
     connect(shell, &SshChannelShell::textReceived, this, [this](const QString &text) {
         if (text.count('\n') != text.count('\r'))
@@ -923,14 +936,4 @@ void TextRender::setSession(QObject *obj)
 
     m_terminal.closePty();
     emit sessionChanged();
-}
-
-void TextRender::closeShell()
-{
-    TRACE();
-    if (ssh_session && ssh_shell) {
-        ssh_session->abortChannel(ssh_shell.toStrongRef().data());
-        if (ssh_session->openChannels())
-            emit shellClosed();
-    }
 }

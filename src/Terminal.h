@@ -134,7 +134,7 @@ public:
 
     void keyPress(int key, int modifiers, const QString& text = "");
     QStringList printableLinesFromCursor(int lines) const;
-    void putString(QString str);
+    void putString(const QString &str);
     void paste(const QString& text);
     QStringList grabURLsFromBuffer() const;
 

@@ -18,6 +18,7 @@
 SystemProcess::SystemProcess(QObject *parent)
     : QObject(parent)
     , run_process(nullptr)
+    , process_state(StateIdle)
     , now_running(false)
     , run_canceled(false)
 {
@@ -45,9 +46,36 @@ void SystemProcess::cancel()
         if (!QCoreApplication::closingDown())
             run_process->waitForFinished(250);
     }
+    setState(StateIdle);
     if (was_run) {
         setRunning(false);
         emit canceled();
+    }
+}
+
+void SystemProcess::onStateChanged(QProcess::ProcessState new_state)
+{
+    TRACE_ARG(new_state);
+
+    switch (new_state) {
+    case QProcess::NotRunning:
+        if (process_state == StateStarting || process_state == StateRunning) {
+            setState(StateIdle);
+            setRunning(false);
+        }
+        break;
+    case QProcess::Starting:
+        if (process_state == StateIdle) {
+            setState(StateStarting);
+            setRunning(true);
+        }
+        break;
+    case QProcess::Running:
+        if (process_state == StateStarting) {
+            setState(StateRunning);
+            setRunning(true);
+        }
+        break;
     }
 }
 
@@ -57,20 +85,36 @@ void SystemProcess::onErrorOccurred(QProcess::ProcessError errcode)
 
     if (!run_canceled) {
         QString text;
-        if (run_process) text = run_process->errorString();
-        if (text.isEmpty()) {
-            switch (errcode) {
-            case QProcess::FailedToStart: text = "Failed to start command"; break;
-            case QProcess::Crashed:       text = "Started process crashed"; break;
-            case QProcess::Timedout:      text = "Started process timeout"; break;
-            case QProcess::WriteError:    text = "Write to process failed"; break;
-            case QProcess::ReadError:     text = "Read from process failed"; break;
-            case QProcess::UnknownError: // fall through
-            default: text = QString("Unknown error %1").arg(errcode);
-            }
+        switch (errcode) {
+        case QProcess::FailedToStart:
+            text = "Failed to start command";
+            setState(StateFailed);
+            break;
+        case QProcess::Crashed:
+            text = "Started process crashed";
+            setState(StateCrashed);
+            break;
+        case QProcess::Timedout:
+            text = "Started process timeout";
+            setState(StateUnknown);
+            break;
+        case QProcess::WriteError:
+            text = "Write to process failed";
+            setState(StateIOError);
+            break;
+        case QProcess::ReadError:
+            text = "Read from process failed";
+            setState(StateIOError);
+            break;
+        case QProcess::UnknownError: // fall through
+        default:
+            text = QString("Unknown error %1").arg(errcode);
+            setState(StateUnknown);
         }
         text.prepend(run_command + ": ");
         emit execError(text);
+    } else {
+        setState(StateIdle);
     }
     setRunning(false);
 }
@@ -80,6 +124,7 @@ void SystemProcess::onFinished(int code, QProcess::ExitStatus status)
     TRACE_ARG(code << status);
 
     if (status == QProcess::NormalExit) {
+        setState(StateIdle);
         setRunning(false);
         if (!run_canceled)
             emit finished(code);
@@ -178,6 +223,21 @@ void SystemProcess::setStdErrFile(const QString &filename)
     }
 }
 
+int SystemProcess::state() const
+{
+    return process_state;
+}
+
+void SystemProcess::setState(State state)
+{
+    TRACE_ARG(state);
+
+    if (state != process_state) {
+        process_state = state;
+        emit stateChanged();
+    }
+}
+
 bool SystemProcess::running() const
 {
     return now_running;
@@ -230,9 +290,10 @@ void SystemProcess::start()
     }
     if (!run_process) {
         run_process = new QProcess(this);
-        connect(run_process, &QProcess::started, this, [this]() { setRunning(true); });
+        connect(run_process, &QProcess::started, this, &SystemProcess::started);
         connect(run_process, QOverload<int,QProcess::ExitStatus>::of(&QProcess::finished),
                 this, &SystemProcess::onFinished);
+        connect(run_process, &QProcess::stateChanged, this, &SystemProcess::onStateChanged);
         connect(run_process, &QProcess::errorOccurred, this, &SystemProcess::onErrorOccurred);
         connect(run_process, &QProcess::readyReadStandardOutput, this, [this]() {
             if (!run_canceled) {
@@ -309,4 +370,15 @@ void SystemProcess::stdInput(const QStringList &lines)
     for (const auto &line : lines) {
         run_process->write(line.toUtf8() + '\n');
     }
+}
+
+void SystemProcess::stdAppend(const QString &text)
+{
+    TRACE_ARG(text);
+
+    if (!run_process || !now_running || run_canceled) {
+        qWarning() << Q_FUNC_INFO << "No running command";
+        return;
+    }
+    run_process->write(text.toUtf8());
 }

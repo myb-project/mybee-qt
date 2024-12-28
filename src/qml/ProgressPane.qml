@@ -12,16 +12,18 @@ Pane {
 
     AnimatedImage {
         anchors.centerIn: parent
+        width: Math.min(control.width, control.height)
+        fillMode: Image.PreserveAspectFit
+        source: "qrc:/image-connecting"
+
         visible: control.enabled && control.show
         playing: visible && control.active
-        source: "qrc:/image-connecting"
     }
 
     Text {
         id: progressText
         anchors { left: parent.left; right: parent.right; verticalCenter: parent.verticalCenter }
         horizontalAlignment: Text.AlignHCenter
-        visible: text
         font.family: control.font.family
         font.pointSize: appExplainSize
         font.italic: true

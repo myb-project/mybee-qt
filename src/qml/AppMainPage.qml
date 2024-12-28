@@ -67,7 +67,9 @@ Page {
                     if (!VMConfigSet.isPowerOn) {
                         appInfo(qsTr("Do you want to start %1?").arg(cfg["alias"]), Dialog.Yes | Dialog.No)
                                 .accepted.connect(function() { VMConfigSet.startVm(cfg) })
-                    } else appPage("VMTerminalPage.qml")
+                    } else if (VMConfigSet.isSshUser || VMConfigSet.isAttachCmd) {
+                        appPage("VMTerminalPage.qml")
+                    }
                 }
                 return
             }

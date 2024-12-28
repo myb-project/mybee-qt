@@ -38,10 +38,9 @@ unix {
     INCLUDEPATH += \"$${OUT_PWD}/../include\" \"$${OUT_PWD}/../include/freerdp2\" \"$${OUT_PWD}/../include/winpr2\"
     LIBS += -L../lib -lssh -lvncclient
     LIBS += -lfreerdp-client2 $${FREERDP_CHANNEL_LIBS} -lfreerdp2 -lwinpr2
-    LIBS += -lcrypto -lssl -lz
+    LIBS += -lcrypto -lssl -lz -ldl -lutil
     #LIBS += -lcrypto -lssl -lcairo -ljpeg -lpng -llzo2 -lz
     #LIBS += $${QMAKE_LIBS_X11} -lxkbfile
-    *bsd: LIBS += -lutil
 }
 
 SOURCES += \

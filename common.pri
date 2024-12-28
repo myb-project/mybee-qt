@@ -32,7 +32,7 @@ QMAKE_LFLAGS_RELEASE += -Wl,--gc-sections
 win32: WHERE_COMMAND = where
 else:  WHERE_COMMAND = which
 
-COPY_COMMAND = $${QMAKE_COPY} -upL
+COPY_COMMAND = $${QMAKE_COPY} -fpL
 
 TAR_COMMAND = $$system($${WHERE_COMMAND} tar)
 !isEmpty(TAR_COMMAND) {

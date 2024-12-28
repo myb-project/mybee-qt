@@ -56,7 +56,7 @@ public:
     ~TextRender();
 
     Q_INVOKABLE QStringList printableLinesFromCursor(int lines) const;
-    Q_INVOKABLE void putString(QString str);
+    Q_INVOKABLE void putString(const QString &str);
     Q_INVOKABLE QStringList grabURLsFromBuffer() const;
 
     bool canPaste() const;
@@ -138,11 +138,9 @@ signals:
     void hangupReceived();
 
     void sessionChanged();
-    void shellOpened();
-    void shellClosed();
+    void terminalReady();
 
 public slots:
-    void closeShell();
     void redraw();
     void mousePress(float eventX, float eventY);
     void mouseMove(float eventX, float eventY);

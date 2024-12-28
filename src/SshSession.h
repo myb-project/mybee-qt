@@ -23,19 +23,18 @@ typedef void (SshSession::*libSessionFunc)();
 class SshSession : public QObject
 {
     Q_OBJECT
-    Q_PROPERTY(int           logLevel READ logLevel     WRITE setLogLevel NOTIFY logLevelChanged FINAL)
-    Q_PROPERTY(SshSettings   settings READ settings     WRITE setSettings NOTIFY settingsChanged FINAL)
-    Q_PROPERTY(bool          shareKey READ shareKey     WRITE setShareKey NOTIFY shareKeyChanged FINAL)
-    Q_PROPERTY(QUrl            sshUrl READ sshUrl       NOTIFY sshUrlChanged FINAL)
-    Q_PROPERTY(int              state READ state        NOTIFY stateChanged FINAL)
-    Q_PROPERTY(bool           running READ running      NOTIFY runningChanged FINAL)
-    Q_PROPERTY(QString    hostAddress READ hostAddress  NOTIFY hostAddressChanged FINAL)
-    Q_PROPERTY(QString    helloBanner READ helloBanner  NOTIFY helloBannerChanged FINAL)
-    Q_PROPERTY(bool       established READ established  NOTIFY establishedChanged FINAL)
-    Q_PROPERTY(QString     pubkeyHash READ pubkeyHash   NOTIFY pubkeyHashChanged FINAL)
-    Q_PROPERTY(int          knownHost READ knownHost    NOTIFY knownHostChanged FINAL)
-    Q_PROPERTY(int       openChannels READ openChannels NOTIFY openChannelsChanged FINAL)
-    Q_PROPERTY(QString      lastError READ lastError    NOTIFY lastErrorChanged FINAL)
+    Q_PROPERTY(int         logLevel READ logLevel     WRITE setLogLevel NOTIFY logLevelChanged FINAL)
+    Q_PROPERTY(SshSettings settings READ settings     WRITE setSettings NOTIFY settingsChanged FINAL)
+    Q_PROPERTY(bool        shareKey READ shareKey     WRITE setShareKey NOTIFY shareKeyChanged FINAL)
+    Q_PROPERTY(QUrl          sshUrl READ sshUrl       NOTIFY sshUrlChanged FINAL)
+    Q_PROPERTY(int            state READ state        NOTIFY stateChanged FINAL)
+    Q_PROPERTY(bool         running READ running      NOTIFY runningChanged FINAL)
+    Q_PROPERTY(QString  hostAddress READ hostAddress  NOTIFY hostAddressChanged FINAL)
+    Q_PROPERTY(QString  helloBanner READ helloBanner  NOTIFY helloBannerChanged FINAL)
+    Q_PROPERTY(QString   pubkeyHash READ pubkeyHash   NOTIFY pubkeyHashChanged FINAL)
+    Q_PROPERTY(int        knownHost READ knownHost    NOTIFY knownHostChanged FINAL)
+    Q_PROPERTY(int     openChannels READ openChannels NOTIFY openChannelsChanged FINAL)
+    Q_PROPERTY(QString    lastError READ lastError    NOTIFY lastErrorChanged FINAL)
 
 public:
     static constexpr int const callAgainDelay = 100; // milliseconds by default
@@ -104,7 +103,6 @@ public:
     bool running() const { return ssh_running; }
     QString hostAddress() const { return host_address; }
     QString helloBanner() const { return hello_banner; }
-    bool established() const { return ssh_established; }
     QString pubkeyHash() const { return pubkey_hash; }
     int knownHost() const { return known_host; }
     int channels() const { return channel_list.size(); }
@@ -129,7 +127,6 @@ signals:
     void runningChanged();
     void hostAddressChanged();
     void helloBannerChanged();
-    void establishedChanged();
     void pubkeyHashChanged();
     void knownHostChanged();
     void askQuestions(const QString &info, const QStringList &prompts); // requre giveAnswers()
@@ -150,7 +147,6 @@ private:
     void cleanUp(bool abort = false);
     bool closeChannel(SshChannel *channel = nullptr); // null to close all channels
     void setRunning(bool on);
-    void setEstablished(bool on);
     void setLastError(const QString &text);
     void setConnectTimer(bool enable);
     bool isConnectTimer() const;
@@ -203,7 +199,6 @@ private:
     bool ssh_running;
     QString host_address;
     QString hello_banner;
-    bool ssh_established;
     int open_channels;
     QString last_error;
 
