@@ -110,7 +110,7 @@ PtyIFace::PtyIFace(const QString &charset, const QString &term, const QString &s
         if (execCmd.isEmpty()) { // execute the user's default shell
             const struct passwd *pwd = ::getpwuid(::getuid());
             execCmd = (pwd && pwd->pw_shell) ? pwd->pw_shell : "/bin/sh";
-            execCmd.append(" --login");
+            execCmd.append(" -l"); // -l is typical for all shells, unlike --login
         }
         QStringList execParts = execCmd.split(' ', Qt::SkipEmptyParts);
         if (execParts.isEmpty()) {
