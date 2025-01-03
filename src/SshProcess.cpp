@@ -53,6 +53,7 @@ void SshProcess::cancel()
     TRACE();
 
     if (!ssh_session) return;
+    if (!ssh_session->running()) return;
     onChannelClosed();
     emit canceled();
 }
