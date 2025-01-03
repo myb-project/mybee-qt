@@ -90,6 +90,11 @@ android {
         -DCMAKE_TOOLCHAIN_FILE=\"$${ANDROID_NDK_ROOT}/build/cmake/android.toolchain.cmake\"
 }
 
+freebsd {
+    OS_SPECIFIC_DEFINES = \
+        -DCMAKE_MAKE_PROGRAM=/usr/bin/make
+}
+
 CMAKE_CONFIG_LIBS = \
     $${CMAKE_COMMAND} -B build \
     -DCMAKE_BUILD_TYPE=Release \
