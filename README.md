@@ -75,7 +75,7 @@ By pressing the 'F11' button, you can switch the graphical console to full-scree
 - Android mobile or Linux or FreeBSD desktop environment;
 - 1 cpu, 256 MB RAM;
 - ~64 MB storage;
-- access to CBSD infrastructure mirrors to obtain gold/ISO images (optional (if you set up your own cache/mirror)[https://github.com/cbsd/mirrors]);
+- access to CBSD infrastructure mirrors to obtain gold/ISO images ( optional [if you set up your own cache/mirror](https://github.com/cbsd/mirrors) );
 
 ## Roadmap
 
