@@ -15,7 +15,7 @@ class SshChannel : public QIODevice
 
 public:
     static constexpr int const maximumBufSize = 1024 * 1024;
-    static constexpr int const defaultBufSize = 16384;
+    static constexpr int const defaultBufSize = 65536;
     static constexpr int const maxIOChunkSize = 8192;
 
     virtual ~SshChannel() override;

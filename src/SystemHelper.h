@@ -16,6 +16,7 @@ class SystemHelper : public QObject
     Q_PROPERTY(QString     appDataDir READ appDataDir    CONSTANT FINAL)
     Q_PROPERTY(QString     appTempDir READ appTempDir    CONSTANT FINAL)
     Q_PROPERTY(QString      appSshKey READ appSshKey     CONSTANT FINAL)
+    Q_PROPERTY(QString     appHomeUrl READ appHomeUrl    CONSTANT FINAL)
     Q_PROPERTY(QString     platformOS READ platformOS    CONSTANT FINAL)
     Q_PROPERTY(QString       buildAbi READ buildAbi      CONSTANT FINAL)
     Q_PROPERTY(QString   buildCpuArch READ buildCpuArch  CONSTANT FINAL)
@@ -26,10 +27,13 @@ class SystemHelper : public QObject
     Q_PROPERTY(QString       userName READ userName      CONSTANT FINAL)
     Q_PROPERTY(QString       hostName READ hostName      CONSTANT FINAL)
     Q_PROPERTY(QString     domainName READ domainName    CONSTANT FINAL)
+    Q_PROPERTY(QString    qtRCVersion READ qtRCVersion   CONSTANT FINAL)
     Q_PROPERTY(QString     sslVersion READ sslVersion    CONSTANT FINAL)
     Q_PROPERTY(QString     sshVersion READ sshVersion    CONSTANT FINAL)
     Q_PROPERTY(QString     rdpVersion READ rdpVersion    CONSTANT FINAL)
     Q_PROPERTY(QString     vncVersion READ vncVersion    CONSTANT FINAL)
+    Q_PROPERTY(QString   settingsPath READ settingsPath  CONSTANT FINAL)
+    Q_PROPERTY(bool          isMobile READ isMobile      CONSTANT FINAL)
 
 public:
     static constexpr char const *defaultSshKeyName = "id_ed25519"; // ED25519 supported only!
@@ -42,6 +46,7 @@ public:
     static QString appDataDir();
     static QString appTempDir();
     static QString appSshKey();
+    static QString appHomeUrl();
     static QString platformOS();
     static QString buildAbi();
     static QString buildCpuArch();
@@ -52,10 +57,13 @@ public:
     static QString userName();
     static QString hostName();
     static QString domainName();
+    static QString qtRCVersion();
     static QString sslVersion();
     static QString sshVersion();
     static QString rdpVersion();
     static QString vncVersion();
+    static QString settingsPath();
+    static bool isMobile();
 
     Q_INVOKABLE static QString appCachePath(const QString &name);
     Q_INVOKABLE static QString appConfigPath(const QString &name);

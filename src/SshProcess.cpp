@@ -52,10 +52,10 @@ void SshProcess::cancel()
 {
     TRACE();
 
-    if (!ssh_session) return;
-    if (!ssh_session->running()) return;
-    onChannelClosed();
-    emit canceled();
+    if (ssh_session && ssh_session->running()) {
+        onChannelClosed();
+        emit canceled();
+    }
 }
 
 void SshProcess::setCommand(const QString &cmd)
@@ -245,9 +245,7 @@ void SshProcess::onLastErrorChanged(const QString &text)
     TRACE();
 
     onChannelClosed();
-    if (ssh_session) {
-        emit execError(ssh_url.toString() + "\n\n" + (!text.isEmpty() ? text : QStringLiteral("Unknown error")));
-    }
+    emit execError(ssh_url.toString() + "\n\n" + (!text.isEmpty() ? text : QStringLiteral("Unknown error")));
 }
 
 void SshProcess::readStdoutData(const QByteArray &data)

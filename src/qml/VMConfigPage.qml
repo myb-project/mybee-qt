@@ -136,7 +136,7 @@ Page {
             text: currentProfile.hasOwnProperty("alias") ? currentProfile["alias"] : ""
             onTextChanged: aliasLabel.text = text
             onEditingFinished: currentProfile["alias"] = text
-            Component.onCompleted: if (!isMobile && !control.isCreated) forceActiveFocus()
+            Component.onCompleted: if (!SystemHelper.isMobile && !control.isCreated) forceActiveFocus()
         }
     }
 

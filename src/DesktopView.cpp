@@ -498,7 +498,14 @@ bool DesktopView::setSshTunnel(QObject *obj, const QUrl &url, const QString &key
         qWarning() << Q_FUNC_INFO << "Invalid parameters specified";
         return false;
     }
-    connect(ss, &SshSession::stateChanged, this, &DesktopView::onStateChanged);
+    connect(ss, &SshSession::stateChanged, this, [this]() {
+        if (ssh_session && ssh_session->isReady()) {
+            ssh_channel = ssh_session->createPort(tunnel_addr, tunnel_port);
+            auto cnl = ssh_channel.toStrongRef().data();
+            connect(cnl, &SshChannelPort::channelOpened, this, &DesktopView::createTcpServer);
+            connect(cnl, &SshChannel::channelClosed, ssh_session, &SshSession::disconnectFromHost);
+        }
+    });
     tunnel_addr = addr;
     tunnel_port = port;
     ssh_session = ss;
@@ -506,23 +513,21 @@ bool DesktopView::setSshTunnel(QObject *obj, const QUrl &url, const QString &key
     return true;
 }
 
-void DesktopView::onStateChanged()
+void DesktopView::createTcpServer()
 {
     TRACE();
-    if (!ssh_session || !ssh_session->isReady()) return;
-
     auto tcp_serv = new QTcpServer(this);
     tcp_serv->setMaxPendingConnections(1);
     connect(tcp_serv, &QTcpServer::newConnection, this, &DesktopView::onNewConnection);
 
     if (!tcp_serv->listen()) onErrorChanged(tcp_serv->errorString());
-    else emit sshTunnelListen(tcp_serv->serverAddress().toString(), tcp_serv->serverPort());
+    else emit sshTunnelListen(tcp_serv->serverAddress().toString(), (int)tcp_serv->serverPort());
 }
 
 void DesktopView::onNewConnection()
 {
     TRACE();
-    if (!ssh_session || !ssh_session->isReady()) return;
+    if (!ssh_channel) return;
 
     auto tcp_serv = qobject_cast<QTcpServer*>(sender());
     if (!tcp_serv) return; // should not happend
@@ -536,18 +541,20 @@ void DesktopView::onNewConnection()
     });
     connect(sock, &QTcpSocket::disconnected, tcp_serv, &QTcpServer::deleteLater);
 
-    ssh_channel = ssh_session->createPort(tunnel_addr, tunnel_port);
-    if (!ssh_channel) {
-        qWarning() << Q_FUNC_INFO << "createPort() return null pointer";
-        return;
-    }
     auto cnl = ssh_channel.toStrongRef().data();
     connect(cnl, &SshChannel::readyRead, this, [this,sock]() {
-        if (ssh_channel && sock->state() == QAbstractSocket::ConnectedState)
-            sock->write(ssh_channel.toStrongRef()->readAll());
+        if (ssh_channel && sock->state() == QAbstractSocket::ConnectedState) {
+            auto data = ssh_channel.toStrongRef()->readAll();
+            TRACE_ARG("tcp_sock->write(data)" << data.size());
+            sock->write(data);
+            //sock->flush();
+        }
     });
     connect(sock, &QTcpSocket::readyRead, this, [this,sock]() {
-        if (ssh_channel && sock->state() == QAbstractSocket::ConnectedState)
-            ssh_channel.toStrongRef()->write(sock->readAll());
+        if (ssh_channel && sock->state() == QAbstractSocket::ConnectedState) {
+            auto data = sock->readAll();
+            TRACE_ARG("ssh_channel->write(data)" << data.size());
+            ssh_channel.toStrongRef()->write(data);
+        }
     });
 }

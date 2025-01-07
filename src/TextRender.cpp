@@ -91,7 +91,11 @@ TextRender::TextRender(QQuickItem* parent)
     , m_topSelectionDelegateInstance(0)
     , m_middleSelectionDelegateInstance(0)
     , m_bottomSelectionDelegateInstance(0)
+#if defined(Q_OS_ANDROID) || defined(Q_OS_IOS)
     , m_dragMode(DragScroll)
+#else
+    , m_dragMode(DragSelect)
+#endif
     , m_dispatch_timer(0)
 {
     TRACE();

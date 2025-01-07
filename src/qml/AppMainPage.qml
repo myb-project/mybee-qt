@@ -13,6 +13,13 @@ Page {
     property real splitHFactor: 0.25
     property int splitVFactor: 1
     property string filterText
+    property var serverSection: ({})
+    property var schemeIconMap: {
+        "file":  "qrc:/icon-open-folder",
+        "ssh":   "qrc:/icon-ssh-key",
+        "http":  "qrc:/icon-cloud-server",
+        "https": "qrc:/icon-cloud-server"
+    }
     readonly property list<Action> actionsList: [
         Action {
             id: setFilterAction
@@ -88,8 +95,17 @@ Page {
         property var filter: []
         onMapChanged: Qt.callLater(update)
         function update() {
+            var list = Object.keys(map).sort(function(a, b) {
+                var p1 = a.indexOf('@')
+                var s1 = a.slice(p1 + 1)
+                var p2 = b.indexOf('@')
+                var s2 = b.slice(p2 + 1)
+                if (s1 > s2) return 1
+                if (s1 < s2) return -1
+                return a.slice(0, p1) > b.slice(0, p2) ? 1 : -1
+            })
             clear()
-            for (var key in map) {
+            for (var key of list) {
                 if (filter.length && filter.indexOf(key) < 0) continue
                 var obj = map[key]
                 var icon = !obj.hasOwnProperty("id") ? "qrc:/icon-template" :
@@ -99,16 +115,24 @@ Page {
                     "icon": icon,
                     "text": obj["alias"],
                     "tip": qsTr("%1 on %2 %3").arg(obj["name"]).arg(obj["server"]).arg(obj["emulator"]),
-                    "server": obj["server"]
+                    "server": obj["server"],
+                    "visible": true
                 })
             }
             for (var i = 0; i < count; i++) {
                 if (get(i).key === VMConfigSet.lastSelected) {
                     listView.currentIndex = i
+                    listView.ensureCurrentVisible()
                     return
                 }
             }
             listView.currentIndex = -1
+        }
+        function setVisible(server, visible) {
+            for (var i = 0; i < count; i++) {
+                if (get(i).server === server)
+                    setProperty(i, "visible", visible)
+            }
         }
     }
 
@@ -173,9 +197,11 @@ Page {
 
             model: configListModel
             delegate: ItemDelegate {
+                visible: model.visible
                 padding: appTextPadding
                 spacing: appTextPadding
                 width: appPortraitView ? Math.max(control.buttonWidth, Math.floor(listView.width / Math.max(listView.count, 1))) : listView.width
+                height: visible ? implicitHeight : 0
                 display: appPortraitView ? AbstractButton.TextUnderIcon : AbstractButton.TextBesideIcon
                 highlighted: ListView.isCurrentItem
                 text: model.text
@@ -185,27 +211,31 @@ Page {
                 ToolTip.text: model.tip
                 ToolTip.delay: appTipDelay
                 ToolTip.timeout: appTipTimeout
-                onClicked: listView.currentIndex = index
+                onClicked: {
+                    if (ListView.isCurrentItem) return
+                    listView.currentIndex = index
+                    VMConfigSet.setCurrent(model.key)
+                    VMConfigSet.lastSelected = model.key
+                }
                 onPressAndHold: if (configAction.enabled) appPage("VMConfigPage.qml")
                 onDoubleClicked: control.itemActivated(index)
                 Keys.onReturnPressed: control.itemActivated(index)
             }
-            onCurrentIndexChanged: {
-                if (currentIndex >= 0 && currentIndex < configListModel.count &&
-                        configListModel.get(currentIndex).key !== VMConfigSet.lastSelected) {
-                    VMConfigSet.setCurrent(configListModel.get(currentIndex).key)
-                    ensureCurrentVisible()
-                }
-            }
             section {
                 property: appPortraitView ? null : "server"
-                delegate: Label {
+                delegate: ToolButton {
                     anchors.left: parent.left
-                    width: Math.min(listView.width, implicitWidth)
-                    padding: appRowHeight / 2
-                    font.pointSize: appTitleSize
+                    focusPolicy: Qt.NoFocus
+                    width: listView.width
+                    checkable: true
+                    checked: serverSection.hasOwnProperty(text) ? serverSection[text] : true
+                    icon.source: schemeIconMap[Url.schemeAt(text)]
                     text: section
-                    elide: Text.ElideRight
+                    font.pointSize: appTitleSize
+                    onToggled: {
+                        serverSection[text] = checked
+                        configListModel.setVisible(text, checked)
+                    }
                 }
             }
         }

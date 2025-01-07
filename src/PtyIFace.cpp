@@ -99,9 +99,9 @@ PtyIFace::PtyIFace(const QString &charset, const QString &term, const QString &s
     if (pid == -1) {
         iFailed = true;
         qWarning() << Q_FUNC_INFO << "forkpty" << ::strerror(errno);
-        ::exit(1);
-
-    } else if (pid == 0) {
+        return;
+    }
+    if (pid == 0) {
         if (!term.isEmpty())
              qputenv("TERM", term.toLatin1());
         else qputenv("TERM", defaultTermType);

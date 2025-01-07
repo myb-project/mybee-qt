@@ -121,7 +121,7 @@ Page {
                 ImageButton {
                     source: "qrc:/image-drive-cdrom"
                     text: qsTr("Visit the project homepage")
-                    onClicked: Qt.openUrlExternally("https://github.com/myb-project/mybee-qt")
+                    onClicked: Qt.openUrlExternally(SystemHelper.appHomeUrl)
                 }
                 Label {
                     Layout.fillWidth: true

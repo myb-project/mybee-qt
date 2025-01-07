@@ -75,7 +75,7 @@ Page {
         }
     }
 
-    function setCurrentServer() {
+    function setCurrentServer(next) {
         if (!urlOutModel.valid || !currentSshKey) return
         if (urlOutModel.local && !SystemHelper.isExecutable(urlOutModel.path)) {
             appWarning(qsTr("%1: Not an executable").arg(urlOutModel.path))
@@ -97,12 +97,18 @@ Page {
             urlOutModel.userName = "root"
 
         var folder = SystemHelper.fileName(urlOutModel.text)
-        if (!SystemHelper.saveObject(folder + "/lastServer", { "server": urlOutModel.text, "ssh_key": currentSshKey })) {
+        var cfg = { "server": urlOutModel.text, "ssh_key": currentSshKey }
+        if (!SystemHelper.saveObject(folder + "/lastServer", cfg)) {
             appError(qsTr("Can't save current configuration"))
             return
         }
-        currentServer = urlOutModel.text
-        appPage("VMProfilePage.qml", { "currentFolder": folder })
+        if (next) {
+            currentServer = urlOutModel.text
+            appPage("VMProfilePage.qml", { "currentFolder": folder })
+        } else {
+            Qt.callLater(VMConfigSet.getList, cfg)
+            appStackView.pop(null)
+        }
     }
 
     UrlModel {
@@ -134,7 +140,7 @@ Page {
                 ImageButton {
                     source: urlOutModel.remote ? "qrc:/image-drive-network" : (urlOutModel.local ? "qrc:/image-drive" : "qrc:/image-drive-offline")
                     text: qsTr("Visit the project homepage")
-                    onClicked: Qt.openUrlExternally("https://github.com/myb-project/mybee-qt")
+                    onClicked: Qt.openUrlExternally(SystemHelper.appHomeUrl)
                     Image {
                         anchors.bottom: parent.bottom
                         visible: urlOutModel.valid
@@ -146,7 +152,7 @@ Page {
                     Layout.fillWidth: true
                     font.pointSize: appTitleSize
                     wrapMode: Text.Wrap
-                    text: qsTr("Create a virtual machine using the appropriate <i>%1 cloud server</i> and <i>SSH access key</i>").arg(VMConfigSet.cbsdName.toUpperCase())
+                    text: qsTr("Create or import a virtual machine using the appropriate <i>%1 cloud server</i> and <i>SSH access key</i>").arg(VMConfigSet.cbsdName.toUpperCase())
                 }
             }
         }
@@ -297,8 +303,16 @@ Page {
         show: urlOutModel.valid
         GridLayout {
             anchors.fill: parent
+            enabled: control.currentSshKey
             flow: appPortraitView ? GridLayout.TopToBottom : GridLayout.LeftToRight
             rows: 2
+            SquareButton {
+                Layout.rowSpan: appPortraitView ? 2 : 1
+                text: qsTr("Import")
+                icon.source: "qrc:/icon-ok"
+                ToolTip.text: qsTr("Importing VMs from the server")
+                onClicked: setCurrentServer(false)
+            }
             Label {
                 Layout.fillWidth: true
                 horizontalAlignment: Text.AlignRight
@@ -315,12 +329,11 @@ Page {
             }
             SquareButton {
                 Layout.rowSpan: appPortraitView ? 2 : 1
-                enabled: control.currentSshKey
-                highlighted: true
+                highlighted: enabled
                 text: qsTr("Profile")
                 icon.source: "qrc:/icon-page-next"
                 ToolTip.text: qsTr("Get VM profiles")
-                onClicked: setCurrentServer()
+                onClicked: setCurrentServer(true)
             }
         }
     }

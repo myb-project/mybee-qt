@@ -11,7 +11,7 @@ Page {
 
     readonly property string donateLink: "https://www.patreon.com/clonos"
     readonly property var consistsOf: [
-        QT_TR_NOOP("Running on"), QT_TR_NOOP("<a href='https://www.qt.io'>Qt %1</a>").arg(qtVersion),
+        QT_TR_NOOP("Running on"), QT_TR_NOOP("<a href='https://www.qt.io'>Qt %1</a>").arg(SystemHelper.qtRCVersion),
         QT_TR_NOOP("Using SSL"),  QT_TR_NOOP("<a href='https://openssl-library.org'>%1</a>").arg(SystemHelper.sslVersion),
         QT_TR_NOOP("With SSH"),   QT_TR_NOOP("<a href='https://www.libssh.org'>LibSSH %1</a>").arg(SystemHelper.sshVersion),
         QT_TR_NOOP("With RDP"),   QT_TR_NOOP("<a href='https://www.freerdp.com'>FreeRDP %1</a>").arg(SystemHelper.rdpVersion),

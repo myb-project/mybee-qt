@@ -115,8 +115,8 @@ private:
     void onSizeChanged(int width, int height);
     void onAreaChanged(int x, int y, int width, int height);
     void emitMouseAction(const QPointF &pos, int button, bool move, bool down);
-    void onStateChanged();
     void onNewConnection();
+    void createTcpServer();
 
     DesktopClient *desktop_client;
 

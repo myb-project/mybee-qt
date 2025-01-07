@@ -30,7 +30,7 @@ Page {
             return
         }
         var server = VMConfigSet.valueAt("server")
-        if (!Url.isRemoteAt(server)) startDesktop()
+        if (Url.schemeAt(server) === "file") startDesktop()
         else if (!desktopView.setSshTunnel(sshSession, server, VMConfigSet.valueAt("ssh_key"),
                                            desktopUrl.host, desktopUrl.port)) {
             progressPane.text = qsTr("Invalid SSH settings specified")
@@ -155,7 +155,7 @@ Page {
                 event.accepted = desktopView.alive ? event.matches(StandardKey.Cancel) : false
             }
             onSshTunnelListen: function(addr, port) {
-                progressPane.text += qsTr("SSH tunnel is at %1:%2").arg(addr).arg(port)
+                progressPane.text += qsTr("SSH tunnel is at %1:%2\n\n").arg(addr).arg(port)
                 desktopUrl.host = addr
                 desktopUrl.port = port
                 startDesktop()

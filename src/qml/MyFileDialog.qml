@@ -1,8 +1,10 @@
 import QtQuick 2.15
 import QtQuick.Dialogs 1.3
 
+import CppCustomModules 1.0
+
 FileDialog {
-    property string path: isMobile ? shortcuts.documents : shortcuts.home
+    property string path: SystemHelper.isMobile ? shortcuts.documents : shortcuts.home
 
     folder: path.startsWith("file://") ? path : "file://" + path
     sidebarVisible: false

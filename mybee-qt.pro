@@ -1,6 +1,5 @@
 TEMPLATE = subdirs
 SUBDIRS = libssh freerdp2 vnc src
-CONFIG += c++17 release
 
 #CONFIG += ordered
 src.depends = libssh freerdp2 vnc
@@ -11,4 +10,7 @@ DISTFILES += \
     LICENSE \
     lupdate-ru_RU.sh \
     mybee-qt.pro \
-    README.md
+    README.md \
+    README.ru.md \
+    $$files(deploy/*, true) \
+    $$files(docs/*, true)

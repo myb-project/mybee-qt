@@ -107,7 +107,8 @@ void RdpDesktopClient::setLogging(bool enable)
     TRACE_ARG(enable);
 
     rdpLoggingEnabled = enable;
-    qputenv("WLOG_LEVEL", enable ? "ON" : "OFF");
+    // "TRACE", "DEBUG", "INFO", "WARN", "ERROR", "FATAL", "OFF"
+    qputenv("WLOG_LEVEL", enable ? "INFO" : "OFF");
 }
 
 static PVIRTUALCHANNELENTRY channelAddinLoadHook(LPCSTR pszName, LPCSTR pszSubsystem, LPCSTR pszType, DWORD dwFlags)
@@ -131,6 +132,9 @@ void RdpDesktopClient::startSession()
     client_instance->PreConnect = preConnect;
     client_instance->PostConnect = postConnect;
     client_instance->PostDisconnect = postDisconnect;
+    client_instance->Authenticate = authenticate;
+    client_instance->VerifyCertificateEx = verifyCertificateEx;
+    client_instance->VerifyChangedCertificateEx = verifyChangedCertificateEx;
 
     ::freerdp_context_new(client_instance);
     myContext(client_instance)->self = this;
@@ -153,6 +157,11 @@ void RdpDesktopClient::startSession()
 
     opt = serverUrl().password();
     settings->Password = qstrdup(!opt.isEmpty() ? opt.toUtf8().constData() : "");
+
+    settings->NlaSecurity = false;
+    settings->TlsSecurity = false;
+    //settings->RdpSecurity = true;
+    //settings->AutoAcceptCertificate = true;
 
     if (!maxSize().isEmpty()) {
         settings->DesktopWidth = maxSize().width();
@@ -202,6 +211,8 @@ void RdpDesktopClient::startSession()
 
 void RdpDesktopClient::setSocketNotifiers(bool enable)
 {
+    TRACE_ARG(enable);
+
     if (!client_instance) return;
     if (enable) {
         int rcount = 0, wcount = 0;
@@ -257,6 +268,8 @@ void RdpDesktopClient::setSocketNotifiers(bool enable)
 
 void RdpDesktopClient::onSocketActivated()
 {
+    //TRACE_ARG(reinterpret_cast<QSocketNotifier*>(sender())->type() << reinterpret_cast<QSocketNotifier*>(sender())->type());
+
     if (!client_instance) return;
     if (::freerdp_shall_disconnect(client_instance)) {
         setSocketNotifiers(false);
@@ -429,6 +442,43 @@ void RdpDesktopClient::channelDisconnected(void *ctx, ChannelDisconnectedEventAr
     if (qstrcmp(ea->name, RDPGFX_DVC_CHANNEL_NAME) == 0) {
         ::gdi_graphics_pipeline_uninit(context->gdi, (RdpgfxClientContext*)ea->pInterface);
     }
+}
+
+BOOL RdpDesktopClient::authenticate(freerdp *instance, char **username,
+                                    char **password, char **domain)
+{
+    TRACE_ARG(instance << username << password << domain);
+    // Not implemented yet!
+    Q_UNUSED(instance);
+    Q_UNUSED(username);
+    Q_UNUSED(password);
+    Q_UNUSED(domain);
+    return true;
+}
+
+DWORD RdpDesktopClient::verifyCertificateEx(freerdp *instance, const char *host, UINT16 port,
+                                            const char *common_name, const char *subject,
+                                            const char *issuer, const char *fingerprint, DWORD flags)
+{
+    TRACE_ARG(instance << host << port << common_name << subject << issuer << fingerprint << flags);
+    // Not implemented yet!
+    Q_UNUSED(instance);
+    Q_UNUSED(host);
+    Q_UNUSED(port);
+    Q_UNUSED(common_name);
+    Q_UNUSED(subject);
+    Q_UNUSED(issuer);
+    Q_UNUSED(fingerprint);
+    Q_UNUSED(flags);
+    return 1;
+}
+
+DWORD RdpDesktopClient::verifyChangedCertificateEx(freerdp *instance, const char *host, UINT16 port,
+                                                   const char *common_name, const char *subject,
+                                                   const char *issuer, const char *new_fingerprint,
+                                                   const char *, const char *, const char *, DWORD flags)
+{
+    return verifyCertificateEx(instance, host, port, common_name, subject, issuer, new_fingerprint, flags);
 }
 
 BOOL RdpDesktopClient::preConnect(freerdp *instance)

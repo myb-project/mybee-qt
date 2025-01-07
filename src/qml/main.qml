@@ -15,17 +15,17 @@ ApplicationWindow {
     minimumHeight: 400
     title: Qt.application.displayName
     visible: true
-    //visibility: isMobile ? ApplicationWindow.FullScreen : ApplicationWindow.Windowed
+    //visibility: SystemHelper.isMobile ? ApplicationWindow.FullScreen : ApplicationWindow.Windowed
 
     readonly property int appStartWidth:    400 // HD: 1280
     readonly property int appStartHeight:   700 // HD: 720
     readonly property int appFitWidth:      390 //5 * (appButtonSize + appTextPadding * 2)
     readonly property int appFitHeight:     Math.max(appFitWidth * appScreenRatio, appStartHeight)
-    readonly property real scrPixelDensity: (isMobile && (Screen.width / Screen.pixelDensity) > 300) ?
+    readonly property real scrPixelDensity: (SystemHelper.isMobile && (Screen.width / Screen.pixelDensity) > 300) ?
                                                 Screen.pixelDensity * 2 : Screen.pixelDensity
     readonly property bool appScreenTiny:   (Screen.width / scrPixelDensity) < 120
     readonly property bool appScreenShort:  (Screen.height / scrPixelDensity) < 120 ||
-                                                (isMobile && (Screen.height / Screen.width) < 0.6)
+                                                (SystemHelper.isMobile && (Screen.height / Screen.width) < 0.6)
     readonly property bool appScreenHuge:   (Screen.width / scrPixelDensity) >= (23.5 * 25.4) // 27" monitor
     readonly property real appScreenRatio:  Screen.width > Screen.height ? Screen.width / Screen.height
                                                                          : Screen.height / Screen.width
@@ -74,6 +74,8 @@ ApplicationWindow {
         if (appWindow.width === appStartWidth && appWindow.height === appStartHeight) {
             appWindow.width = appFitWidth
             appWindow.height = appFitHeight
+            if (Screen.primaryOrientation === Qt.LandscapeOrientation)
+                appDelay(appTinyDelay, appCompactAction.toggle)
         }
         if (appOrigFontSize) {
             var ps = appSettings.value("lastFontSize")
@@ -134,7 +136,7 @@ ApplicationWindow {
     }
 
     onClosing: function(close) {
-        if (isMobile && appStackView.depth > 1) {
+        if (SystemHelper.isMobile && appStackView.depth > 1) {
             appStackView.pop(null)
             close.accepted = false
         } else if (VMConfigSet.isBusy && !appForceQuit) {
@@ -433,7 +435,7 @@ ApplicationWindow {
 
     component MenuItemTemplate: MenuItem {
         arrow: Text {
-            visible: !isMobile && parent.enabled
+            visible: !SystemHelper.isMobile && parent.enabled
             anchors { right: parent.right; rightMargin: parent.rightPadding; verticalCenter: parent.verticalCenter }
             font: parent.font
             text: SystemHelper.shortcutText(parent.action.shortcut)

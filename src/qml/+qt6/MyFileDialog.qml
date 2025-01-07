@@ -1,9 +1,11 @@
 import QtCore
 import QtQuick.Dialogs
 
+import CppCustomModules 1.0
+
 FileDialog {
-    property string path: isMobile ? StandardPaths.standardLocations(StandardPaths.DocumentsLocation)[0]
-                                   : StandardPaths.standardLocations(StandardPaths.HomeLocation)[0]
+    property string path: SystemHelper.isMobile ? StandardPaths.standardLocations(StandardPaths.DocumentsLocation)[0]
+                                                : StandardPaths.standardLocations(StandardPaths.HomeLocation)[0]
 
     currentFolder: path.startsWith("file://") ? path : "file://" + path
     options: FileDialog.ReadOnly | FileDialog.HideNameFilterDetails | FileDialog.DontUseNativeDialog

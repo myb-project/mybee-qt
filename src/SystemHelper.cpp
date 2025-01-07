@@ -172,6 +172,12 @@ QString SystemHelper::appSshKey()
 }
 
 // static
+QString SystemHelper::appHomeUrl()
+{
+    return QStringLiteral(APP_HOMEURL);
+}
+
+// static
 QString SystemHelper::envVariable(const QString &name)
 {
     if (!name.isEmpty()) {
@@ -193,8 +199,10 @@ QString SystemHelper::platformOS()
         if (os_name.isEmpty()) {
 #if defined(Q_OS_ANDROID)
             os_name = "Android";
-#elif defined(Q_OS_DARWIN)
-            os_name = "Darwin";
+#elif defined(Q_OS_IOS)
+            os_name = "iOS";
+#elif defined(Q_OS_MACOS)
+            os_name = "MacOS";
 #elif defined(Q_OS_WIN)
             os_name = "Windows";
 #elif defined(Q_OS_LINUX)
@@ -203,6 +211,8 @@ QString SystemHelper::platformOS()
             os_name = "FreeBSD";
 #elif defined(Q_OS_OPENBSD)
             os_name = "OpenBSD";
+#elif defined(Q_OS_NETBSD)
+            os_name = "NetBSD";
 #elif defined(Q_OS_UNIX)
             os_name = "Unix";
 #else
@@ -387,6 +397,15 @@ QString SystemHelper::domainName()
 }
 
 // static
+QString SystemHelper::qtRCVersion()
+{
+    QString ver = qVersion(); // running version
+    if (ver != QT_VERSION_STR) // application compiled version
+        ver += QString(" (build on %1)").arg(QT_VERSION_STR);
+    return ver;
+}
+
+// static
 QString SystemHelper::sslVersion()
 {
     QString ver;
@@ -422,6 +441,22 @@ QString SystemHelper::rdpVersion()
 QString SystemHelper::vncVersion()
 {
     return LIBVNCSERVER_PACKAGE_VERSION;
+}
+
+// static
+QString SystemHelper::settingsPath()
+{
+    return QSettings().fileName();
+}
+
+// static
+bool SystemHelper::isMobile()
+{
+#if defined(Q_OS_ANDROID) || defined(Q_OS_IOS)
+    return true;
+#else
+    return false;
+#endif
 }
 
 // static

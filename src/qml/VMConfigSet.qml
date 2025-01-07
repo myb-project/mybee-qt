@@ -310,10 +310,10 @@ Item {
                 RestApiSet.getProfiles(cfg)
                 return
             case "ssh":
-                executeSsh(cfg, cbsdProfiles, "profiles.json")
+                executeSsh(cfg, cbsdProfiles + " emulator=" + cfg["emulator"], "profiles.json")
                 return
             case "file":
-                executeCbsd(cbsdProfiles, "profiles.json")
+                executeCbsd(cbsdProfiles + " emulator=" + cfg["emulator"], "profiles.json")
                 return
             }
         }
@@ -651,6 +651,7 @@ Item {
                 error("parseCluster: Can't write " + conf_path)
                 return
             }
+            var cnt = configCount
             setConfigMap()
             if (control.isValid) {
                 key = objectKey(currentConfig)
@@ -661,7 +662,7 @@ Item {
                 }
             }
             if (keys.length > 1) keys.sort()
-            setCurrent(keys[0])
+            if (!cnt) setCurrent(keys[0])
         }
         listDone(url)
     }

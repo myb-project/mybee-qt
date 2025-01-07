@@ -6,13 +6,15 @@ include(../common.pri)
 TEMPLATE = app
 macx: TARGET = $${APP_DISPLAYNAME}
 else: TARGET = $${APP_NAME}
-CONFIG -= qtquickcompiler
-CONFIG += lrelease embed_translations
+# The SshChannelExec class requires a private QIODevice header to call setReadChannelCount() for stdout/stderr
+QT += core-private
 QT += qml quick quickcontrols2 network multimedia
 qtHaveModule(core5compat): QT += core5compat
 
-# The SshChannelExec class requires a private QIODevice header to call setReadChannelCount() for stdout/stderr
-QT += core-private
+CONFIG += c++17 release
+CONFIG += file_copies lrelease embed_translations
+#CONFIG -= qtquickcompiler
+#CONFIG += deploy
 
 android {
     lessThan(QT_MAJOR_VERSION,6) {
@@ -34,7 +36,22 @@ android {
 
 DEFINES += LIBSSH_STATIC SSH_NO_CPP_EXCEPTIONS
 
-unix {
+windows {
+    # Run compilation using VS compiler using multiple threads
+    QMAKE_CXXFLAGS += -MP
+    QMAKE_CXXFLAGS_WARN_ON += /WX /W3
+    RC_ICONS = "../deploy/windows/logo.ico"
+    msvc:LIBS += Advapi32.lib User32.lib
+    gcc:LIBS += -lAdvapi32 -lUser32
+} else: macx {
+    QMAKE_APPLE_DEVICE_ARCHS = x86_64 arm64
+    #QMAKE_MACOSX_DEPLOYMENT_TARGET = 11.0
+    QMAKE_TARGET_BUNDLE_PREFIX += cbsd.mybeeqt
+    ICON = "../deploy/macos/logo.icns"
+    DEFINES += USE_APPKIT USE_APPLICATION_SERVICES USE_IOKIT USE_OBJC
+    LIBS += -framework Carbon -framework ApplicationServices -framework IOKit -framework AppKit -lobjc
+} else {
+    # Any other unix include Android
     INCLUDEPATH += \"$${OUT_PWD}/../include\" \"$${OUT_PWD}/../include/freerdp2\" \"$${OUT_PWD}/../include/winpr2\"
     LIBS += -L../lib -lssh -lvncclient
     LIBS += -lfreerdp-client2 $${FREERDP_CHANNEL_LIBS} -lfreerdp2 -lwinpr2
@@ -122,3 +139,9 @@ DISTFILES += $$files(android-qt*, true) \
     android-qt6/gradlew.bat \
     android-qt6/res/values/libs.xml \
     android-qt6/res/xml/qtprovider_paths.xml
+
+CONFIG(deploy) {
+    DEPLOY_PRI = ../deploy/deploy.pri
+    exists("$${DEPLOY_PRI}"): include("$${DEPLOY_PRI}")
+    else: error("Can't find $${DEPLOY_PRI}")
+}

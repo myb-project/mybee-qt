@@ -1,0 +1,11 @@
+Contents/Frameworks/Qt3D*
+Contents/Frameworks/QtConcurrent.framework
+Contents/Frameworks/QtQmlLocalStorage.framework
+Contents/Frameworks/QtQmlXmlListModel.framework
+Contents/Frameworks/QtQuickParticles.framework
+Contents/Frameworks/QtQuickShapes.framework
+Contents/Frameworks/QtQuickTimeline.framework
+Contents/Frameworks/QtStateMachine*
+Contents/Frameworks/QtVirtualKeyboard.framework
+Contents/Frameworks/QtWidgets.framework
+Contents/Resources/qml/QtQuick/VirtualKeyboard

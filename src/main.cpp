@@ -1,7 +1,6 @@
 #include <QGuiApplication>
 #include <QQmlApplicationEngine>
 #include <QQmlFileSelector>
-#include <QQmlContext>
 #include <QQuickStyle>
 #include <QIcon>
 #include <QVersionNumber>
@@ -36,11 +35,9 @@
 #endif
 
 #if defined(Q_OS_ANDROID) || defined(Q_OS_IOS)
-const bool isMobile = true;
 static const char *quickControlStyle = "Material";
 static const char *materialStyleMode = "Normal";
 #else
-const bool isMobile = false;
 static const char *quickControlStyle = "Material";
 static const char *materialStyleMode = "Dense";
 #endif
@@ -94,7 +91,7 @@ int main(int argc, char *argv[])
 
     app.setApplicationName(APP_NAME);
     app.setApplicationVersion(APP_VERSION);
-    app.setApplicationDisplayName(SystemHelper::camelCase(app.applicationName(), '-'));
+    app.setApplicationDisplayName(APP_DISPLAYNAME);
     app.setWindowIcon(QIcon(QStringLiteral(":/image-logo")));
     QQuickStyle::setStyle(quickControlStyle);
 
@@ -145,8 +142,6 @@ int main(int argc, char *argv[])
     if (!keyLoader.loadLayout(locale) && !keyLoader.loadLayout())
         qFatal("Failure loading keyboard layout");
 
-    //QLoggingCategory::setFilterRules(QStringLiteral("qtc.ssh=true"));
-
     qmlRegisterSingletonType(QUrl(QStringLiteral("qrc:/MaterialSet.qml")), QML_CUSTOM_MODULES, 1, 0, "MaterialSet");
     qmlRegisterSingletonType(QUrl(QStringLiteral("qrc:/RestApiSet.qml")), QML_CUSTOM_MODULES, 1, 0, "RestApiSet");
     qmlRegisterSingletonType(QUrl(QStringLiteral("qrc:/VMConfigSet.qml")), QML_CUSTOM_MODULES, 1, 0, "VMConfigSet");
@@ -170,12 +165,6 @@ int main(int argc, char *argv[])
     qmlRegisterType<UrlModel>(CPP_CUSTOM_MODULES, 1, 0, "UrlModel");
 
     QQmlApplicationEngine engine;
-    QQmlContext *context = engine.rootContext();
-
-    const QString appSettingsPath(QSettings().fileName());
-    context->setContextProperty(QStringLiteral("appSettingsPath"), appSettingsPath);
-    context->setContextProperty(QStringLiteral("isMobile"), isMobile);
-
     const QVersionNumber qt_ver = QLibraryInfo::version(); // Qt run-time version
     if (qt_ver.majorVersion() > 5) {
         QStringList efs;
@@ -187,9 +176,6 @@ int main(int argc, char *argv[])
         engine.setExtraFileSelectors(efs);
 #endif
     }
-    QString qtRunningVersion = qVersion();
-    if (qtRunningVersion != QT_VERSION_STR) qtRunningVersion += QString(" (build on %1)").arg(QT_VERSION_STR);
-    context->setContextProperty(QStringLiteral("qtVersion"), qtRunningVersion);
 
     const QUrl qml(QStringLiteral("qrc:/main.qml"));
     QObject::connect(&engine, &QQmlApplicationEngine::objectCreated, &app, [qml](QObject *obj, const QUrl &url) {

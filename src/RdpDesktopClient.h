@@ -29,6 +29,16 @@ private:
     static BOOL preConnect(freerdp *instance);
     static BOOL postConnect(freerdp *instance);
     static void postDisconnect(freerdp *instance);
+    static BOOL authenticate(freerdp *instance, char **username,
+                             char **password, char **domain);
+    static DWORD verifyCertificateEx(freerdp *instance, const char *host, UINT16 port,
+                                     const char *common_name, const char *subject,
+                                     const char *issuer, const char *fingerprint, DWORD flags);
+    static DWORD verifyChangedCertificateEx(freerdp *instance, const char *host, UINT16 port,
+                                            const char *common_name, const char *subject,
+                                            const char *issuer, const char *new_fingerprint,
+                                            const char *old_subject, const char *old_issuer,
+                                            const char *old_fingerprint, DWORD flags);
     static BOOL beginPaint(rdpContext *context);
     static BOOL endPaint(rdpContext *context);
     static BOOL desktopResize(rdpContext *context);

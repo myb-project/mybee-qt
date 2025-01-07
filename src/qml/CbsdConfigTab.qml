@@ -49,7 +49,7 @@ DropDownView {
                 ImageButton {
                     source: "qrc:/image-drive"
                     text: qsTr("Visit the project homepage")
-                    onClicked: Qt.openUrlExternally("https://github.com/myb-project/mybee-qt")
+                    onClicked: Qt.openUrlExternally(SystemHelper.appHomeUrl)
                     Image {
                         anchors.bottom: parent.bottom
                         source: "qrc:/image-overlay-gear"
