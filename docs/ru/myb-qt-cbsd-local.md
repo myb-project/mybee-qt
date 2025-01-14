@@ -15,7 +15,6 @@
 
 ```
 pkg install -y cbsd
-/usr/local/cbsd/sudoexec/initenv /usr/local/cbsd/share/initenv.conf default_vs=1
 ```
 
 2) Ининциализация CBSD:

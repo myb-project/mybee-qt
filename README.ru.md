@@ -75,7 +75,7 @@
 - Android mobile or Linux or FreeBSD desktop environment;
 - 1 cpu, 256 MB RAM;
 - ~64 MB storage;
-- доступ до зеркал инфраструктуры CBSD для получения gold/ISO образов (необязательное условие, (если настроете собственный кеш/зеркало)[https://github.com/cbsd/mirrors]);
+- доступ до зеркал инфраструктуры CBSD для получения gold/ISO образов ( необязательное условие, [если настроете собственный кеш/зеркало](https://github.com/cbsd/mirrors) );
 
 ## Roadmap
 
