@@ -294,4 +294,5 @@ sudo cbsd version
 
 ---
 
-Дальше: [Режим работы N2: через протокол SSH, CBSD интерпретатор/MyBee](myb-qt-cbsd-ssh.md)
+**<< Назад**: [Получение и установка MyBee-QT](get-myb-qt.md)     |     **>> Дальше**: [Режим работы N2: через протокол SSH, CBSD интерпретатор/MyBee](myb-qt-cbsd-ssh.md)
+

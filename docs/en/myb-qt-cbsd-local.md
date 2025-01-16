@@ -294,4 +294,5 @@ To get started with VMs, you can either go to the [Working with VMs](myb-qt-vm.m
 
 ---
 
-Next: [Operating mode N2: via SSH protocol, CBSD interpreter/MyBee](myb-qt-cbsd-ssh.md)
+**<< Prev**: [Operating mode N1: local CBSD interpreter](myb-qt-cbsd-local.md)     |     **>> Next**: [Operating mode N2: via SSH protocol, CBSD interpreter/MyBee](myb-qt-cbsd-ssh.md)
+

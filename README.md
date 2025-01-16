@@ -15,7 +15,7 @@
 
 ---
 
-## MyBee-QT Overview
+## Welcome to MyBee-QT
 
 (*) What is **MyBee-QT**: it is a cross-platform QT-based application that provides a graphical interface for working with virtual machines and containers (creation, deletion, start and stop) on those platforms where **CBSD** can work.
 
@@ -95,6 +95,3 @@ Planned features in the next version:
 * [Operating mode N2: via SSH protocol, CBSD interpreter/MyBee](docs/en/myb-qt-cbsd-ssh.md)
 * [Operating mode N3: via RestAPI/MyBee/XigmaNAS](docs/en/myb-qt-api.md)
 
-..
-
-## Demo

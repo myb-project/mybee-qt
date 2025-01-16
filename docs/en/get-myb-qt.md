@@ -68,6 +68,6 @@ Further configuration depends on the methods of interaction with CBSD (see below
 
 ---
 
-Next: [Operating mode N1: local CBSD interpreter](myb-qt-cbsd-local.md)
+**<< Prev**: [Welcome to MyBee-QT](/)     |     **>> Next**: [Operating mode N1: local CBSD interpreter](myb-qt-cbsd-local.md)
 
 [^#1]: Unlike Linux, on FreeBSD there is no need to resort to various AppImage/Flatpak/Snap and other formats, since FreeBSD clusters build packages with a single "slice" of ports, thus ensuring that builds are successfully built and linked with build-compatible versions.
