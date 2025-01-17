@@ -10,8 +10,10 @@ MyBee-QT is a cross-platform software. Use the appropriate platform and architec
 |         Linux             |  x86_64               | [mybee-qt](https://myb.convectix.com/DL/linux/mybee-qt)                          |
 |         FreeBSD           |  x86_64               | `pkg install -y mybee-qt` [^#1]                                                  |
 
-## Linux 
+<details>
+  <summary>Linux-based OS</summary>
 
+## Linux
 The official build of MyBee-QT for Linux platform is [AppImage](https://appimage.org/) application, so make sure your system has `libfuse` package installed and `fuse` module loaded:
 
 ```
@@ -25,7 +27,10 @@ chmod +x ./mybee-qt
 ./mybee-qt
 ```
 
-Further configuration depends on the methods of interaction with CBSD (see below).
+</details>
+
+<details>
+  <summary>FreeBSD OS</summary>
 
 ## FreeBSD
 
@@ -64,10 +69,13 @@ pkg install -r MyBee-QT -y mybee-qt
 
 ```
 
+</details>
+
 Further configuration depends on the methods of interaction with CBSD (see below).
 
 ---
 
-**<< Prev**: [Welcome to MyBee-QT](/)     |     **>> Next**: [Operating mode N1: local CBSD interpreter](myb-qt-cbsd-local.md)
+**<<_**__[Prev: Welcome to MyBee-QT](/)__ $~~~$ | $~~~$ __[Next: Mode N1: local CBSD interpreter](myb-qt-cbsd-local.md)__**_>>**
+
 
 [^#1]: Unlike Linux, on FreeBSD there is no need to resort to various AppImage/Flatpak/Snap and other formats, since FreeBSD clusters build packages with a single "slice" of ports, thus ensuring that builds are successfully built and linked with build-compatible versions.

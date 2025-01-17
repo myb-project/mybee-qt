@@ -10,6 +10,9 @@ MyBee-QT является cross-platform ПО. Используйте соотв
 |         Linux             |  x86_64               | [mybee-qt](https://myb.convectix.com/DL/linux/mybee-qt)                          |
 |         FreeBSD           |  x86_64               | `pkg install -y mybee-qt` [^#1]                                                  |
 
+<details>
+  <summary>Linux-based системы</summary>
+
 ## Linux 
 
 Официальный билд MyBee-QT под Linux платформу представляет из себя [AppImage](https://appimage.org/) приложение, соответственно, убедитесь, что ваша система имеет установленным `libfuse` пакет и модуль `fuse` загружен:
@@ -25,7 +28,10 @@ chmod +x ./mybee-qt
 ./mybee-qt
 ```
 
-Дальнейшая настройка зависит от методов взаимодействия с CBSD (см. ниже).
+</details>
+
+<details>
+  <summary>FreeBSD OS</summary>
 
 ## FreeBSD
 
@@ -64,11 +70,13 @@ pkg install -r MyBee-QT -y mybee-qt
 
 ```
 
+</details>
+
 Дальнейшая настройка зависит от методов взаимодействия с CBSD (см. ниже).
 
 ---
 
-**<< Назад**: [Введение: Добро пожаловать в MyBee-QT](myb-qt-cbsd-local.md)     |     **>> Дальше**: [Режим работы N1: локальный CBSD интерпретатор](myb-qt-cbsd-local.md)
+**<<_**__[Назад: Добро пожаловать в MyBee-QT](myb-qt-cbsd-local.md)__ $~~~$ | $~~~$ __[Дальше: Режим работы N1: локальный CBSD интерпретатор](myb-qt-cbsd-local.md)__**_>>**
 
 
 [^#1]: В отличии от Linux, на FreeBSD нет необходимости прибегать в различным AppImage/Flatpak/Snap и прочим форматам, посколько кластера FreeBSD собирают пакеты

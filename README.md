@@ -91,7 +91,7 @@ Planned features in the next version:
 ## MyBee-QT Handbook
 
 * [Getting, installation and initial setup](docs/en/get-myb-qt.md)
-* [Operating mode N1: local, CBSD interpreter](docs/en/myb-qt-cbsd-local.md)
-* [Operating mode N2: via SSH protocol, CBSD interpreter/MyBee](docs/en/myb-qt-cbsd-ssh.md)
-* [Operating mode N3: via RestAPI/MyBee/XigmaNAS](docs/en/myb-qt-api.md)
+* [Mode N1: local, CBSD interpreter](docs/en/myb-qt-cbsd-local.md)
+* [Mode N2: via SSH protocol, CBSD interpreter/MyBee](docs/en/myb-qt-cbsd-ssh.md)
+* [Mode N3: via RestAPI/MyBee/XigmaNAS](docs/en/myb-qt-api.md)
 

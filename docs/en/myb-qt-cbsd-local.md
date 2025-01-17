@@ -1,4 +1,4 @@
-# Operating mode N1: local, via CBSD interpreter
+# Mode N1: local, via CBSD interpreter
 
 This mode allows you to run virtual machines locally on those platforms where the [CBSD](https://github.com/cbsd/cbsd) software is installed. At the moment, these are platforms based on Linux, FreeBSD, XigmaNAS, DragonflyBSD and TrueNAS CORE.
 
@@ -294,5 +294,6 @@ To get started with VMs, you can either go to the [Working with VMs](myb-qt-vm.m
 
 ---
 
-**<< Prev**: [Operating mode N1: local CBSD interpreter](myb-qt-cbsd-local.md)     |     **>> Next**: [Operating mode N2: via SSH protocol, CBSD interpreter/MyBee](myb-qt-cbsd-ssh.md)
+**<<_**__[Prev: Getting MyBee-QT](get-myb-qt.md)__ $~~~$ | $~~~$ __[Next: Mode N2: via SSH protocol](myb-qt-cbsd-ssh.md)__**_>>**
+
 
