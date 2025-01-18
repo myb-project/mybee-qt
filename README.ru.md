@@ -95,3 +95,8 @@
 * [Режим работы N2: через протокол SSH, CBSD интерпретатор/MyBee](docs/ru/myb-qt-cbsd-ssh.md)
 * [Режим работы N3: через RestAPI/MyBee](docs/ru/myb-qt-cbsd-api.md)
 
+## Sponsor this project
+
+Если вам нравится этот проект, хотите сказать спасибо и поддержать нас:
+
+<a href="https://www.patreon.com/clonos"><img src="https://c5.patreon.com/external/logo/become_a_patron_button@2x.png" alt="Patreon donate button" /></a>

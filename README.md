@@ -95,3 +95,8 @@ Planned features in the next version:
 * [Mode N2: via SSH protocol, CBSD interpreter/MyBee](docs/en/myb-qt-cbsd-ssh.md)
 * [Mode N3: via RestAPI/MyBee](docs/en/myb-qt-cbsd-api.md)
 
+## Sponsor this project
+
+If you like this project, want to say thank you and support us, please use:
+
+<a href="https://www.patreon.com/clonos"><img src="https://c5.patreon.com/external/logo/become_a_patron_button@2x.png" alt="Patreon donate button" /></a>
