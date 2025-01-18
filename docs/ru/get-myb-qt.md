@@ -2,13 +2,32 @@
 
 MyBee-QT является cross-platform ПО. Используйте соответствующей вашей платформе и архитектуре билд (по ссылкам опубликован всегда последняя актуальная версия):
 
-|           OS name         |  Arch                 |  Link                                                                            |
-| ------------------------- | --------------------- | -------------------------------------------------------------------------------- |
-|         Android           |  arm64_little_endian  | [mybee-qt.apk](https://myb.convectix.com/DL/apk/mybee-qt.apk)                    |
-|         Windows           |  x86_64               | WIP, Porters or hardware donors help is welcome                                  |
-|         MacOS             |  x86_64               | WIP, Porters or hardware donors help is welcome                                  |
-|         Linux             |  x86_64               | [mybee-qt](https://myb.convectix.com/DL/linux/mybee-qt)                          |
-|         FreeBSD           |  x86_64               | `pkg install -y mybee-qt` [^#1]                                                  |
+|           OS name             |  Arch                 |  Link                                                                            |
+| ----------------------------- | --------------------- | -------------------------------------------------------------------------------- |
+|         Android (**v14+**)    |  arm64_little_endian  | [mybee-qt.apk](https://myb.convectix.com/DL/apk/mybee-qt.apk)                    |
+|         Windows (**v10+**)    |  x86_64               | [mybee-qt.exe](https://myb.convectix.com/DL/windows/mybee-qt.exe)                |
+|         MacOS                 |  x86_64               | WIP, Porters or hardware donors help is welcome                                  |
+|         Linux                 |  x86_64               | [mybee-qt](https://myb.convectix.com/DL/linux/mybee-qt)                          |
+|         FreeBSD (**v14.2+**)  |  x86_64               | `pkg install -y mybee-qt` [^#1]                                                  |
+
+<details>
+  <summary>Windows-based системы</summary>
+
+:bangbang: | :Внимание: На данный момент есть ограничение при подключении к консоли jail из MyBee-QT под Windows - мы ищем аналог `openpty`. Виртуальные машины работают без ограничений.
+:---: | :---
+
+Приложение рассчитано на ОС Windows не ниже 10.x;
+
+1) Откройте броузер и скачайте установщик MyBee-QT: https://myb.convectix.com/DL/windows/mybee-qt.exe
+
+Процедура установки стандрартна - дважды щелкнуть на .exe файле и указав путь, запустить процесс извлечения файлов.
+
+![wininst1.png](https://myb.convectix.com/img/wininst1.png?raw=true)
+
+![wininst2.png](https://myb.convectix.com/img/wininst2.png?raw=true)
+
+</details>
+
 
 <details>
   <summary>Linux-based системы</summary>

@@ -296,4 +296,3 @@ To get started with VMs, you can either go to the [Working with VMs](myb-qt-vm.m
 
 **<<_**__[Prev: Getting MyBee-QT](get-myb-qt.md)__ $~~~$ | $~~~$ __[Next: Mode N2: via SSH protocol](myb-qt-cbsd-ssh.md)__**_>>**
 
-

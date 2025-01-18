@@ -354,4 +354,4 @@ To get started with VMs, you can either go to the [Working with VMs](myb-qt-vm.m
 
 ---
 
-**<<_**__[Next: Mode N1: local CBSD interpreter](myb-qt-cbsd-local.md)__ $~~~$ | $~~~$ __[Next: Mode N3: via RestAPI](myb-qt-cbsd-api.md)__**_>>**
+**<<_**__[Prev: Mode N1: local CBSD interpreter](myb-qt-cbsd-local.md)__ $~~~$ | $~~~$ __[Next: Mode N3: via RestAPI](myb-qt-cbsd-api.md)__**_>>**

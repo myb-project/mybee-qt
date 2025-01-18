@@ -93,5 +93,5 @@
 * [Получение, установка и первоначальная настройка](docs/ru/get-myb-qt.md)
 * [Режим работы N1: локальный, CBSD интерпретатор](docs/ru/myb-qt-cbsd-local.md)
 * [Режим работы N2: через протокол SSH, CBSD интерпретатор/MyBee](docs/ru/myb-qt-cbsd-ssh.md)
-* [Режим работы N3: через RestAPI/MyBee/XigmaNAS](docs/ru/myb-qt-api.md)
+* [Режим работы N3: через RestAPI/MyBee](docs/ru/myb-qt-cbsd-api.md)
 
