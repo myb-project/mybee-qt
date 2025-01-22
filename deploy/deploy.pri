@@ -6,12 +6,12 @@ include(../common.pri)
 win32 {
     OS_DEPLOY_DIR = $${PWD}/windows
     COPIES += windowsDll
-    windowsDll.files = $$files($${OS_DEPLOY_DIR}/*.dll)
+    windowsDll.files = $$files($${PWD}/../win64/libjpeg/bin/*.dll)
     windowsDll.path = "$${OUT_PWD}/$${APP_STAGING_DIR}"
 
     INNO_SETUP_EXEC = "C:\\Program Files \(x86\)\\Inno Setup 6\\iscc.exe"
     INNO_SETUP_FILE = "inno_setup.iss"
-    !exists("$${INNO_SETUP_EXEC}"): error("No executable \"$${INNO_SETUP_EXEC}\" found in the System")
+    !exists("$${INNO_SETUP_EXEC}"): error("No executable \"$${INNO_SETUP_EXEC}\" found in the system")
     INNO_SETUP_DATA += "$${LITERAL_HASH}define MyAppName \"$${APP_DISPLAYNAME}\""
     INNO_SETUP_DATA += "$${LITERAL_HASH}define MyAppVersion \"$${APP_VERSION}\""
     INNO_SETUP_DATA += "$${LITERAL_HASH}define MyAppPublisher \"$${APP_PUBLISHER}\""
@@ -28,8 +28,13 @@ win32 {
     DEPLOYQT_TOOL = $$[QT_HOST_BINS]/windeployqt
     !exists("$${DEPLOYQT_TOOL}"): DEPLOYQT_TOOL = $$system(where windeployqt)
     !isEmpty(DEPLOYQT_TOOL) {
-        QMAKE_POST_LINK = $${DEPLOYQT_TOOL} --release --force --no-compiler-runtime --no-system-d3d-compiler --no-translations \
-            --qtpaths \"$$[QT_HOST_BINS]/qtpaths.exe\" --qmldir \"$${APP_SOURCE_DIR}/qml\" --dir $${APP_STAGING_DIR} $${APP_NAME}.exe
+        QMAKE_POST_LINK = $${QMAKE_COPY} release\\$${APP_NAME}.exe $${APP_NAME}.exe
+        QMAKE_POST_LINK += $$escape_expand(\\n) $${DEPLOYQT_TOOL} \
+            --release --force --no-compiler-runtime --no-system-d3d-compiler --no-translations \
+            --qtpaths \"$$[QT_HOST_BINS]/qtpaths.exe\" --openssl-root \"$${OPENSSL_ROOT_DIR}\" \
+            --qmldir \"$${PWD}/../src/qml\" --dir $${APP_STAGING_DIR} $${APP_NAME}.exe
+        QMAKE_POST_LINK += $$escape_expand(\\n) $${QMAKE_COPY} ..\\bin\\*.dll $${APP_STAGING_DIR}
+        QMAKE_POST_LINK += $$escape_expand(\\n) $${QMAKE_COPY} ..\\lib\\*.dll $${APP_STAGING_DIR}
         QMAKE_POST_LINK += $$escape_expand(\\n) $$quote("\"$${INNO_SETUP_EXEC}\"" $${INNO_SETUP_FILE})
     }
 } else: macx {
@@ -64,7 +69,7 @@ win32 {
 
     DESKTOP_FILE = $${APP_STAGING_DIR}/usr/share/applications/$${APP_NAME}.desktop
     QMAKE_POST_LINK = $${QMAKE_MKDIR} $${APP_STAGING_DIR}/usr/bin $${APP_STAGING_DIR}/usr/lib && \
-        $${COPY_COMMAND} $${APP_NAME} $${APP_STAGING_DIR}/usr/bin
+        $${QMAKE_COPY} $${APP_NAME} $${APP_STAGING_DIR}/usr/bin
 
     DESKTOP_ENTRY += "[Desktop Entry]"
     DESKTOP_ENTRY += "Name=$${APP_DISPLAYNAME} $${APP_VERSION}"
@@ -84,7 +89,7 @@ win32 {
         icon_parts = $$split(icon_name, .)
         icon_apps_dir = "$${ICONS_HICOLOR}/$$first(icon_parts)/apps"
         QMAKE_POST_LINK += && $${QMAKE_MKDIR} $${icon_apps_dir} && \
-            $${COPY_COMMAND} \"$${icon_file}\" $${icon_apps_dir}/$${APP_NAME}.$$last(icon_parts)
+            $${QMAKE_COPY} \"$${icon_file}\" $${icon_apps_dir}/$${APP_NAME}.$$last(icon_parts)
     }
 
     DEPLOYQT_TOOL = $$[QT_HOST_BINS]/linuxdeployqt

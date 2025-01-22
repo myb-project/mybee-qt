@@ -38,7 +38,7 @@ Page {
     ]
 
     Component.onCompleted: {
-        lastServer = SystemHelper.loadObject(currentFolder + "/lastServer")
+        lastServer = SystemHelper.loadObject(currentFolder + "/lastServer.json")
         if (!lastServer.hasOwnProperty("server") || !lastServer.hasOwnProperty("ssh_key")) {
             appError(qsTr("Can't load current configuration"))
             return

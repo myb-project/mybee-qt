@@ -1,10 +1,14 @@
-#include <QSocketNotifier>
 #include <QCoreApplication>
 #include <QTimer>
 #include <QLocale>
 #include <QImage>
 #include <QPixmap>
 #include <QtDebug>
+#ifdef Q_OS_WIN
+#include <QWinEventNotifier>
+#else
+#include <QSocketNotifier>
+#endif
 
 #include "freerdp/freerdp.h"
 #include "freerdp/input.h"
@@ -13,9 +17,7 @@
 #include "freerdp/client/cmdline.h"
 #include "freerdp/client/channels.h"
 #include "freerdp/client/cliprdr.h"
-#ifdef Q_OS_UNIX
 #include "freerdp/locale/keyboard.h"
-#endif
 
 #include "RdpDesktopClient.h"
 #include "RdpAudioPlugin.h"
@@ -232,33 +234,57 @@ void RdpDesktopClient::setSocketNotifiers(bool enable)
             emitErrorText();
             return;
         }
-        QList<qintptr> rlist, wlist;
-        const auto list = findChildren<QSocketNotifier*>(QString(), Qt::FindDirectChildrenOnly);
-        for (auto sn : list) {
-            if (sn->type() == QSocketNotifier::Read)       rlist.append(sn->socket());
-            else if (sn->type() == QSocketNotifier::Write) wlist.append(sn->socket());
+#ifdef Q_OS_WIN
+        for (int i = 0; i < rcount; i++) {
+            auto pfd = reinterpret_cast<HANDLE>(rfds[i]);
+            QString name = QString("RW%1").arg((qint64)pfd);
+            auto sn = findChild<QWinEventNotifier*>(name, Qt::FindDirectChildrenOnly);
+            if (!sn) {
+                sn = new QWinEventNotifier(pfd, this);
+                sn->setObjectName(name);
+                connect(sn, &QWinEventNotifier::activated, this, &RdpDesktopClient::onSocketActivated);
+            }
             sn->setEnabled(true);
         }
+        for (int i = 0; i < wcount; i++) {
+            auto pfd = reinterpret_cast<HANDLE>(wfds[i]);
+            QString name = QString("RW%1").arg((qint64)pfd);
+            auto sn = findChild<QWinEventNotifier*>(name, Qt::FindDirectChildrenOnly);
+            if (!sn) {
+                sn = new QWinEventNotifier(pfd, this);
+                sn->setObjectName(name);
+                connect(sn, &QWinEventNotifier::activated, this, &RdpDesktopClient::onSocketActivated);
+            }
+            sn->setEnabled(true);
+        }
+    } else {
+        const auto list = findChildren<QWinEventNotifier*>(QString(), Qt::FindDirectChildrenOnly);
+#else
         for (int i = 0; i < rcount; i++) {
-            qintptr pfd = reinterpret_cast<qintptr>(rfds[i]);
-            if (!rlist.contains(pfd)) {
-                TRACE_ARG("Read" << pfd);
-
-                auto sn = new QSocketNotifier(pfd, QSocketNotifier::Read, this);
+            auto pfd = reinterpret_cast<qintptr>(rfds[i]);
+            QString name = QString("R%1").arg(pfd);
+            auto sn = findChild<QSocketNotifier*>(name, Qt::FindDirectChildrenOnly);
+            if (!sn) {
+                sn = new QSocketNotifier(pfd, QSocketNotifier::Read, this);
+                sn->setObjectName(name);
                 connect(sn, &QSocketNotifier::activated, this, &RdpDesktopClient::onSocketActivated);
             }
+            sn->setEnabled(true);
         }
         for (int i = 0; i < wcount; i++) {
-            qintptr pfd = reinterpret_cast<qintptr>(wfds[i]);
-            if (!wlist.contains(pfd)) {
-                TRACE_ARG("Write" << pfd);
-
-                auto sn = new QSocketNotifier(pfd, QSocketNotifier::Write, this);
+            auto pfd = reinterpret_cast<qintptr>(wfds[i]);
+            QString name = QString("W%1").arg(pfd);
+            auto sn = findChild<QSocketNotifier*>(name, Qt::FindDirectChildrenOnly);
+            if (!sn) {
+                sn = new QSocketNotifier(pfd, QSocketNotifier::Write, this);
+                sn->setObjectName(name);
                 connect(sn, &QSocketNotifier::activated, this, &RdpDesktopClient::onSocketActivated);
             }
+            sn->setEnabled(true);
         }
     } else {
         const auto list = findChildren<QSocketNotifier*>(QString(), Qt::FindDirectChildrenOnly);
+#endif
         for (auto sn : list) {
             sn->setEnabled(false);
             sn->deleteLater();
@@ -268,7 +294,7 @@ void RdpDesktopClient::setSocketNotifiers(bool enable)
 
 void RdpDesktopClient::onSocketActivated()
 {
-    //TRACE_ARG(reinterpret_cast<QSocketNotifier*>(sender())->type() << reinterpret_cast<QSocketNotifier*>(sender())->type());
+    TRACE_ARG(sender()->objectName());
 
     if (!client_instance) return;
     if (::freerdp_shall_disconnect(client_instance)) {

@@ -1,0 +1,24 @@
+*** winpr/include/winpr/winpr.h.orig	Mon Apr 22 12:26:59 2024
+--- winpr/include/winpr/winpr.h	Mon Jan 13 21:09:34 2025
+***************
+*** 23,28 ****
+--- 23,31 ----
+  
+  #ifdef WINPR_DLL
+  #if defined _WIN32 || defined __CYGWIN__
++ #ifdef WINPR_STATIC
++ #define WINPR_API
++ #else
+  #ifdef WINPR_EXPORTS
+  #ifdef __GNUC__
+  #define WINPR_API __attribute__((dllexport))
+***************
+*** 36,41 ****
+--- 39,45 ----
+  #define WINPR_API __declspec(dllimport)
+  #endif
+  #endif
++ #endif
+  #else
+  #if __GNUC__ >= 4
+  #define WINPR_API __attribute__((visibility("default")))

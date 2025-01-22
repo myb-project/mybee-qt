@@ -149,8 +149,7 @@ void VncDesktopClient::setLogging(bool enable)
 
 void VncDesktopClient::startSession()
 {
-    TRACE_ARG(serverUrl());
-
+    TRACE();
     if (client_instance) stopSession();
     update_area = QRect();
 
@@ -171,11 +170,14 @@ void VncDesktopClient::startSession()
     client_instance->serverHost = qstrdup(!opt.isEmpty() ? opt.toUtf8().constData() : "localhost");
     client_instance->serverPort = serverUrl().port(5900);
 
+    TRACE_ARG("rfbInitClient()" << client_instance->serverHost << client_instance->serverPort);
     if (!::rfbInitClient(client_instance, nullptr, nullptr)) {
         client_instance = nullptr;  // rfbInitClient has already freed the client struct
         emit errorChanged(serverUrl().host() + ": Connection failed");
         return;
     }
+    TRACE_ARG("rfbInitClient() Done");
+
     if (client_instance->sock != RFB_INVALID_SOCKET) {
         auto sn = new QSocketNotifier(client_instance->sock, QSocketNotifier::Read, this);
         connect(sn, &QSocketNotifier::activated, this, [this]() {

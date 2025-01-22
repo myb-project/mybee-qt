@@ -48,7 +48,7 @@ public slots:
     void writeText(const QString &chars); // input string must be Unicode
 
 private slots:
-    void resize(int rows, int columns);
+    void resize(int columns, int rows);
 
 signals:
     void dataAvailable();

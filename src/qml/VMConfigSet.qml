@@ -138,7 +138,7 @@ Item {
                 }
                 var list = SystemHelper.fileList(null, null, true)
                 for (var folder of list) {
-                    var cfg = SystemHelper.loadObject(folder + "/lastServer")
+                    var cfg = SystemHelper.loadObject(folder + "/lastServer.json")
                     if (cfg.hasOwnProperty("server") && cfg.hasOwnProperty("ssh_key"))
                         getList(cfg)
                 }
@@ -624,13 +624,13 @@ Item {
                 if (!next_map[key].hasOwnProperty("alias"))  next_map[key]["alias"] = key
                 if (!next_map[key].hasOwnProperty("server")) next_map[key]["server"] = url
                 if (!next_map[key].hasOwnProperty("name")) {
-                    if (!profiles.length) profiles = SystemHelper.loadArray(base + "/profiles")
+                    if (!profiles.length) profiles = SystemHelper.loadArray(base + "/profiles.json")
                     var index = profiles.findIndex(obj => obj.profile === item["vm_os_profile"])
                     next_map[key]["name"] = ~index ? profiles[index]["name"] : item["vm_os_profile"]
                 }
                 if (!next_map[key].hasOwnProperty("ssh_key")) {
                     if (!ssh_key) {
-                        var obj = SystemHelper.loadObject(base + "/lastServer")
+                        var obj = SystemHelper.loadObject(base + "/lastServer.json")
                         if (obj["ssh_key"]) ssh_key = obj["ssh_key"]
                         //else if (cbsdSshKey) ssh_key = cbsdSshKey
                         else ssh_key = SystemHelper.appSshKey

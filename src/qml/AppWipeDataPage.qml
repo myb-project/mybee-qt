@@ -47,8 +47,8 @@ Page {
 
     component FolderTemplate: GroupBox {
         id: groupBox
-        Layout.preferredWidth: control.availableWidth - 20
-        Layout.margins: 10
+        Layout.preferredWidth: control.availableWidth - 10
+        Layout.margins: 5
         Material.background: MaterialSet.theme[Material.theme]["highlight"]
         Material.elevation: MaterialSet.theme[Material.theme]["elevation"]
 
@@ -169,7 +169,8 @@ Page {
         running: dirSpaceUsed.running
     }
 
-    footer: Pane {
+    footer: DropDownPane {
+        show: true
         RowLayout {
             anchors.fill: parent
             TintedImage {
@@ -177,12 +178,14 @@ Page {
             }
             Label {
                 Layout.fillWidth: true
-                text: dirSpaceUsed.storage
+                text: qsTr("%1 %2 <b>%3 free</b>").arg(prettyMBytes(dirSpaceUsed.totalMb)).arg(dirSpaceUsed.storage).arg(prettyMBytes(dirSpaceUsed.availMb))
                 elide: Text.ElideLeft
             }
-            Label {
-                text: qsTr("Free <i>%1</i> of <i>%2</i> total")
-                    .arg(prettyMBytes(dirSpaceUsed.availMb)).arg(prettyMBytes(dirSpaceUsed.totalMb))
+            SquareButton {
+                text: qsTr("Abort")
+                icon.source: "qrc:/icon-quit"
+                ToolTip.text: qsTr("Forced clean exit")
+                onClicked: SystemHelper.appAbort()
             }
         }
     }

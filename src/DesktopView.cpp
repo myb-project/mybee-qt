@@ -2,13 +2,9 @@
 #include <QTimer>
 #include <QMetaObject>
 #include <QtMath>
-#include <QTcpServer>
-#include <QTcpSocket>
 
 #include "DesktopView.h"
 #include "DesktopAction.h"
-#include "SshSession.h"
-#include "SshChannelPort.h"
 
 //#define TRACE_DESKTOPVIEW
 #ifdef TRACE_DESKTOPVIEW
@@ -33,7 +29,6 @@ DesktopView::DesktopView(QQuickItem *parent)
     , view_scale(0.0)
     , release_buttons(false)
     , mouse_buttons(0)
-    , tunnel_port(0)
 {
     TRACE();
     qRegisterMetaType<DesktopAction>("DesktopAction");
@@ -480,81 +475,4 @@ void DesktopView::cancel()
     desktop_client->deleteLater();
     desktop_client = nullptr;
     emit canceled();
-}
-
-bool DesktopView::setSshTunnel(QObject *obj, const QUrl &url, const QString &key, const QString &addr, int port)
-{
-    TRACE_ARG(obj << url << key << addr << port);
-    if (ssh_session) {
-        qWarning() << Q_FUNC_INFO << "SshSession already set";
-        return false;
-    }
-    auto ss = qobject_cast<SshSession*>(obj);
-    if (!ss) {
-        qWarning() << Q_FUNC_INFO << "Bad Object type, SshSession expected";
-        return false;
-    }
-    if (!ss->setSshUrl(url, key) || addr.isEmpty() || port < 1) {
-        qWarning() << Q_FUNC_INFO << "Invalid parameters specified";
-        return false;
-    }
-    connect(ss, &SshSession::stateChanged, this, [this]() {
-        if (ssh_session && ssh_session->isReady()) {
-            ssh_channel = ssh_session->createPort(tunnel_addr, tunnel_port);
-            auto cnl = ssh_channel.toStrongRef().data();
-            connect(cnl, &SshChannelPort::channelOpened, this, &DesktopView::createTcpServer);
-            connect(cnl, &SshChannel::channelClosed, ssh_session, &SshSession::disconnectFromHost);
-        }
-    });
-    tunnel_addr = addr;
-    tunnel_port = port;
-    ssh_session = ss;
-    ss->connectToHost();
-    return true;
-}
-
-void DesktopView::createTcpServer()
-{
-    TRACE();
-    auto tcp_serv = new QTcpServer(this);
-    tcp_serv->setMaxPendingConnections(1);
-    connect(tcp_serv, &QTcpServer::newConnection, this, &DesktopView::onNewConnection);
-
-    if (!tcp_serv->listen()) onErrorChanged(tcp_serv->errorString());
-    else emit sshTunnelListen(tcp_serv->serverAddress().toString(), (int)tcp_serv->serverPort());
-}
-
-void DesktopView::onNewConnection()
-{
-    TRACE();
-    if (!ssh_channel) return;
-
-    auto tcp_serv = qobject_cast<QTcpServer*>(sender());
-    if (!tcp_serv) return; // should not happend
-    QTcpSocket *sock = tcp_serv->nextPendingConnection();
-    if (!sock) return; // should not happend
-
-    tcp_serv->close();
-    sock->setSocketOption(QAbstractSocket::LowDelayOption, 1);
-    connect(sock, &QAbstractSocket::errorOccurred, this, [this,sock](QAbstractSocket::SocketError) {
-        onErrorChanged(sock->errorString());
-    });
-    connect(sock, &QTcpSocket::disconnected, tcp_serv, &QTcpServer::deleteLater);
-
-    auto cnl = ssh_channel.toStrongRef().data();
-    connect(cnl, &SshChannel::readyRead, this, [this,sock]() {
-        if (ssh_channel && sock->state() == QAbstractSocket::ConnectedState) {
-            auto data = ssh_channel.toStrongRef()->readAll();
-            TRACE_ARG("tcp_sock->write(data)" << data.size());
-            sock->write(data);
-            //sock->flush();
-        }
-    });
-    connect(sock, &QTcpSocket::readyRead, this, [this,sock]() {
-        if (ssh_channel && sock->state() == QAbstractSocket::ConnectedState) {
-            auto data = sock->readAll();
-            TRACE_ARG("ssh_channel->write(data)" << data.size());
-            ssh_channel.toStrongRef()->write(data);
-        }
-    });
 }

@@ -19,7 +19,7 @@ RoundButton {
         id: textMetric
         font.family: appWindow.font.family
         font.pointSize: appTipSize
-        font.bold: true
+        //font.bold: true
         text: control.text
     }
 }

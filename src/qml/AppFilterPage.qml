@@ -136,7 +136,7 @@ Page {
     }
 
     footer: DropDownPane {
-        show: control.matchedKeys.length
+        show: control.matchedKeys.length || appMainPage.filterText
         onVisibleChanged: ensureRowVisible()
         RowLayout {
             anchors.fill: parent

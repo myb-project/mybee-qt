@@ -9,15 +9,10 @@
 #include <QSizeF>
 #include <QRectF>
 #include <QCoreApplication>
-#include <QPointer>
-#include <QWeakPointer>
 
 #include "RdpDesktopClient.h"
 #include "VncDesktopClient.h"
 #include "BaseThread.h"
-
-class SshSession;
-class SshChannelPort;
 
 class DesktopView : public QQuickPaintedItem
 {
@@ -71,8 +66,6 @@ public:
     QPointF viewCenter() const;
     void setViewCenter(const QPointF &center);
 
-    Q_INVOKABLE bool setSshTunnel(QObject *ssh, const QUrl &url, const QString &key,
-                                  const QString &addr, int port);
     Q_INVOKABLE bool start(const QUrl &url); // desktop url
 
     // Reimplemented from QQuickPaintedItem
@@ -93,7 +86,6 @@ signals:
     void viewRectChanged();
     void viewScaleChanged();
     void viewCenterChanged();
-    void sshTunnelListen(const QString &addr, int port);
     void canceled();
 
 protected:
@@ -140,11 +132,6 @@ private:
     bool release_buttons;
     int mouse_buttons;
     QPoint mouse_pos;
-
-    QString tunnel_addr;
-    int tunnel_port;
-    QPointer<SshSession> ssh_session;
-    QWeakPointer<SshChannelPort> ssh_channel;
 };
 
 class RdpDesktopThread : public BaseThread<RdpDesktopClient>

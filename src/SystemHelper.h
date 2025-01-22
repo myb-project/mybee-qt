@@ -35,6 +35,8 @@ class SystemHelper : public QObject
     Q_PROPERTY(QString   settingsPath READ settingsPath  CONSTANT FINAL)
     Q_PROPERTY(bool          isMobile READ isMobile      CONSTANT FINAL)
 
+    Q_PROPERTY(QString      clipboard READ clipboard WRITE setClipboard NOTIFY clipboardChanged FINAL)
+
 public:
     static constexpr char const *defaultSshKeyName = "id_ed25519"; // ED25519 supported only!
 
@@ -65,6 +67,7 @@ public:
     static QString settingsPath();
     static bool isMobile();
 
+    Q_INVOKABLE static void appAbort();
     Q_INVOKABLE static QString appCachePath(const QString &name);
     Q_INVOKABLE static QString appConfigPath(const QString &name);
     Q_INVOKABLE static QString appDataPath(const QString &name);
@@ -73,7 +76,8 @@ public:
     Q_INVOKABLE static QString userHome(const QString &name = QString()); // empty: current user
     Q_INVOKABLE static QStringList groupMembers(const QString &name = QString()); // empty: current user
 
-    Q_INVOKABLE static QStringList sshKeyPairs();
+    Q_INVOKABLE static QStringList sshKeyList(const QString &folder, bool pairs = false);
+    Q_INVOKABLE static QStringList sshAllKeys(bool pairs = false);
     Q_INVOKABLE static bool isSshKeyPair(const QString &path);
     Q_INVOKABLE static bool isSshPrivateKey(const QString &path);
     Q_INVOKABLE static QString sshPublicKey(const QString &path);
@@ -110,9 +114,6 @@ public:
     Q_INVOKABLE static QStringList loadText(const QString &path);
     Q_INVOKABLE static QString saveText(const QString &path, const QStringList &text, bool append = false);
 
-    Q_INVOKABLE static void setClipboard(const QString &text); // set null QString() to clear clipboard
-    Q_INVOKABLE static QString clipboard();
-
     Q_INVOKABLE static QString camelCase(const QString &str, QChar sep = ' ');
     Q_INVOKABLE static QString shortcutText(const QVariant &key);
 
@@ -121,4 +122,10 @@ public:
 #ifdef Q_OS_ANDROID
     Q_INVOKABLE static bool setAndroidPermission(const QStringList &permissions);
 #endif
+
+    void setClipboard(const QString &text); // set null QString() to clear clipboard
+    QString clipboard() const;
+
+signals:
+    void clipboardChanged();
 };

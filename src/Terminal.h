@@ -121,7 +121,7 @@ public:
     bool showCursor() const;
 
     QSize termSize() const { return iTermSize; }
-    void setTermSize(QSize size);
+    void setTermSize(const QSize &size);
 
     TerminalBuffer& buffer();
     const TerminalBuffer& buffer() const;
@@ -132,10 +132,10 @@ public:
 
     bool inverseVideoMode() const { return m_inverseVideoMode; }
 
-    void keyPress(int key, int modifiers, const QString& text = "");
+    void keyPress(int key, int modifiers, const QString &text = "");
     QStringList printableLinesFromCursor(int lines) const;
     void putString(const QString &str);
-    void paste(const QString& text);
+    void paste(const QString &text);
     QStringList grabURLsFromBuffer() const;
 
     void scrollBackBufferFwd(int lines);
@@ -156,20 +156,20 @@ public:
     TermChar zeroChar;
 
 signals:
-    void cursorPosChanged(QPoint newPos);
-    void termSizeChanged(int rows, int columns);
+    void cursorPosChanged(const QPoint &newPos);
+    void termSizeChanged(int columns, int rows);
     void displayBufferChanged();
     void selectionChanged();
     void scrollBackBufferAdjusted(bool reset);
     void selectionFinished();
     void visualBell();
-    void windowTitleChanged(const QString& windowTitle);
-    void workingDirectoryChanged(const QString& workingDirectory);
+    void windowTitleChanged(const QString &windowTitle);
+    void workingDirectoryChanged(const QString &workingDirectory);
     void hangupReceived();
     void newTerminalChars(const QString &chars);
 
 protected:
-    void insertInBuffer(const QString& chars);
+    void insertInBuffer(const QString &chars);
 
 private:
     Q_DISABLE_COPY(Terminal)

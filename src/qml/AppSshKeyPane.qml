@@ -14,46 +14,44 @@ Pane {
                                              listModel.get(listView.currentIndex).text : ""
 
     Component.onCompleted: {
-        //addSshKey(VMConfigSet.cbsdSshKey)
-        var list = SystemHelper.sshKeyPairs()
-        for (var i = 0; i < list.length; i++) addSshKey(list[i])
-
-        setCurrentIndex()
+        var list = SystemHelper.sshAllKeys()
+        for (var i = 0; i < list.length; i++) addSshKey(list[i], false)
     }
 
-    onCurrentServerChanged: setCurrentIndex()
+    onCurrentServerChanged: {
+        if (!Url.isValidAt(currentServer)) return
+        var folder = SystemHelper.fileName(currentServer)
+        if (!SystemHelper.isDir(folder)) return
+        var obj = SystemHelper.loadObject(folder + "/lastServer.json")
+        if (SystemHelper.isSshPrivateKey(obj["ssh_key"])) addSshKey(obj["ssh_key"])
+    }
 
-    function setCurrentIndex() {
-        if (!listModel.count) return
-        if (Url.isValidAt(currentServer)) {
-            var path = SystemHelper.appDataPath(SystemHelper.fileName(currentServer))
-            if (SystemHelper.isDir(path)) {
-                var obj = SystemHelper.loadObject(path + "/lastServer")
-                if (obj.hasOwnProperty("ssh_key")) {
-                    for (var i = 0; i < listModel.count; i++) {
-                        if (listModel.get(i).text === obj["ssh_key"]) {
-                            listView.currentIndex = i
-                            return
-                        }
-                    }
-                }
+    function addSshKey(path, top = true) {
+        if (!path) return
+        for (var i = 0; i < listModel.count; i++) {
+            if (listModel.get(i).text === path) {
+                listView.currentIndex = i
+                listView.ensureCurrentVisible()
+                return
             }
         }
+        var obj = { "text": path }
+        if (SystemHelper.isSshKeyPair(path)) {
+            obj["icon"] = "qrc:/image-check-ok"
+            obj["tip"] = qsTr("Private & public Ssh keys")
+        } else if (SystemHelper.isSshPrivateKey(path)) {
+            obj["icon"] = "qrc:/image-check-part"
+            obj["tip"] = qsTr("Private Ssh key only")
+        } else {
+            obj["icon"] = "qrc:/image-check-bad"
+            obj["tip"] = qsTr("This is not an Ssh key")
+        }
+        if (!listModel.count || !top) {
+            listModel.append(obj)
+            if (listModel.count !== 1) return
+        } else listModel.insert(0, obj)
         listView.currentIndex = 0
-    }
-
-    function addSshKey(path) : int {
-        if (!path) return -1
-        for (var i = 0; i < listModel.count; i++) {
-            if (listModel.get(i).text === path) return i
-        }
-        switch (SystemHelper.isSshKeyPair(path) ? 2 : (SystemHelper.isSshPrivateKey(path) ? 1 : 0)) {
-        case 0: listModel.append({ "icon": "qrc:/image-check-bad",  "text": path, "tip": qsTr("This is not an Ssh key") }); break
-        case 1: listModel.append({ "icon": "qrc:/image-check-part", "text": path, "tip": qsTr("Private SSH key only") }); break
-        case 2: listModel.append({ "icon": "qrc:/image-check-ok",   "text": path, "tip": qsTr("Private & public Ssh keys") }); break
-        default: return -1
-        }
-        return listModel.count - 1
+        listView.ensureCurrentVisible()
     }
 
     ListModel {
@@ -69,21 +67,35 @@ Pane {
             implicitHeight: appRowHeight * control.maxLines
             focus: true
             underline: true
-            currentIndex: count === 1 ? 0 : -1
+            currentIndex: -1
             model: listModel
             delegate: ItemDelegate {
-                //enabled: !index || Url.schemeAt(control.currentServer) !== "file"
+                id: itemDelegate
                 padding: appTextPadding
-                spacing: 0
                 width: ListView.view.width
                 height: appRowHeight
                 highlighted: ListView.isCurrentItem
                 text: model.text
-                icon.source: model.icon
-                icon.color: enabled ? "transparent" : "gray"
+                contentItem: RowLayout {
+                    Image {
+                        Layout.preferredWidth: itemDelegate.availableHeight
+                        Layout.preferredHeight: itemDelegate.availableHeight
+                        fillMode: Image.PreserveAspectFit
+                        source: model.icon
+                    }
+                    Text {
+                        Layout.fillWidth: true
+                        text: itemDelegate.text
+                        font: itemDelegate.font
+                        color: itemDelegate.highlighted ? Material.accent : Material.foreground
+                        horizontalAlignment: Text.AlignLeft
+                        verticalAlignment: Text.AlignVCenter
+                        elide: Text.ElideLeft
+                    }
+                }
                 onClicked: {
                     listView.forceActiveFocus()
-                    ListView.view.currentIndex = index
+                    listView.currentIndex = index
                 }
                 ToolTip.text: model.tip
                 ToolTip.visible: hovered
@@ -104,14 +116,13 @@ Pane {
         }
         Column {
             SquareButton {
-                id: addSquareButton
                 icon.source: "qrc:/icon-open-folder"
                 ToolTip.text: qsTr("Append file")
                 onClicked: {
                     var dlg = Qt.createComponent("MyFileDialog.qml").createObject(control, {
                                 "title": qsTr("Select Ssh access key") })
                     if (!dlg) { appToast(qsTr("Can't load MyFileDialog.qml")); return }
-                    dlg.accepted.connect(function() { listView.currentIndex = control.addSshKey(dlg.filePath()) })
+                    dlg.accepted.connect(function() { control.addSshKey(dlg.filePath()) })
                     dlg.open()
                 }
                 FlashingPoint { visible: !listView.count }
@@ -126,7 +137,13 @@ Pane {
                 enabled: listView.count && ~listView.currentIndex
                 icon.source: "qrc:/icon-remove"
                 ToolTip.text: qsTr("Remove entry")
-                onClicked: listModel.remove(listView.currentIndex)
+                onClicked: {
+                    listModel.remove(listView.currentIndex--)
+                    if (listView.currentIndex < 0 && listModel.count) {
+                        listView.currentIndex = 0
+                        listView.ensureCurrentVisible()
+                    }
+                }
             }
         }
     }

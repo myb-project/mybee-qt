@@ -14,50 +14,62 @@ qtHaveModule(core5compat): QT += core5compat
 CONFIG += c++17 release
 CONFIG += file_copies lrelease embed_translations
 #CONFIG -= qtquickcompiler
-#CONFIG += deploy
-
-android {
-    lessThan(QT_MAJOR_VERSION,6) {
-        QT += androidextras
-        ANDROID_PACKAGE_SOURCE_DIR = $${PWD}/android-qt5
-    } else {
-        ANDROID_PACKAGE_SOURCE_DIR = $${PWD}/android-qt6
-    }
-    ANDROID_TARGET_SDK_VERSION = 34
-    ANDROID_VERSION_NAME = $${APP_VERSION}
-    ANDROID_VERSION_CODE = $$replace(ANDROID_VERSION_NAME, '\.', '')
-    ANDROID_EXTRA_LIBS += $${OPENSSL_ROOT_DIR}/libssl_3.so $${OPENSSL_ROOT_DIR}/libcrypto_3.so
-    INCLUDEPATH += \"$${OPENSSL_ROOT_DIR}/include\"
-    LIBS += -L\"$${OPENSSL_ROOT_DIR}\" -lOpenSLES
-    FREERDP_CHANNEL_LIBS = ../*.$${QMAKE_EXTENSION_STATICLIB}
-} else {
-    FREERDP_CHANNEL_LIBS = ../lib/freerdp2/*.$${QMAKE_EXTENSION_STATICLIB}
-}
 
 DEFINES += LIBSSH_STATIC SSH_NO_CPP_EXCEPTIONS
 
+windows: INCLUDEPATH += ../win64/zlib/include
+INCLUDEPATH += ../include ../include/freerdp2 ../include/winpr2
+
+!isEmpty(OPENSSL_ROOT_DIR) {
+    INCLUDEPATH += $$clean_path($${OPENSSL_ROOT_DIR}/include)
+    QMAKE_LIBDIR += $$clean_path($${OPENSSL_ROOT_DIR}/lib)
+}
+
 windows {
-    # Run compilation using VS compiler using multiple threads
-    QMAKE_CXXFLAGS += -MP
-    QMAKE_CXXFLAGS_WARN_ON += /WX /W3
-    RC_ICONS = "../deploy/windows/logo.ico"
-    msvc:LIBS += Advapi32.lib User32.lib
-    gcc:LIBS += -lAdvapi32 -lUser32
-} else: macx {
+    CONFIG += deploy
+    RC_ICONS = $$shell_quote($${PWD}/../deploy/windows/logo.ico)
+    QMAKE_LIBDIR += $$shell_quote($${PWD}/../win64/zlib/lib)
+    QMAKE_LIBDIR += $$shell_quote($${PWD}/../win64/libjpeg/lib)
+    QMAKE_LIBDIR += $$shell_quote($${OUT_PWD}/../lib)
+    LIBS += ssh.lib
+    LIBS += vncclient.lib
+    LIBS += freerdp-client2.lib freerdp2.lib winpr2.lib
+    LIBS += libssl.lib libcrypto.lib libjpeg.lib zlib.lib
+    LIBS += Advapi32.lib User32.lib Ws2_32.lib Iphlpapi.lib Ntdsapi.lib Rpcrt4.lib Dbghelp.lib
+
+} else { # linux & unix
+
+    android {
+        lessThan(QT_MAJOR_VERSION,6) {
+            QT += androidextras
+            ANDROID_PACKAGE_SOURCE_DIR = $${PWD}/android-qt5
+        } else {
+            ANDROID_PACKAGE_SOURCE_DIR = $${PWD}/android-qt6
+        }
+        ANDROID_TARGET_SDK_VERSION = 34
+        ANDROID_VERSION_NAME = $${APP_VERSION}
+        ANDROID_VERSION_CODE = $$replace(ANDROID_VERSION_NAME, '\.', '')
+        ANDROID_EXTRA_LIBS += $${OPENSSL_ROOT_DIR}/libssl_3.so $${OPENSSL_ROOT_DIR}/libcrypto_3.so
+
+        LIBS += -lOpenSLES
+        FREERDP_CHANNEL_LIBS = ../*.$${QMAKE_EXTENSION_STATICLIB}
+    } else {
+        FREERDP_CHANNEL_LIBS = ../lib/freerdp2/*.$${QMAKE_EXTENSION_STATICLIB}
+    }
+
+    LIBS += -L../lib -lssh -lvncclient
+    LIBS += -lfreerdp-client2 $${FREERDP_CHANNEL_LIBS} -lfreerdp2 -lwinpr2
+    LIBS += -lssl -lcrypto -ljpeg -lz -ldl -lutil
+}
+
+# XXX Not implemented yet!
+macx {
     QMAKE_APPLE_DEVICE_ARCHS = x86_64 arm64
     #QMAKE_MACOSX_DEPLOYMENT_TARGET = 11.0
     QMAKE_TARGET_BUNDLE_PREFIX += cbsd.mybeeqt
     ICON = "../deploy/macos/logo.icns"
     DEFINES += USE_APPKIT USE_APPLICATION_SERVICES USE_IOKIT USE_OBJC
     LIBS += -framework Carbon -framework ApplicationServices -framework IOKit -framework AppKit -lobjc
-} else {
-    # Any other unix include Android
-    INCLUDEPATH += \"$${OUT_PWD}/../include\" \"$${OUT_PWD}/../include/freerdp2\" \"$${OUT_PWD}/../include/winpr2\"
-    LIBS += -L../lib -lssh -lvncclient
-    LIBS += -lfreerdp-client2 $${FREERDP_CHANNEL_LIBS} -lfreerdp2 -lwinpr2
-    LIBS += -lcrypto -lssl -lz -ldl -lutil
-    #LIBS += -lcrypto -lssl -lcairo -ljpeg -lpng -llzo2 -lz
-    #LIBS += $${QMAKE_LIBS_X11} -lxkbfile
 }
 
 SOURCES += \
@@ -69,7 +81,6 @@ SOURCES += \
     HttpRequest.cpp \
     KeyLoader.cpp \
     Parser.cpp \
-    PtyIFace.cpp \
     RdpAudioPlugin.cpp \
     RdpDesktopClient.cpp \
     SshChannel.cpp \
@@ -83,7 +94,6 @@ SOURCES += \
     SshSettings.cpp \
     SystemHelper.cpp \
     SystemProcess.cpp \
-    SystemSignal.cpp \
     Terminal.cpp \
     TextRender.cpp \
     UrlModel.cpp \
@@ -98,7 +108,6 @@ HEADERS += \
     HttpRequest.h \
     KeyLoader.h \
     Parser.h \
-    PtyIFace.h \
     RdpAudioPlugin.h \
     RdpDesktopClient.h \
     SshChannel.h \
@@ -111,11 +120,20 @@ HEADERS += \
     SshSettings.h \
     SystemHelper.h \
     SystemProcess.h \
-    SystemSignal.h \
     Terminal.h \
     TextRender.h \
     UrlModel.h \
     VncDesktopClient.h
+
+unix {
+    SOURCES += \
+        PtyIFace.cpp \
+        SystemSignal.cpp
+
+    HEADERS += \
+        PtyIFace.h \
+        SystemSignal.h
+}
 
 RESOURCES += \
     fonts.qrc \

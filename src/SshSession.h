@@ -11,6 +11,7 @@
 #include "libssh/callbacks.h"
 #include "SshSettings.h"
 
+class QTcpServer;
 class QTimer;
 class SshChannel;
 class SshChannelShell;
@@ -89,7 +90,6 @@ public:
     void setLogLevel(int level);
     bool setSettings(const SshSettings &settings);
     void setShareKey(bool enable);
-    Q_INVOKABLE bool setSshUrl(const QUrl &url, const QString &key);
 
     bool isConnected() const;
     bool isEstablished() const;
@@ -108,10 +108,11 @@ public:
     int channels() const { return channel_list.size(); }
     int openChannels() const { return open_channels; }
     QString lastError() const { return last_error; }
+    Q_INVOKABLE int tunnel(const QString &addr, int port);
 
 public slots:
     void connectToHost();
-    void connectToHost(const QString &user, const QString &host, int port = 0);
+    void connectToUrl(const QUrl &url, const QString &key);
     void writeKnownHost();
     void giveAnswers(const QStringList &answers); // must match askQuestions's prompts
     void disconnectFromHost();
@@ -138,7 +139,7 @@ protected:
     friend class TextRender;
     friend class SshProcess;
     friend class DesktopView;
-    QWeakPointer<SshChannelShell> createShell();
+    QWeakPointer<SshChannelShell> createShell(const QSize &termSize);
     QWeakPointer<SshChannelExec> createExec(const QString &command);
     QWeakPointer<SshChannelPort> createPort(const QString &host, quint16 port);
     void abortChannel(SshChannel *channel);
@@ -174,6 +175,8 @@ private:
     void onChannelClosed();
     void sendPublicKey();
     void emitHostDisconnected();
+    void onBytesWritten(qint64 bytes);
+    void onNewConnection();
     static int libEventCallback(socket_t fd, int revents, void *userdata);
 
     LogLevel log_level;
@@ -194,6 +197,11 @@ private:
     struct ssh_key_struct *lib_ssh_key;
     QTimer *connect_timer;
     QTimer *later_timer;
+    QTimer *alive_timer;
+
+    QTcpServer *tunnel_serv;
+    QString tunnel_addr;
+    int tunnel_port;
 
     QUrl ssh_url;
     bool ssh_running;

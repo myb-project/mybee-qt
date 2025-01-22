@@ -5,16 +5,32 @@ include(../common.pri)
 
 TEMPLATE = aux
 FREERDP_ARC = freerdp-2.11.7.tar.gz
-FREERDP_DIR = $$section(FREERDP_ARC, ., 0, 2)
+FREERDP_DIR = $$section(FREERDP_ARC, '.', 0, 2)
 FREERDP_URL = "https://pub.freerdp.com/releases/$${FREERDP_ARC}"
 FREERDP_SRC = $${PWD}/$${FREERDP_ARC}
 
-!exists($${FREERDP_SRC}): \
-    FREERDP_CMD += ($${WGET_COMMAND} \"$${FREERDP_SRC}\" $${FREERDP_URL}) &&
-!exists($${OUT_PWD}/$${FREERDP_DIR}/CMakeLists.txt): \
-    FREERDP_CMD += ($${TAR_COMMAND} \"$${FREERDP_SRC}\") &&
+!exists($${FREERDP_SRC}) {
+    FREERDP_CMD += ($$shell_quote($${CURL_COMMAND}) -o \
+        $$relative_path($${FREERDP_SRC}, $${OUT_PWD}) $${FREERDP_URL}) &&
+}
 
-FREERDP_CMD += ($${CMAKE_CONFIG_LIBS} $$cat(BuildOptions.txt) -S $${FREERDP_DIR})
+!exists($${OUT_PWD}/$${FREERDP_DIR}/CMakeLists.txtXXX) {
+    FREERDP_CMD += ($$shell_quote($${TAR_COMMAND}) -xf \
+        $$relative_path($${FREERDP_SRC}, $${OUT_PWD})) &&
+    #windows {
+    #    FREERDP_CMD += (cd $${FREERDP_DIR} &&
+    #    FREERDP_CMD += $$shell_quote($${PATCH_COMMAND}) -bp0 < $$shell_path($${PWD}/freerdp2.patch) &&
+    #    FREERDP_CMD += $$shell_quote($${PATCH_COMMAND}) -bp0 < $$shell_path($${PWD}/winpr2.patch) &&
+    #    FREERDP_CMD += cd ..) &&
+    #}
+}
+
+# Unfortunately, FreeRDP2 for Windows does not support static build.
+windows: BUILD_SHARED_LIBS = ON
+else:    BUILD_SHARED_LIBS = OFF
+
+FREERDP_CMD += ($${CMAKE_CONFIG_LIBS} -DBUILD_SHARED_LIBS=$${BUILD_SHARED_LIBS} \
+    $$cat(BuildOptions.txt) -S $${FREERDP_DIR})
 FREERDP_CMD += && $${CMAKE_BUILD_LIBS}
 
 windows: FREERDP_LIB.target = ../lib/freerdp2.lib

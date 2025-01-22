@@ -60,9 +60,13 @@ Page {
                         if (appWindow.visibility === ApplicationWindow.Windowed) {
                             appWindow.width = appFitWidth
                             appWindow.height = appFitHeight
+                            if (Screen.primaryOrientation === Qt.LandscapeOrientation)
+                                appDelay(appTinyDelay, appCompactAction.toggle)
                         }
                         appMaterialTheme = MaterialSet.defaultTheme
-                        appWindow.font.pointSize = appOrigFontSize ? appOrigFontSize : 9.75
+                        appMainFont = defaultMainFont
+                        appMonoFont = defaultMonoFont
+                        appResetFont(defaultMainFont, Math.round(Qt.application.font.pointSize))
 
                         appShowDebug = true
                         SystemHelper.saveSettings("showDebug", appShowDebug)
@@ -92,7 +96,10 @@ Page {
                 ToolTip.text: qsTr("Save changes")
                 onClicked: {
                     appMaterialTheme = appConfigTab.colorTheme
-                    appWindow.font.pointSize = appConfigTab.fontPointSize
+                    appMainFont = appConfigTab.mainFontName
+                    appMonoFont = appConfigTab.monoFontName
+                    appResetFont(appConfigTab.mainFontName, appConfigTab.fontPointSize)
+
                     if (appConfigTab.showDebug !== appShowDebug) {
                         appShowDebug = appConfigTab.showDebug
                         SystemHelper.saveSettings("showDebug", appShowDebug)

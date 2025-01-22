@@ -15,7 +15,7 @@ MyDialog {
     property alias input: textInput.text
     property alias readOnly: textInput.readOnly
 
-    readonly property var titleType: [ qsTr("Input"), qsTr("Information"), qsTr("Warning"), qsTr("Error") ]
+    readonly property var titleType: [ qsTr("Input required"), qsTr("Information"), qsTr("Warning"), qsTr("Error") ]
     readonly property var imageType: [ "qrc:/image-input", "qrc:/image-info", "qrc:/image-warn", "qrc:/image-error" ]
 
     onAboutToShow: {
@@ -58,6 +58,7 @@ MyDialog {
                 focus: visible
                 selectByMouse: true
                 wrapMode: TextEdit.Wrap
+                //onEditingFinished: if (!readOnly) control.accept()
             }
             MyToolButton {
                 enabled: textInput.text

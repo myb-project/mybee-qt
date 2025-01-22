@@ -14,8 +14,24 @@ DropDownView {
     myClassName: control.toString().match(/.+?(?=_)/)[0]
 
     property bool modified: false
+    property var mainFontList: []
+    property var monoFontList: []
 
     Component.onCompleted: {
+        var i, list = SystemHelper.fileList(":/main/fonts")
+        for (i = 0; i < list.length; i++) {
+            mainFontList.push(list[i].slice(0, list[i].lastIndexOf('.')).replace('-', ' '))
+        }
+        if (appMainFont && !mainFontList.includes(appMainFont))
+            mainFontList.unshift(appMainFont)
+
+        list = SystemHelper.fileList(":/mono/fonts")
+        for (i = 0; i < list.length; i++) {
+            monoFontList.push(list[i].slice(0, list[i].lastIndexOf('.')).replace('-', ' '))
+        }
+        if (appMonoFont && !monoFontList.includes(appMonoFont))
+            monoFontList.unshift(appMonoFont)
+
         setIndexEnable(0, true)
         setIndexEnable(1, true, false)
     }
@@ -25,6 +41,7 @@ DropDownView {
             icon: "qrc:/icon-appearance",
             text: QT_TR_NOOP("Appearance"),
             list: [ { text: QT_TR_NOOP("Color theme"), item: colorThemeComponent },
+                    { text: QT_TR_NOOP("Font types"), item: fontTypesComponent },
                     { text: QT_TR_NOOP("Font size"), item: fontSizeComponent },
                     { text: QT_TR_NOOP("Language"), item: languageComponent },
                     { text: QT_TR_NOOP("Show debug"), item: showDebugComponent } ]
@@ -89,23 +106,82 @@ DropDownView {
         }
     }
 
+    component ComboBoxTemplate: ComboBox {
+        contentItem: Text {
+            id: contentText
+            leftPadding: 10
+            rightPadding: parent.indicator.width + parent.spacing
+            text: parent.displayText
+            font.family: appFontFamily(text)
+            font.styleName: appFontStyle(text)
+            font.pointSize: control.fontPointSize
+            color: Material.foreground
+            verticalAlignment: Text.AlignVCenter
+            elide: Text.ElideRight
+        }
+        delegate: ItemDelegate {
+            width: parent.width
+            contentItem: Text {
+                text: modelData
+                font.family: appFontFamily(text)
+                font.styleName: appFontStyle(text)
+                font.pointSize: control.fontPointSize
+                color: text === contentText.text ? Material.accent : Material.foreground
+                verticalAlignment: Text.AlignVCenter
+                elide: Text.ElideRight
+            }
+        }
+    }
+
+    property string mainFontName: appMainFont
+    property string monoFontName: appMonoFont
+    Component {
+        id: fontTypesComponent
+        GridLayout {
+            flow: appPortraitView ? GridLayout.TopToBottom : GridLayout.LeftToRight
+            RowLayout {
+                ComboBoxTemplate {
+                    Layout.fillWidth: true
+                    model: control.mainFontList
+                    onActivated: function(index) {
+                        control.mainFontName = model[index]
+                        control.modified = true
+                    }
+                    Component.onCompleted: currentIndex = find(appMainFont)
+                }
+            }
+            RowLayout {
+                ComboBoxTemplate {
+                    Layout.fillWidth: true
+                    model: control.monoFontList
+                    onActivated: function(index) {
+                        control.monoFontName = model[index]
+                        control.modified = true
+                    }
+                    Component.onCompleted: currentIndex = find(appMonoFont)
+                }
+            }
+        }
+    }
+
     TextMetrics {
         id: sliderTextMetrics
         font: appWindow.font
         text: "000"
     }
-    property real fontPointSize: appWindow.font.pointSize
+    property int fontPointSize: appFontPointSize
     Component {
         id: fontSizeComponent
         RowLayout {
             Slider {
                 id: slider
                 Layout.fillWidth: true
-                from: appOrigFontSize - (appOrigFontSize >= 12 ? 4 : 2)
-                to: appOrigFontSize + (appOrigFontSize >= 12 ? 4 : 2)
+                property real defaultSize: Qt.application.font.pointSize
+                from: defaultSize - (defaultSize >= 12 ? 4 : 2)
+                to: defaultSize + (defaultSize >= 12 ? 4 : 2)
                 stepSize: value >= 12 ? 2 : 1
                 snapMode: Slider.SnapAlways
-                value: appWindow.font.pointSize
+                value: appFontPointSize
                 onMoved: {
                     control.fontPointSize = value
                     control.modified = true

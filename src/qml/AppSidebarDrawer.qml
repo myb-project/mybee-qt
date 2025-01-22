@@ -64,10 +64,5 @@ Drawer {
             text: qsTr("Wipe")
             onClicked: appPage("AppWipeDataPage.qml")
         }
-        ItemDelegateTemplate {
-            icon.source: "qrc:/icon-quit"
-            text: qsTr("Quit")
-            onClicked: Qt.quit()
-        }
     }
 }

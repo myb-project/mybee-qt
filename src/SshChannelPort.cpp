@@ -20,7 +20,7 @@
 
 SshChannelPort::SshChannelPort(ssh::Session &sshSession, const QString &addr, quint16 port)
     : SshChannel(sshSession)
-    , host_addr(addr)
+    , host_addr(!addr.isEmpty() ? addr : QStringLiteral("127.0.0.1"))
     , port_num(port)
     , later_timer(nullptr)
 {

@@ -75,7 +75,7 @@ Page {
         }
     }
 
-    function setCurrentServer(next) {
+    function setCurrentServer(opt) {
         if (!urlOutModel.valid || !currentSshKey) return
         if (urlOutModel.local && !SystemHelper.isExecutable(urlOutModel.path)) {
             appWarning(qsTr("%1: Not an executable").arg(urlOutModel.path))
@@ -98,16 +98,16 @@ Page {
 
         var folder = SystemHelper.fileName(urlOutModel.text)
         var cfg = { "server": urlOutModel.text, "ssh_key": currentSshKey }
-        if (!SystemHelper.saveObject(folder + "/lastServer", cfg)) {
+        if (!SystemHelper.saveObject(folder + "/lastServer.json", cfg)) {
             appError(qsTr("Can't save current configuration"))
             return
         }
-        if (next) {
-            currentServer = urlOutModel.text
-            appPage("VMProfilePage.qml", { "currentFolder": folder })
-        } else {
+        if (!opt) {
             Qt.callLater(VMConfigSet.getList, cfg)
             appStackView.pop(null)
+        } else {
+            currentServer = urlOutModel.text
+            if (opt > 0) appPage("VMProfilePage.qml", { "currentFolder": folder })
         }
     }
 
@@ -188,18 +188,65 @@ Page {
         }
     }
 
+/*  https://zx.convectix.com/c/Le9foh
+    scheme: https
+    host: zx.convectix.com
+    http_port: 443
+    private_key: Qt.atob(...)
+    ssh_port: 22
+    user: app2
+*/
+    property string credentialUrl
+    Connections {
+        target: HttpRequest
+        function onRecvObject(url, data) {
+            if (credentialUrl !== url.toString()) return
+            urlInModel.clear()
+            urlOutModel.clear()
+            var path = SystemHelper.appConfigPath("id_ed25519-" + data["host"] + '-' + data["ssh_user"])
+            control.currentSshKey = SystemHelper.saveText(path, Qt.atob(data["private_key"]))
+            if (control.currentSshKey && VMConfigSet.isSchemeEnabled("ssh")) {
+                control.currentScheme = control.urlSchemeModel.indexOf("ssh")
+                urlInModel.scheme = "ssh"
+                urlInModel.userName = data["ssh_user"]
+                urlInModel.host = data["host"]
+                urlInModel.port = data["ssh_port"]
+                urlOutModel.location = urlInModel.location
+                setCurrentServer(-1)
+            }
+        }
+    }
     Component {
         id: historyComponent
-        ComboBox {
-            enabled: count
-            model: historyListModel
-            onActivated: function(index) {
-                var idx = control.urlSchemeModel.indexOf(Url.schemeAt(currentText))
-                if (~idx) {
-                    control.currentScheme = idx
-                    urlInModel.location = currentText
-                    urlOutModel.location = currentText
-                } else urlOutModel.clear()
+        RowLayout {
+            ComboBox {
+                Layout.fillWidth: true
+                enabled: count
+                model: historyListModel
+                onActivated: function(index) {
+                    var idx = control.urlSchemeModel.indexOf(Url.schemeAt(currentText))
+                    if (~idx) {
+                        control.currentScheme = idx
+                        urlInModel.location = currentText
+                        urlOutModel.location = currentText
+                    } else urlOutModel.clear()
+                }
+            }
+            SquareButton {
+                enabled: control.urlSchemeModel[control.currentScheme] !== "file"
+                icon.source: "qrc:/icon-refresh"
+                ToolTip.text: qsTr("Import credential")
+                onClicked: {
+                    var dlg = appDialog("BriefDialog.qml", {
+                                type: BriefDialog.Type.Input,
+                                standardButtons: Dialog.Open,
+                                text: qsTr("Import credential from the CBSD server"),
+                                placeholderText: qsTr("Enter Credential URL") })
+                    dlg.accepted.connect(function() {
+                        var url = dlg.input.trim()
+                        if (url && HttpRequest.sendGet(url)) control.credentialUrl = url
+                    })
+                }
             }
         }
     }
@@ -311,7 +358,7 @@ Page {
                 text: qsTr("Import")
                 icon.source: "qrc:/icon-ok"
                 ToolTip.text: qsTr("Importing VMs from the server")
-                onClicked: setCurrentServer(false)
+                onClicked: setCurrentServer(0)
             }
             Label {
                 Layout.fillWidth: true
@@ -333,7 +380,7 @@ Page {
                 text: qsTr("Profile")
                 icon.source: "qrc:/icon-page-next"
                 ToolTip.text: qsTr("Get VM profiles")
-                onClicked: setCurrentServer(true)
+                onClicked: setCurrentServer(1)
             }
         }
     }

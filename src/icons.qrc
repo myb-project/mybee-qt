@@ -30,6 +30,9 @@
         <file alias="icon-content-copy">icons/content-copy.png</file>
         <file alias="icon-content-copy@2x">icons/content-copy@2x.png</file>
         <file alias="icon-content-copy@3x">icons/content-copy@3x.png</file>
+        <file alias="icon-content-paste">icons/content-paste.png</file>
+        <file alias="icon-content-paste@2x">icons/content-paste@2x.png</file>
+        <file alias="icon-content-paste@3x">icons/content-paste@3x.png</file>
         <file alias="icon-create">icons/create.png</file>
         <file alias="icon-create@2x">icons/create@2x.png</file>
         <file alias="icon-create@3x">icons/create@3x.png</file>
@@ -108,6 +111,9 @@
         <file alias="icon-quit">icons/quit.png</file>
         <file alias="icon-quit@2x">icons/quit@2x.png</file>
         <file alias="icon-quit@3x">icons/quit@3x.png</file>
+        <file alias="icon-refresh">icons/refresh.png</file>
+        <file alias="icon-refresh@2x">icons/refresh@2x.png</file>
+        <file alias="icon-refresh@3x">icons/refresh@3x.png</file>
         <file alias="icon-remove">icons/remove.png</file>
         <file alias="icon-remove@2x">icons/remove@2x.png</file>
         <file alias="icon-remove@3x">icons/remove@3x.png</file>

@@ -139,7 +139,7 @@ PtyIFace::PtyIFace(const QString &charset, const QString &term, const QString &s
         return;
     }
 
-    resize(parent->rows(), parent->columns());
+    resize(parent->columns(), parent->rows());
     connect(parent, &Terminal::termSizeChanged, this, &PtyIFace::resize);
 
     iReadNotifier = new QSocketNotifier(iMasterFd, QSocketNotifier::Read, this);
@@ -164,7 +164,7 @@ PtyIFace::~PtyIFace()
     }
 }
 
-void PtyIFace::resize(int rows, int columns)
+void PtyIFace::resize(int columns, int rows)
 {
     if (m_childProcessQuit) return;
 

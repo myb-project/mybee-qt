@@ -5,7 +5,7 @@
 #include <QFile>
 #include <QFileInfo>
 #include <QSaveFile>
-//#include <QTemporaryFile>
+#include <QStringList>
 #include <QTextStream>
 #include <QJsonDocument>
 #include <QClipboard>
@@ -30,6 +30,7 @@
 #ifdef Q_OS_WIN
 #include <windows.h>
 #include <lmcons.h>
+#include <shlobj.h> // need to include definitions of constants
 #else
 #include <unistd.h>
 #include <pwd.h>
@@ -49,6 +50,7 @@ static const char *localFilePrefix = "file://";
 SystemHelper::SystemHelper(QObject *parent)
     : QObject(parent)
 {
+    connect(QGuiApplication::clipboard(), &QClipboard::dataChanged, this, &SystemHelper::clipboardChanged);
 }
 
 SystemHelper::~SystemHelper()
@@ -103,6 +105,12 @@ static QString fileContainsLine(const QString &path, const QRegularExpression &r
         }
     }
     return QString();
+}
+
+// static
+void SystemHelper::appAbort()
+{
+    ::exit(0);
 }
 
 // static
@@ -275,6 +283,7 @@ QString SystemHelper::userName()
 {
     static QString user_name;
     if (user_name.isEmpty()) {
+#ifdef  Q_OS_UNIX
 #if defined(Q_OS_ANDROID) && __ANDROID_API__ < 28
         char *cp;
 #endif
@@ -286,7 +295,6 @@ QString SystemHelper::userName()
 #else
         else if (::getlogin_r(buf, sizeof(buf))) user_name = buf;
 #endif
-#ifdef  Q_OS_UNIX
         if (user_name.isEmpty()) user_name = qEnvironmentVariable("USER");
 #else // Windows?
         char buf[UNLEN + 1];
@@ -303,10 +311,18 @@ QString SystemHelper::userName()
 QString SystemHelper::userHome(const QString &name)
 {
     QString user_home;
+#if defined(Q_OS_UNIX)
     char buf[4096];
     struct passwd pw, *pwp = nullptr;
     if (::getpwnam_r(qPrintable(!name.isEmpty() ? name : userName()), &pw, buf, sizeof(buf), &pwp) == 0 && pwp)
         user_home = pwp->pw_dir;
+#elif defined(Q_OS_WIN)
+    WCHAR path[MAX_PATH];
+    if (SUCCEEDED(SHGetFolderPathW(NULL, CSIDL_PROFILE, NULL, 0, path)))
+        user_home = path;
+#else
+    Q_UNUSED(name);
+#endif
     return user_home;
 }
 
@@ -314,6 +330,7 @@ QString SystemHelper::userHome(const QString &name)
 QStringList SystemHelper::groupMembers(const QString &name)
 {
     QStringList group_members;
+#if defined(Q_OS_UNIX) && !defined(Q_OS_ANDROID)
     char buf[4096];
     struct group gr, *grp = nullptr;
     if (::getgrnam_r(qPrintable(!name.isEmpty() ? name : userName()), &gr, buf, sizeof(buf), &grp) == 0 && grp) {
@@ -321,6 +338,9 @@ QStringList SystemHelper::groupMembers(const QString &name)
             group_members += cp;
         }
     }
+#else
+    Q_UNUSED(name);
+#endif
     return group_members;
 }
 
@@ -460,37 +480,52 @@ bool SystemHelper::isMobile()
 }
 
 // static
-QStringList SystemHelper::sshKeyPairs()
+QStringList SystemHelper::sshKeyList(const QString &folder, bool pairs)
+{
+    static const QStringList name_filters = { "id_*" };
+
+    QStringList key_files;
+    QDir dir(folder);
+    if (dir.exists() && dir.isReadable()) {
+        const auto names = dir.entryList(name_filters, QDir::Files | QDir::Readable, QDir::Name | QDir::IgnoreCase);
+        for (const auto &name : names) {
+            QString path = dir.filePath(name);
+            if (pairs) {
+                if (SystemHelper::isSshKeyPair(path)) key_files.append(path);
+            } else {
+                if (SystemHelper::isSshPrivateKey(path)) key_files.append(path);
+            }
+        }
+    }
+    return key_files;
+}
+
+// static
+QStringList SystemHelper::sshAllKeys(bool pairs)
 {
     static const char *sshKeySearchPaths[] = { // at ~/ for desktop and Docs/ for mobile
         ".ssh", "ssh", APP_NAME "/.ssh", APP_NAME "/ssh"
     };
-    static const QStringList name_filters = { "id_*" };
     QStringList key_files;
-
     QString path = SystemHelper::envVariable(QStringLiteral("CLOUD_KEY"));
     if (!path.isEmpty()) key_files.append(path);
 
     path = appSshKey();
     if (!path.isEmpty()) key_files.append(path);
 
+    key_files += sshKeyList(appConfigDir(), pairs);
+
 #if defined(Q_OS_ANDROID) || defined(Q_OS_IOS)
-    const auto search_paths = QStandardPaths::standardLocations(QStandardPaths::DocumentsLocation);
+    const QStringList search_paths = QStandardPaths::standardLocations(QStandardPaths::DocumentsLocation);
 #else
-    const auto search_paths = QStandardPaths::standardLocations(QStandardPaths::HomeLocation);
+    const QStringList search_paths = QStandardPaths::standardLocations(QStandardPaths::HomeLocation);
 #endif
     for (const auto &folder : search_paths) {
         for (uint i = 0; i < sizeof(sshKeySearchPaths) / sizeof(sshKeySearchPaths[0]); i++) {
-            QDir dir(folder + '/' + sshKeySearchPaths[i]);
-            if (!dir.exists() || !dir.isReadable()) continue;
-
-            const auto names = dir.entryList(name_filters, QDir::Files | QDir::Readable, QDir::Name | QDir::IgnoreCase);
-            for (const auto &name : names) {
-                path = dir.filePath(name);
-                if (SystemHelper::isSshKeyPair(path)) key_files.append(path);
-            }
+            key_files += sshKeyList(folder + '/' + sshKeySearchPaths[i], pairs);
         }
     }
+    key_files.removeDuplicates();
     return key_files;
 }
 
@@ -743,35 +778,40 @@ QDateTime SystemHelper::fileTime(const QString &path)
 QStringList SystemHelper::fileList(const QString &path, const QString &mask, bool dirs_only)
 {
     bool abs_path = false;
+    bool qrc_path = false;
     const QString data_dir = SystemHelper::appDataDir();
     QString fn = path.startsWith(localFilePrefix) ? path.mid(qstrlen(localFilePrefix)) : path;
     if (fn.isEmpty()) fn = data_dir;
+    else if (fn.startsWith(QLatin1String(":/")) || fn.startsWith(QLatin1String("qrc:/"))) qrc_path = true;
     else if (QFileInfo(fn).isRelative()) fn.prepend(data_dir + '/');
     else abs_path = true;
 
     bool writable = false;
-    QDir::Filters filter = (dirs_only ? QDir::Dirs : QDir::AllEntries) | QDir::Readable;
-    if (fn.startsWith(data_dir)) {
-        writable = true;
-        filter |= (QDir::NoSymLinks | QDir::NoDotAndDotDot | QDir::Writable);
-    } else filter |= (QDir::Hidden | QDir::System);
+    QDir::Filters filter = (dirs_only ? QDir::Dirs : QDir::AllEntries);
+    if (!qrc_path) {
+        filter |= QDir::Readable;
+        if (fn.startsWith(data_dir)) {
+            writable = true;
+            filter |= (QDir::NoSymLinks | QDir::NoDotAndDotDot | QDir::Writable);
+        } else filter |= (QDir::Hidden | QDir::System);
 
-    QFileInfo info(fn);
-    if (!info.isDir() || !info.isReadable() || (writable && !info.isWritable()))
-        return QStringList();
-
-    QDir::SortFlags sorts = (dirs_only ? QDir::Time : QDir::Name) | QDir::DirsFirst;
+        QFileInfo info(fn);
+        if (!info.isDir() || !info.isReadable() || (writable && !info.isWritable()))
+            return QStringList();
+    }
+    QDir::SortFlags sorts = (dirs_only ? QDir::Time : QDir::Name);
+    if (!qrc_path) sorts |= QDir::DirsFirst;
     QDir dir(fn);
     const auto list = mask.isEmpty() ? dir.entryInfoList(filter, sorts | QDir::IgnoreCase)
                                      : dir.entryInfoList({ mask }, filter, sorts);
     QStringList result;
     for (const auto &file : list) {
-        if (file.isDir()) {
+        if (qrc_path || file.isFile()) {
+            result.append(abs_path ? file.filePath() : file.fileName());
+        } else if (file.isDir()) {
             QString name = abs_path ? file.filePath() : file.fileName();
             if (!dirs_only) name += '/';
             result.append(name);
-        } else if (file.isFile()) {
-            result.append(abs_path ? file.filePath() : file.fileName());
         }
     }
     return result;
@@ -902,22 +942,18 @@ QString SystemHelper::saveText(const QString &name, const QStringList &text, boo
     return file.fileName();
 }
 
-// static
 void SystemHelper::setClipboard(const QString &text)
 {
-    QClipboard *clipboard = QGuiApplication::clipboard();
-    if (clipboard) {
-        if (text.isNull()) clipboard->clear();
-        else clipboard->setText(text);
-    }
+    QClipboard *cb = QGuiApplication::clipboard();
+    if (!cb) return;
+    if (text.isNull()) cb->clear();
+    else cb->setText(text);
 }
 
-// static
-QString SystemHelper::clipboard()
+QString SystemHelper::clipboard() const
 {
-    QClipboard *clipboard = QGuiApplication::clipboard();
-    return clipboard ? clipboard->text() : QString();
-
+    QClipboard *cb = QGuiApplication::clipboard();
+    return cb ? cb->text() : QString();
 }
 
 //static

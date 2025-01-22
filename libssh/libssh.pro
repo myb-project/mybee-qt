@@ -5,17 +5,23 @@ include(../common.pri)
 
 TEMPLATE = aux
 LIBSSH_ARC = libssh-0.11.1.tar.xz
-LIBSSH_DIR = $$section(LIBSSH_ARC, ., 0, 2)
+LIBSSH_DIR = $$section(LIBSSH_ARC, '.', 0, 2)
 LIBSSH_URL = "https://www.libssh.org/files/0.11/$${LIBSSH_ARC}"
 LIBSSH_SRC = $${PWD}/$${LIBSSH_ARC}
 
-!exists($${LIBSSH_SRC}): \
-    LIBSSH_CMD += ($${WGET_COMMAND} \"$${LIBSSH_SRC}\" $${LIBSSH_URL}) &&
-!exists($${OUT_PWD}/$${LIBSSH_DIR}/CMakeLists.txt): \
-    LIBSSH_CMD += ($${TAR_COMMAND} \"$${LIBSSH_SRC}\") &&
+!exists($${LIBSSH_SRC}) {
+    LIBSSH_CMD += ($$shell_quote($${CURL_COMMAND}) -o \
+        $$relative_path($${LIBSSH_SRC}, $${OUT_PWD}) $${LIBSSH_URL}) &&
+}
+
+!exists($${OUT_PWD}/$${LIBSSH_DIR}/CMakeLists.txt) {
+    LIBSSH_CMD += ($$shell_quote($${TAR_COMMAND}) -xf \
+        $$relative_path($${LIBSSH_SRC}, $${OUT_PWD})) &&
+}
 
 LIBSSH_CMD += ($${CMAKE_CONFIG_LIBS} $$cat(BuildOptions.txt) -S $${LIBSSH_DIR})
 LIBSSH_CMD += && $${CMAKE_BUILD_LIBS}
+LIBSSH_CMD += && ($${QMAKE_COPY} $$shell_path($${LIBSSH_DIR}/include/libssh/server.h) $$shell_path(../include/libssh))
 
 windows: LIBSSH_LIB.target = ../lib/ssh.lib
 else:    LIBSSH_LIB.target = ../lib/libssh.$${QMAKE_EXTENSION_STATICLIB}

@@ -13,7 +13,8 @@ Page {
     property real splitHFactor: 0.25
     property int splitVFactor: 1
     property string filterText
-    property var serverSection: ({})
+    property string collapseTree: ""
+    property var collapseSet: new Set(collapseTree.split(' '))
     property var schemeIconMap: {
         "file":  "qrc:/icon-open-folder",
         "ssh":   "qrc:/icon-ssh-key",
@@ -28,17 +29,6 @@ Page {
             icon.source: "qrc:/icon-filter-plus"
             onTriggered: {
                 appPage("AppFilterPage.qml")
-            }
-        },
-        Action {
-            id: clearFilterAction
-            enabled: control.filterText
-            text: qsTr("Clear filter")
-            icon.source: "qrc:/icon-filter-clear"
-            onTriggered: {
-                configListModel.filter.length = 0
-                configListModel.update()
-                control.filterText = ""
             }
         },
         Action {
@@ -84,9 +74,11 @@ Page {
         console.error("itemActivated(%1): Bad Object").arg(index)
     }
 
-    function setFilter(keys) {
+    function setFilter(keys = []) {
         configListModel.filter = keys
         configListModel.update()
+        if (!configListModel.filter.length)
+            control.filterText = ""
     }
 
     ListModel {
@@ -108,15 +100,17 @@ Page {
             for (var key of list) {
                 if (filter.length && filter.indexOf(key) < 0) continue
                 var obj = map[key]
+                var server = obj["server"]
+                if (!server) continue
                 var icon = !obj.hasOwnProperty("id") ? "qrc:/icon-template" :
                     (obj["is_power_on"] === true || obj["is_power_on"] === "true") ? "qrc:/icon-power-on" : "qrc:/icon-power-off"
                 configListModel.append({
                     "key": key,
                     "icon": icon,
                     "text": obj["alias"],
-                    "tip": qsTr("%1 on %2 %3").arg(obj["name"]).arg(obj["server"]).arg(obj["emulator"]),
-                    "server": obj["server"],
-                    "visible": true
+                    "tip": qsTr("%1 on %2 %3").arg(obj["name"]).arg(server).arg(obj["emulator"]),
+                    "server": server,
+                    "visible": !control.collapseSet.has(server)
                 })
             }
             for (var i = 0; i < count; i++) {
@@ -152,9 +146,11 @@ Page {
             }
             Item { Layout.fillWidth: true }
             MyToolButton {
-                action: clearFilterAction
+                enabled: control.filterText
                 text: qsTr("Clear")
-                ToolTip.text: action.text
+                icon.source: "qrc:/icon-filter-clear"
+                ToolTip.text: qsTr("Clear filter")
+                onClicked: setFilter()
             }
         }
     }
@@ -228,12 +224,14 @@ Page {
                     focusPolicy: Qt.NoFocus
                     width: listView.width
                     checkable: true
-                    checked: serverSection.hasOwnProperty(text) ? serverSection[text] : true
+                    checked: !control.collapseSet.has(text)
                     icon.source: schemeIconMap[Url.schemeAt(text)]
                     text: section
                     font.pointSize: appTitleSize
                     onToggled: {
-                        serverSection[text] = checked
+                        if (checked) control.collapseSet.delete(text)
+                        else control.collapseSet.add(text)
+                        control.collapseTree = Array.from(control.collapseSet).join(' ').trim()
                         configListModel.setVisible(text, checked)
                     }
                 }
@@ -246,10 +244,9 @@ Page {
         }
     }
 
-    TapHandler {
-       acceptedButtons: Qt.RightButton
-       onTapped: {
-           appContextMenu.popup()
-       }
+    MouseArea {
+        anchors.fill: parent
+        acceptedButtons: Qt.RightButton
+        onClicked: appContextMenu.popup()
     }
 }

@@ -6,6 +6,7 @@ import CppCustomModules 1.0
 TextRender {
     id: control
 
+    property alias scrollBar: vbar
     property int cutAfter: height
     onCutAfterChanged: redraw()
     onDisplayBufferChanged: {
@@ -61,13 +62,14 @@ TextRender {
         Behavior on opacity { NumberAnimation {}}
     }
 
-    ScrollIndicator {
+    ScrollBar {
+        id: vbar
         anchors { top: parent.top; right: parent.right; bottom: parent.bottom }
         orientation: Qt.Vertical
         hoverEnabled: true
-        active: hovered || control.contentHeight > control.visibleHeight
-        readonly property int maxHeight: Math.max(control.contentHeight, 1)
-        size: control.visibleHeight / maxHeight
-        position: control.contentY / maxHeight
+        active: hovered || pressed || control.contentHeight > control.height
+        size: control.height / control.contentHeight
+        rotation: 180
     }
+    contentY: Math.round(vbar.position * control.contentHeight)
 }

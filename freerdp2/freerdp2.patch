@@ -1,0 +1,24 @@
+*** include/freerdp/api.h.orig	Mon Apr 22 12:26:59 2024
+--- include/freerdp/api.h	Mon Jan 13 20:55:51 2025
+***************
+*** 34,39 ****
+--- 34,42 ----
+  #endif
+  
+  #if defined _WIN32 || defined __CYGWIN__
++ #ifdef FREERDP_STATIC
++ #define FREERDP_API
++ #else
+  #ifdef FREERDP_EXPORTS
+  #ifdef __GNUC__
+  #define FREERDP_API __attribute__((dllexport))
+***************
+*** 47,52 ****
+--- 50,56 ----
+  #define FREERDP_API __declspec(dllimport)
+  #endif
+  #endif
++ #endif
+  #else
+  #if __GNUC__ >= 4
+  #define FREERDP_API __attribute__((visibility("default")))

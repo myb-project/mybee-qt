@@ -194,7 +194,7 @@ static int crypto_hashblocks(u8 *x,const u8 *m,u64 n) {
     return n;
 }
 
-__attribute__((aligned(1))) static const u8 iv[64] = {
+alignas(alignof(char)) static const u8 iv[64] = {
     0x6a,0x09,0xe6,0x67,0xf3,0xbc,0xc9,0x08,
     0xbb,0x67,0xae,0x85,0x84,0xca,0xa7,0x3b,
     0x3c,0x6e,0xf3,0x72,0xfe,0x94,0xf8,0x2b,
@@ -453,24 +453,24 @@ static char *split_lines(char *p, char *pend, u32 size, u32 line_size) {
 static char *build_openssh_private_key_ed25519(char *p, char *pend, const u8 *public_key,
                                                const char *comment, u32 comment_size,
                                                const u8 *private_key, const u8 *checkstr) {
-    __attribute__((aligned(1))) static const char c_begin[36] =
+    alignas(alignof(char)) static const char c_begin[36] =
 #if 0
       "-----BEGIN OPENSSH PRIVATE KEY-----\n";
 #else
         {'-','-','-','-','-','B','E','G','I','N',' ','O','P','E','N','S','S','H',' ','P','R','I','V','A','T','E',' ','K','E','Y','-','-','-','-','-','\n'};
 #endif
     /* There is \0 byte inserted between c_begin and c_end unless {'.',...} */
-    __attribute__((aligned(1))) static const char c_end[34] =
+    alignas(alignof(char)) static const char c_end[34] =
 #if 0
       "-----END OPENSSH PRIVATE KEY-----\n";
 #else
         {'-','-','-','-','-','E','N','D',' ','O','P','E','N','S','S','H',' ','P','R','I','V','A','T','E',' ','K','E','Y','-','-','-','-','-','\n'};
 #endif
-    __attribute__((aligned(1))) static const char c_pad7[7] = {1,2,3,4,5,6,7};
+    alignas(alignof(char)) static const char c_pad7[7] = {1,2,3,4,5,6,7};
     /* Buffer size needed in data: 236 + comment_size bytes. */
     char data[236 + MAX_COMMENT_SIZE], *origp, *dpend = data + sizeof data;
     u32 data_size;
-    const u32 pad_size = -(comment_size + 3) & 7;
+    const u32 pad_size = -(int(comment_size) + 3) & 7;
     origp = p;
     p = data;
     p = append(p, dpend, c_kprefix, 62);

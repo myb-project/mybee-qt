@@ -15,16 +15,22 @@
 #define TRACE_ARG(x)
 #endif
 
-SshChannelShell::SshChannelShell(ssh::Session &sshSession, const QString &termType, const QStringList &envVars)
-    : SshChannel(sshSession)
-    , term_type(termType)
-    , env_vars(envVars)
+SshChannelShell::SshChannelShell(ssh::Session &ss, const QString &tt, const QSize &ts, const QStringList &ev)
+    : SshChannel(ss)
+    , term_type(tt)
+    , term_size(ts)
+    , shell_ready(false)
+    , env_vars(ev)
     , later_timer(nullptr)
 {
-    TRACE_ARG(term_type << env_vars);
+    TRACE_ARG(term_type << term_size << env_vars);
     connect(this, &SshChannel::readyRead, this, [this]() {
         emit textReceived(QString::fromUtf8(readAll()));
     });
+    if (term_size.isEmpty()) {
+        term_size.setWidth(defaultTermCols);
+        term_size.setHeight(defaultTermRows);
+    }
     callLater(&SshChannelShell::libOpenSession);
 }
 
@@ -84,9 +90,8 @@ void SshChannelShell::libRequestEnv()
 void SshChannelShell::libRequestPtySize()
 {
     TRACE();
-    int rc = ::ssh_channel_request_pty_size(lib_channel.getCChannel(),
-                                            !term_type.isEmpty() ? qPrintable(term_type) : defaultTermType,
-                                            defaultTermCols, defaultTermRows);
+    int rc = ::ssh_channel_request_pty_size(lib_channel.getCChannel(), qPrintable(term_type),
+                                            term_size.width(), term_size.height());
     if (rc == SSH_AGAIN) {
         callLater(&SshChannelShell::libRequestPtySize, SshSession::callAgainDelay);
         return;
@@ -95,7 +100,7 @@ void SshChannelShell::libRequestPtySize()
         emit errorOccurred(QStringLiteral("ssh_channel_request_pty: ") + ::ssh_get_error(lib_channel.getCSession()));
         return;
     }
-    callLater(&SshChannelShell::libRequestShell);
+    callLater(shell_ready ? nullptr : &SshChannelShell::libRequestShell);
 }
 
 void SshChannelShell::libRequestShell()
@@ -111,6 +116,7 @@ void SshChannelShell::libRequestShell()
         return;
     }
     callLater(nullptr);
+    shell_ready = true;
     emit channelOpened();
 }
 
@@ -120,5 +126,33 @@ void SshChannelShell::sendText(const QString &text)
     if (!isEofSent() && isChannelOpen()) {
         QByteArray data = text.toUtf8();
         if (!data.isEmpty()) write(data);
+    }
+}
+
+void SshChannelShell::libChangePtySize()
+{
+    TRACE();
+    int rc = ::ssh_channel_change_pty_size(lib_channel.getCChannel(),
+                                           term_size.width(), term_size.height());
+    if (rc == SSH_AGAIN) {
+        callLater(&SshChannelShell::libChangePtySize, SshSession::callAgainDelay);
+        return;
+    }
+    if (rc != SSH_OK) {
+        emit errorOccurred(QStringLiteral("ssh_channel_change_pty: ") + ::ssh_get_error(lib_channel.getCSession()));
+        return;
+    }
+    callLater(nullptr);
+}
+
+void SshChannelShell::setTermSize(int cols, int rows)
+{
+    TRACE_ARG(cols << rows);
+    if (cols < 20 || rows < 10) return; // just for sanity
+
+    if (cols != term_size.width() || rows != term_size.height()) {
+        term_size.setWidth(cols);
+        term_size.setHeight(rows);
+        if (shell_ready) callLater(&SshChannelShell::libChangePtySize, 250);
     }
 }

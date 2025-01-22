@@ -46,7 +46,12 @@ ApplicationWindow {
     property bool appForceQuit: false
     property string lastSudoPswd
 
-    property real appOrigFontSize: 0.0
+    readonly property string defaultMainFont: "Roboto Regular"
+    readonly property string defaultMonoFont: "RobotoMono Regular"
+    property string appMainFont: defaultMainFont
+    property string appMonoFont: defaultMonoFont
+    property int appFontPointSize: Math.round(Qt.application.font.pointSize)
+
     property int appMaterialTheme: MaterialSet.defaultTheme
     Material.theme:      appMaterialTheme
     Material.accent:     MaterialSet.theme[Material.theme]["accent"]
@@ -60,27 +65,88 @@ ApplicationWindow {
     //onActiveFocusItemChanged: console.debug("activeFocusItem", activeFocusItem)
 
     MySettings {
-        id: appSettings
         property alias width: appWindow.width
         property alias height: appWindow.height
         property alias materialTheme: appWindow.appMaterialTheme
-        property alias origFontSize: appWindow.appOrigFontSize
+        property alias fontNameMain: appWindow.appMainFont
+        property alias fontNameMono: appWindow.appMonoFont
+        property alias fontPointSize: appWindow.appFontPointSize
+
         property alias splitHFactor: appMainPage.splitHFactor
         property alias splitVFactor: appMainPage.splitVFactor
+        property alias filterText:   appMainPage.filterText
+        property alias collapseTree: appMainPage.collapseTree
     }
-    onFontChanged: appSettings.setValue("lastFontSize", appWindow.font.pointSize)
+
+    Component {
+        id: fontLoaderComponent
+        FontLoader {
+            property string style: "Regular"
+        }
+    }
+    readonly property var fontSearchPath: [
+        ":/main/fonts", ":/mono/fonts",
+        "~/.fonts", "~/.local/share/fonts", "/usr/share", "/usr/local/share/fonts",
+    ]
+    property var fontLoaderMap: ({})
+    function setFontLoader(name) : bool {
+        var file = name.replace(' ', '-')
+        if (!file.includes('.')) file += ".ttf"
+        for (var path of fontSearchPath) {
+            var full = path + '/' + file
+            if (full[0] === '~') full = SystemHelper.userHome() + full.slice(1)
+            if (SystemHelper.isFile(full)) {
+                var url = (full[0] === ':' ? "qrc" : "file:") + full
+                var fl = fontLoaderComponent.createObject(appWindow, { source: url })
+                if (fl && fl.status === FontLoader.Ready) {
+                    var tok = name.split(/[ _-]/)
+                    if (tok.length > 1) {
+                        var style = tok[tok.length - 1]
+                        var pos = style.lastIndexOf('.')
+                        fl.style = ~pos ? style.slice(0, pos) : style
+                        //console.debug("input:", name, "family:", fl.name, "style:", fl.style)
+                    }
+                    fontLoaderMap[name] = fl
+                    return true
+                }
+            }
+        }
+        console.warn("Can't find", file, fontSearchPath)
+        return false
+    }
+    function appFontFamily(name) : string {
+        if (!name || !fontLoaderMap.hasOwnProperty(name) && !setFontLoader(name)) return ""
+        //console.debug("appFontFamily", name, "->", fontLoaderMap[name].name)
+        return fontLoaderMap[name].name
+    }
+    function appFontStyle(name) : string {
+        if (!name || !fontLoaderMap.hasOwnProperty(name) && !setFontLoader(name)) return ""
+        //console.debug("appFontStyle", name, "->", fontLoaderMap[name].style)
+        return fontLoaderMap[name].style
+    }
+    function appResetFont(name, size) {
+        var family = appFontFamily(name)
+        if (!family) return
+        if (size < 8) size = 8
+        var fnt = appWindow.font
+        fnt.family = family
+        fnt.styleName = appFontStyle(name)
+        fnt.pointSize = size
+        appWindow.font = fnt
+        if (name !== appMainFont) appMainFont = name
+        if (size !== appFontPointSize) appFontPointSize = size
+    }
 
     Component.onCompleted: {
+        if (!appMonoFont) appMonoFont = defaultMonoFont
+        appResetFont(appMainFont ? appMainFont : defaultMainFont, appFontPointSize)
+
         if (appWindow.width === appStartWidth && appWindow.height === appStartHeight) {
             appWindow.width = appFitWidth
             appWindow.height = appFitHeight
             if (Screen.primaryOrientation === Qt.LandscapeOrientation)
                 appDelay(appTinyDelay, appCompactAction.toggle)
         }
-        if (appOrigFontSize) {
-            var ps = appSettings.value("lastFontSize")
-            if (ps && ps !== appWindow.font.pointSize) appWindow.font.pointSize = ps
-        } else appOrigFontSize = appWindow.font.pointSize
 
         var env = SystemHelper.envVariable("MYBEE_QT_DEBUG")
         appShowDebug = env ? (env === "1" || env.toLowerCase() === "true")
@@ -325,7 +391,7 @@ ApplicationWindow {
         spacing: appTextPadding
         display: appPortraitView ? AbstractButton.TextUnderIcon : AbstractButton.TextBesideIcon
         font.pointSize: appTipSize
-        font.bold: appPortraitView
+        //font.bold: !appPortraitView
     }
 
     header: ToolBar {
@@ -437,10 +503,15 @@ ApplicationWindow {
         arrow: Text {
             visible: !SystemHelper.isMobile && parent.enabled
             anchors { right: parent.right; rightMargin: parent.rightPadding; verticalCenter: parent.verticalCenter }
-            font: parent.font
+            font.family: parent.font.family
+            font.pointSize: appTipSize
             text: SystemHelper.shortcutText(parent.action.shortcut)
             color: Material.foreground
         }
+    }
+    Component {
+        id: menuItemComponent
+        MenuItemTemplate { }
     }
 
     Menu {
@@ -456,13 +527,14 @@ ApplicationWindow {
         onAboutToShow: {
             if (appStackView.currentItem && appStackView.currentItem.actionsList) {
                 for (var i = 0; i < appStackView.currentItem.actionsList.length; i++) {
-                    addAction(appStackView.currentItem.actionsList[i])
+                    addItem(menuItemComponent.createObject(appWindow, {
+                            action: appStackView.currentItem.actionsList[i] }))
                 }
             }
         }
         onAboutToHide: {
             for (var i = count - 1; i >= fixedItems; i--) {
-                takeAction(i)
+                takeItem(i).destroy()
             }
         }
     }

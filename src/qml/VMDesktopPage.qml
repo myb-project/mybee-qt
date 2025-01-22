@@ -9,9 +9,7 @@ import QmlCustomModules 1.0
 Page {
     id: control
     enabled: desktopUrl.remote
-    /*title: sshSession.state === SshSession.StateReady ? qsTr("%1 --> %2").arg(desktopUrl.text).arg(sshSession.sshUrl)
-                                                      : (enabled ? desktopUrl.text : qsTr("No VNC or RDP settings"))*/
-    title: qsTr("Desktop")
+    title: VMConfigSet.valueAt("name")
 
     readonly property var qualityNames: [ "fast", "ave", "best" ]
     readonly property list<Action> actionsList: [
@@ -25,16 +23,13 @@ Page {
 
     Component.onCompleted: {
         desktopUrl.init()
-        if (!desktopUrl.remote) {
-            progressPane.text = qsTr("Desktop feature not available")
-            return
-        }
-        var server = VMConfigSet.valueAt("server")
-        if (Url.schemeAt(server) === "file") startDesktop()
-        else if (!desktopView.setSshTunnel(sshSession, server, VMConfigSet.valueAt("ssh_key"),
-                                           desktopUrl.host, desktopUrl.port)) {
-            progressPane.text = qsTr("Invalid SSH settings specified")
-        }
+        if (control.enabled) {
+            var server = VMConfigSet.valueAt("server")
+            if (Url.schemeAt(server) !== "ssh") {
+                progressPane.text = qsTr("Connecting %1").arg(desktopUrl.text) + "\n\n"
+                startDesktop()
+            } else sshSession.connectToUrl(server, VMConfigSet.valueAt("ssh_key"))
+        } else progressPane.text = qsTr("The desktop is unavailable")
     }
 
     function startDesktop() {
@@ -107,7 +102,13 @@ Page {
                 progressPane.text += qsTr("Sending %1").arg(settings.privateKey + ".pub")
                 break
             case SshSession.StateReady:
-                progressPane.text += qsTr("Creating SSH tunnel (port forwarding)")
+                progressPane.text += qsTr("Tunneling %1").arg(desktopUrl.text)
+                var pn = tunnel(desktopUrl.host, desktopUrl.port)
+                if (pn) {
+                    desktopUrl.host = "127.0.0.1"
+                    desktopUrl.port = pn
+                    startDesktop()
+                } else progressPane.text += qsTr(" failed!")
                 break
             case SshSession.StateError:
                 progressPane.text += lastError
@@ -125,7 +126,10 @@ Page {
             progressPane.text += "\n\n"
         }
         onHostConnected: progressPane.text += qsTr("Connected to %1 (%2)").arg(hostAddress).arg(settings.port) + "\n\n"
-        onHostDisconnected: stackLayout.currentIndex = 0
+        onHostDisconnected: {
+            progressPane.text += qsTr("Host disconnected") + "\n\n"
+            stackLayout.currentIndex = 0
+        }
         onHelloBannerChanged: progressPane.text += helloBanner + "\n\n"
         onPubkeyHashChanged: progressPane.text += qsTr("Host public key hash:\n%1").arg(pubkeyHash) + "\n\n"
         onKnownHostChanged: sshServerDialog(sshSession)
@@ -141,8 +145,6 @@ Page {
             id: progressPane
             active: sshSession.running
             show: !desktopView.frames && !desktopView.error
-            text: control.enabled ? qsTr("Connecting %1...").arg(desktopUrl.host) + "\n\n"
-                                  : qsTr("No desktop available")
         }
         DesktopView {
             id: desktopView
@@ -153,12 +155,6 @@ Page {
             //bell: "service-bell.wav" // "short-pulse.wav" by default
             Keys.onShortcutOverride: function(event) {
                 event.accepted = desktopView.alive ? event.matches(StandardKey.Cancel) : false
-            }
-            onSshTunnelListen: function(addr, port) {
-                progressPane.text += qsTr("SSH tunnel is at %1:%2\n\n").arg(addr).arg(port)
-                desktopUrl.host = addr
-                desktopUrl.port = port
-                startDesktop()
             }
             onDimensionChanged: {
                 progressPane.text += qsTr("Desktop dimension %1x%2").arg(dimension.width).arg(dimension.height) + "\n\n"

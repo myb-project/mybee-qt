@@ -8,7 +8,7 @@ ToolButton {
     focusPolicy: Qt.NoFocus
     display: appPortraitView ? AbstractButton.IconOnly : AbstractButton.TextBesideIcon
     font.pointSize: appTipSize
-    font.bold: !appPortraitView
+    //font.bold: !appPortraitView
 
     ToolTip.visible: ToolTip.text ? hovered : false
     ToolTip.delay: appTipDelay

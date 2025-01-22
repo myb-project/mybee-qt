@@ -4,7 +4,9 @@
 #include <QThread>
 #include <QAtomicPointer>
 
+#ifndef Q_OS_WIN
 #include "SystemSignal.h"
+#endif
 
 template <class T>
 class BaseThread : public QThread
@@ -27,7 +29,9 @@ public:
 
 protected:
     void run() override {
+#ifndef Q_OS_WIN
         SystemSignal::setEnabled(false);
+#endif
         QThread::run();
         T *wp = _worker.fetchAndStoreAcquire(nullptr);
         if (wp) delete wp;

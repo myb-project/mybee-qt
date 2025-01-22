@@ -20,7 +20,7 @@ MyDialog {
     onAboutToShow: {
         currentIndex = -1
         engineListModel.clear()
-        var list = capabilities.length ? capabilities : SystemHelper.loadArray(SystemHelper.fileName(currentServer) + "/capabilities")
+        var list = capabilities.length ? capabilities : SystemHelper.loadArray(SystemHelper.fileName(currentServer) + "/capabilities.json")
         for (var i = 0; i < list.length; i++) {
             if (list[i].hasOwnProperty("name") && list[i].hasOwnProperty("prefix")) {
                 engineListModel.append(list[i])

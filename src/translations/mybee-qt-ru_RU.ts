@@ -69,24 +69,26 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/AppAboutPage.qml" line="43"/>
+        <location filename="../qml/AppAboutPage.qml" line="42"/>
         <source>&lt;b&gt;%1 v%2&lt;/b&gt;</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/AppAboutPage.qml" line="51"/>
+        <location filename="../qml/AppAboutPage.qml" line="50"/>
         <source>for %1 (%2 %3)&lt;br&gt;&lt;br&gt;&lt;i&gt;A simple tool for managing virtual machines on cloud servers based on the CBSD system&lt;/i&gt;</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/AppAboutPage.qml" line="57"/>
-        <source>© 2023-2025, Oleg Ginzburg &lt;olevole@yandex.ru&gt;
-© 2023-2025, Vladimir Vorobyev &lt;b800xy@yandex.ru&gt;</source>
+        <location filename="../qml/AppAboutPage.qml" line="56"/>
+        <source>© 2023-2025 Oleg Ginzburg &lt;olevole@yandex.ru&gt;
+© 2023-2025 Vladimir Vorobyev &lt;b800xy@yandex.ru&gt;
+© 2025 MyBee Teams</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/AppAboutPage.qml" line="84"/>
-        <source>Become a financial contributor and help us sustain our community. All funds are returned to the project (hosting, equipment, support) and invested in the development of a number of areas.</source>
+        <location filename="../qml/AppAboutPage.qml" line="82"/>
+        <source>Become a financial contributor and help us sustain our community.
+All funds are returned to the project (hosting, equipment, support) and invested in the development of a number of areas.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -103,93 +105,98 @@
 <context>
     <name>AppConfigTab</name>
     <message>
-        <location filename="../qml/AppConfigTab.qml" line="26"/>
+        <location filename="../qml/AppConfigTab.qml" line="42"/>
         <source>Appearance</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/AppConfigTab.qml" line="27"/>
+        <location filename="../qml/AppConfigTab.qml" line="43"/>
         <source>Color theme</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/AppConfigTab.qml" line="28"/>
+        <location filename="../qml/AppConfigTab.qml" line="44"/>
+        <source>Font types</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../qml/AppConfigTab.qml" line="45"/>
         <source>Font size</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/AppConfigTab.qml" line="29"/>
+        <location filename="../qml/AppConfigTab.qml" line="46"/>
         <source>Language</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/AppConfigTab.qml" line="30"/>
+        <location filename="../qml/AppConfigTab.qml" line="47"/>
         <source>Show debug</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/AppConfigTab.qml" line="33"/>
+        <location filename="../qml/AppConfigTab.qml" line="50"/>
         <source>Connection</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/AppConfigTab.qml" line="34"/>
+        <location filename="../qml/AppConfigTab.qml" line="51"/>
         <source>SSH port</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/AppConfigTab.qml" line="35"/>
+        <location filename="../qml/AppConfigTab.qml" line="52"/>
         <source>SSH timeout</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/AppConfigTab.qml" line="36"/>
+        <location filename="../qml/AppConfigTab.qml" line="53"/>
         <source>Cluster poll</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/AppConfigTab.qml" line="37"/>
+        <location filename="../qml/AppConfigTab.qml" line="54"/>
         <source>Progress poll</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/AppConfigTab.qml" line="49"/>
+        <location filename="../qml/AppConfigTab.qml" line="66"/>
         <source>Visit the project homepage</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/AppConfigTab.qml" line="56"/>
+        <location filename="../qml/AppConfigTab.qml" line="73"/>
         <source>Customize your preferences</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/AppConfigTab.qml" line="69"/>
+        <location filename="../qml/AppConfigTab.qml" line="86"/>
         <source>Dark</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/AppConfigTab.qml" line="79"/>
+        <location filename="../qml/AppConfigTab.qml" line="96"/>
         <source>Light</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/AppConfigTab.qml" line="137"/>
+        <location filename="../qml/AppConfigTab.qml" line="213"/>
         <source>Enabled</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/AppConfigTab.qml" line="137"/>
+        <location filename="../qml/AppConfigTab.qml" line="213"/>
         <source>Disabled</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/AppConfigTab.qml" line="153"/>
+        <location filename="../qml/AppConfigTab.qml" line="229"/>
         <source>%1 / tcp</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/AppConfigTab.qml" line="190"/>
-        <location filename="../qml/AppConfigTab.qml" line="204"/>
+        <location filename="../qml/AppConfigTab.qml" line="266"/>
+        <location filename="../qml/AppConfigTab.qml" line="280"/>
         <source>Every %1 sec</source>
         <translation type="unfinished"></translation>
     </message>
@@ -238,43 +245,43 @@
 <context>
     <name>AppMainPage</name>
     <message>
-        <location filename="../qml/AppMainPage.qml" line="27"/>
+        <location filename="../qml/AppMainPage.qml" line="28"/>
         <source>Set filter</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/AppMainPage.qml" line="36"/>
-        <source>Clear filter</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../qml/AppMainPage.qml" line="48"/>
+        <location filename="../qml/AppMainPage.qml" line="38"/>
         <source>Config VM</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/AppMainPage.qml" line="56"/>
+        <location filename="../qml/AppMainPage.qml" line="46"/>
         <source>Remove VM</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/AppMainPage.qml" line="58"/>
+        <location filename="../qml/AppMainPage.qml" line="48"/>
         <source>Do you want to remove %1?</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/AppMainPage.qml" line="75"/>
+        <location filename="../qml/AppMainPage.qml" line="65"/>
         <source>Do you want to start %1?</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/AppMainPage.qml" line="117"/>
+        <location filename="../qml/AppMainPage.qml" line="111"/>
         <source>%1 on %2 %3</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/AppMainPage.qml" line="156"/>
+        <location filename="../qml/AppMainPage.qml" line="150"/>
         <source>Clear</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../qml/AppMainPage.qml" line="152"/>
+        <source>Clear filter</source>
         <translation type="unfinished"></translation>
     </message>
 </context>
@@ -301,17 +308,17 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/AppPreferPage.qml" line="83"/>
+        <location filename="../qml/AppPreferPage.qml" line="87"/>
         <source>Save changes?</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/AppPreferPage.qml" line="90"/>
+        <location filename="../qml/AppPreferPage.qml" line="94"/>
         <source>Save</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/AppPreferPage.qml" line="92"/>
+        <location filename="../qml/AppPreferPage.qml" line="96"/>
         <source>Save changes</source>
         <translation type="unfinished"></translation>
     </message>
@@ -338,56 +345,51 @@
         <source>Wipe</source>
         <translation type="unfinished"></translation>
     </message>
-    <message>
-        <location filename="../qml/AppSidebarDrawer.qml" line="69"/>
-        <source>Quit</source>
-        <translation type="unfinished"></translation>
-    </message>
 </context>
 <context>
     <name>AppSshKeyPane</name>
     <message>
-        <location filename="../qml/AppSshKeyPane.qml" line="51"/>
-        <source>This is not an Ssh key</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../qml/AppSshKeyPane.qml" line="52"/>
-        <source>Private SSH key only</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../qml/AppSshKeyPane.qml" line="53"/>
+        <location filename="../qml/AppSshKeyPane.qml" line="41"/>
         <source>Private &amp; public Ssh keys</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/AppSshKeyPane.qml" line="102"/>
+        <location filename="../qml/AppSshKeyPane.qml" line="44"/>
+        <source>Private Ssh key only</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../qml/AppSshKeyPane.qml" line="47"/>
+        <source>This is not an Ssh key</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../qml/AppSshKeyPane.qml" line="114"/>
         <source>Ssh keys not found&lt;br&gt;&lt;br&gt;Click the flashing button to find a suitable one</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/AppSshKeyPane.qml" line="109"/>
+        <location filename="../qml/AppSshKeyPane.qml" line="120"/>
         <source>Append file</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/AppSshKeyPane.qml" line="112"/>
+        <location filename="../qml/AppSshKeyPane.qml" line="123"/>
         <source>Select Ssh access key</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/AppSshKeyPane.qml" line="113"/>
+        <location filename="../qml/AppSshKeyPane.qml" line="124"/>
         <source>Can&apos;t load MyFileDialog.qml</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/AppSshKeyPane.qml" line="122"/>
+        <location filename="../qml/AppSshKeyPane.qml" line="133"/>
         <source>View file</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/AppSshKeyPane.qml" line="128"/>
+        <location filename="../qml/AppSshKeyPane.qml" line="139"/>
         <source>Remove entry</source>
         <translation type="unfinished"></translation>
     </message>
@@ -472,8 +474,18 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/AppWipeDataPage.qml" line="184"/>
-        <source>Free &lt;i&gt;%1&lt;/i&gt; of &lt;i&gt;%2&lt;/i&gt; total</source>
+        <location filename="../qml/AppWipeDataPage.qml" line="181"/>
+        <source>%1 %2 &lt;b&gt;%3 free&lt;/b&gt;</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../qml/AppWipeDataPage.qml" line="185"/>
+        <source>Abort</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../qml/AppWipeDataPage.qml" line="187"/>
+        <source>Forced clean exit</source>
         <translation type="unfinished"></translation>
     </message>
 </context>
@@ -481,7 +493,7 @@
     <name>BriefDialog</name>
     <message>
         <location filename="../qml/BriefDialog.qml" line="18"/>
-        <source>Input</source>
+        <source>Input required</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -500,12 +512,12 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/BriefDialog.qml" line="66"/>
+        <location filename="../qml/BriefDialog.qml" line="67"/>
         <source>Copy to clipboard</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/BriefDialog.qml" line="69"/>
+        <location filename="../qml/BriefDialog.qml" line="70"/>
         <source>Copied to clipboard</source>
         <translation type="unfinished"></translation>
     </message>
@@ -663,7 +675,7 @@
 <context>
     <name>TextRender</name>
     <message>
-        <location filename="../TextRender.cpp" line="153"/>
+        <location filename="../TextRender.cpp" line="155"/>
         <source>Pseudo TTY unavailable</source>
         <translation type="unfinished"></translation>
     </message>
@@ -891,110 +903,94 @@ Please choose another alias</source>
 <context>
     <name>VMDesktopPage</name>
     <message>
-        <location filename="../qml/VMDesktopPage.qml" line="14"/>
-        <source>Desktop</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../qml/VMDesktopPage.qml" line="21"/>
+        <location filename="../qml/VMDesktopPage.qml" line="19"/>
         <source>Progress log</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location filename="../qml/VMDesktopPage.qml" line="29"/>
-        <source>Desktop feature not available</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../qml/VMDesktopPage.qml" line="36"/>
-        <source>Invalid SSH settings specified</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../qml/VMDesktopPage.qml" line="91"/>
-        <source>Connection closed</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../qml/VMDesktopPage.qml" line="94"/>
-        <source>Lookup for %1</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../qml/VMDesktopPage.qml" line="97"/>
+        <location filename="../qml/VMDesktopPage.qml" line="92"/>
         <source>Connecting %1</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/VMDesktopPage.qml" line="100"/>
+        <location filename="../qml/VMDesktopPage.qml" line="32"/>
+        <source>The desktop is unavailable</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../qml/VMDesktopPage.qml" line="86"/>
+        <source>Connection closed</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../qml/VMDesktopPage.qml" line="89"/>
+        <source>Lookup for %1</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../qml/VMDesktopPage.qml" line="95"/>
         <source>Checking the server for safe use</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/VMDesktopPage.qml" line="103"/>
+        <location filename="../qml/VMDesktopPage.qml" line="98"/>
         <source>User authentication</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/VMDesktopPage.qml" line="107"/>
+        <location filename="../qml/VMDesktopPage.qml" line="102"/>
         <source>Sending %1</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/VMDesktopPage.qml" line="110"/>
-        <source>Creating SSH tunnel (port forwarding)</source>
+        <location filename="../qml/VMDesktopPage.qml" line="105"/>
+        <source>Tunneling %1</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/VMDesktopPage.qml" line="116"/>
+        <location filename="../qml/VMDesktopPage.qml" line="111"/>
+        <source> failed!</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../qml/VMDesktopPage.qml" line="117"/>
         <source>Authentication failed</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/VMDesktopPage.qml" line="119"/>
+        <location filename="../qml/VMDesktopPage.qml" line="120"/>
         <source>Connection timed out (max %1 sec)</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/VMDesktopPage.qml" line="122"/>
+        <location filename="../qml/VMDesktopPage.qml" line="123"/>
         <source>Closing connection</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/VMDesktopPage.qml" line="127"/>
+        <location filename="../qml/VMDesktopPage.qml" line="128"/>
         <source>Connected to %1 (%2)</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location filename="../qml/VMDesktopPage.qml" line="130"/>
+        <source>Host disconnected</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../qml/VMDesktopPage.qml" line="134"/>
         <source>Host public key hash:
 %1</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/VMDesktopPage.qml" line="144"/>
-        <source>Connecting %1...</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../qml/VMDesktopPage.qml" line="145"/>
-        <source>No desktop available</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../qml/VMDesktopPage.qml" line="158"/>
-        <source>SSH tunnel is at %1:%2
-
-</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../qml/VMDesktopPage.qml" line="164"/>
+        <location filename="../qml/VMDesktopPage.qml" line="160"/>
         <source>Desktop dimension %1x%2</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/VMDesktopPage.qml" line="167"/>
+        <location filename="../qml/VMDesktopPage.qml" line="163"/>
         <source>Wait for desktop loading...</source>
         <translation type="unfinished"></translation>
     </message>
@@ -1141,7 +1137,7 @@ Use a new URL instead of the original one?</source>
     </message>
     <message>
         <location filename="../qml/VMServerPage.qml" line="85"/>
-        <location filename="../qml/VMServerPage.qml" line="289"/>
+        <location filename="../qml/VMServerPage.qml" line="336"/>
         <source>%1: Not an ssh key</source>
         <translation type="unfinished"></translation>
     </message>
@@ -1161,67 +1157,82 @@ Use a new URL instead of the original one?</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/VMServerPage.qml" line="214"/>
+        <location filename="../qml/VMServerPage.qml" line="238"/>
+        <source>Import credential</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../qml/VMServerPage.qml" line="243"/>
+        <source>Import credential from the CBSD server</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../qml/VMServerPage.qml" line="244"/>
+        <source>Enter Credential URL</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../qml/VMServerPage.qml" line="261"/>
         <source>User@Host</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/VMServerPage.qml" line="214"/>
+        <location filename="../qml/VMServerPage.qml" line="261"/>
         <source>Host</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/VMServerPage.qml" line="236"/>
+        <location filename="../qml/VMServerPage.qml" line="283"/>
         <source>Port</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/VMServerPage.qml" line="251"/>
+        <location filename="../qml/VMServerPage.qml" line="298"/>
         <source>Executable</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/VMServerPage.qml" line="260"/>
+        <location filename="../qml/VMServerPage.qml" line="307"/>
         <source>Select file</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/VMServerPage.qml" line="262"/>
+        <location filename="../qml/VMServerPage.qml" line="309"/>
         <source>Select %1 executable</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/VMServerPage.qml" line="268"/>
+        <location filename="../qml/VMServerPage.qml" line="315"/>
         <source>Can&apos;t load MyFileDialog.qml</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/VMServerPage.qml" line="272"/>
+        <location filename="../qml/VMServerPage.qml" line="319"/>
         <source>The file is not executable</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/VMServerPage.qml" line="311"/>
+        <location filename="../qml/VMServerPage.qml" line="358"/>
         <source>Import</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/VMServerPage.qml" line="313"/>
+        <location filename="../qml/VMServerPage.qml" line="360"/>
         <source>Importing VMs from the server</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/VMServerPage.qml" line="327"/>
+        <location filename="../qml/VMServerPage.qml" line="374"/>
         <source>Please select ssh key</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/VMServerPage.qml" line="333"/>
+        <location filename="../qml/VMServerPage.qml" line="380"/>
         <source>Profile</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/VMServerPage.qml" line="335"/>
+        <location filename="../qml/VMServerPage.qml" line="382"/>
         <source>Get VM profiles</source>
         <translation type="unfinished"></translation>
     </message>
@@ -1229,88 +1240,103 @@ Use a new URL instead of the original one?</source>
 <context>
     <name>VMTerminalPage</name>
     <message>
-        <location filename="../qml/VMTerminalPage.qml" line="11"/>
-        <source>Terminal</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../qml/VMTerminalPage.qml" line="20"/>
+        <location filename="../qml/VMTerminalPage.qml" line="23"/>
         <source>Progress log</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/VMTerminalPage.qml" line="28"/>
+        <location filename="../qml/VMTerminalPage.qml" line="30"/>
         <source>New Terminal</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/VMTerminalPage.qml" line="87"/>
+        <location filename="../qml/VMTerminalPage.qml" line="37"/>
+        <source>Copy</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../qml/VMTerminalPage.qml" line="40"/>
+        <source>Copy to clipboard</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../qml/VMTerminalPage.qml" line="45"/>
+        <source>Paste</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../qml/VMTerminalPage.qml" line="48"/>
+        <source>Paste from clipboard</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../qml/VMTerminalPage.qml" line="109"/>
         <source>Connection closed</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/VMTerminalPage.qml" line="91"/>
+        <location filename="../qml/VMTerminalPage.qml" line="113"/>
         <source>Lookup for %1</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/VMTerminalPage.qml" line="95"/>
+        <location filename="../qml/VMTerminalPage.qml" line="117"/>
         <source>Connecting %1</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/VMTerminalPage.qml" line="99"/>
+        <location filename="../qml/VMTerminalPage.qml" line="121"/>
         <source>Checking the server for safe use</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/VMTerminalPage.qml" line="103"/>
+        <location filename="../qml/VMTerminalPage.qml" line="125"/>
         <source>User authentication</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/VMTerminalPage.qml" line="108"/>
+        <location filename="../qml/VMTerminalPage.qml" line="130"/>
         <source>Sending %1</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/VMTerminalPage.qml" line="112"/>
+        <location filename="../qml/VMTerminalPage.qml" line="134"/>
         <source>Requesting a remote shell</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/VMTerminalPage.qml" line="121"/>
+        <location filename="../qml/VMTerminalPage.qml" line="143"/>
         <source>Authentication failed</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/VMTerminalPage.qml" line="125"/>
+        <location filename="../qml/VMTerminalPage.qml" line="147"/>
         <source>Connection timed out (max %1 sec)</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/VMTerminalPage.qml" line="129"/>
+        <location filename="../qml/VMTerminalPage.qml" line="151"/>
         <source>Closing connection</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/VMTerminalPage.qml" line="134"/>
+        <location filename="../qml/VMTerminalPage.qml" line="156"/>
         <source>Connected to host %1 port %2</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/VMTerminalPage.qml" line="135"/>
+        <location filename="../qml/VMTerminalPage.qml" line="158"/>
         <source>Host disconnected</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/VMTerminalPage.qml" line="137"/>
+        <location filename="../qml/VMTerminalPage.qml" line="162"/>
         <source>Host public key hash:
 %1</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/VMTerminalPage.qml" line="149"/>
+        <location filename="../qml/VMTerminalPage.qml" line="174"/>
         <source>Term %1</source>
         <translation type="unfinished"></translation>
     </message>
@@ -1318,108 +1344,108 @@ Use a new URL instead of the original one?</source>
 <context>
     <name>main</name>
     <message>
-        <location filename="../qml/main.qml" line="119"/>
+        <location filename="../qml/main.qml" line="185"/>
         <source>User &lt;b&gt;%1&lt;/b&gt; must be a member of the &lt;b&gt;%2&lt;/b&gt; group to use &lt;i&gt;%3&lt;/i&gt;</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/main.qml" line="133"/>
+        <location filename="../qml/main.qml" line="199"/>
         <source>Insufficient Android permissions</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/main.qml" line="143"/>
+        <location filename="../qml/main.qml" line="209"/>
         <source>The system is busy, quit anyway?</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/main.qml" line="178"/>
-        <location filename="../qml/main.qml" line="417"/>
+        <location filename="../qml/main.qml" line="244"/>
+        <location filename="../qml/main.qml" line="483"/>
         <source>Can&apos;t load %1</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/main.qml" line="183"/>
+        <location filename="../qml/main.qml" line="249"/>
         <source>Unexpected error</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/main.qml" line="203"/>
+        <location filename="../qml/main.qml" line="269"/>
         <source>SSH connection to host &lt;b&gt;%1&lt;/b&gt; for the first time&lt;br&gt;&lt;br&gt;&lt;i&gt;Its public key will be added to my known_hosts to validate future connections&lt;/i&gt;</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/main.qml" line="207"/>
+        <location filename="../qml/main.qml" line="273"/>
         <source>The public key of the host &lt;b&gt;%1&lt;/b&gt; has been updated&lt;br&gt;&lt;br&gt;&lt;i&gt;Do you trust this host&apos;s new public key?&lt;/i&gt;</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/main.qml" line="211"/>
+        <location filename="../qml/main.qml" line="277"/>
         <source>The public key type on host &lt;b&gt;%1&lt;/b&gt; has been changed&lt;br&gt;&lt;br&gt;&lt;i&gt;Are you sure the server is valid?&lt;/i&gt;</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/main.qml" line="217"/>
+        <location filename="../qml/main.qml" line="283"/>
         <source>Host public key hash</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/main.qml" line="224"/>
+        <location filename="../qml/main.qml" line="290"/>
         <source>Access to %1</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/main.qml" line="225"/>
+        <location filename="../qml/main.qml" line="291"/>
         <source>Host &lt;b&gt;%1&lt;/b&gt; asks the following questions</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/main.qml" line="252"/>
+        <location filename="../qml/main.qml" line="318"/>
         <source>The request is being processed, do you want to cancel it?</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/main.qml" line="259"/>
+        <location filename="../qml/main.qml" line="325"/>
         <source>Create</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/main.qml" line="266"/>
+        <location filename="../qml/main.qml" line="332"/>
         <source>Start</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/main.qml" line="273"/>
+        <location filename="../qml/main.qml" line="339"/>
         <source>Stop</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/main.qml" line="280"/>
+        <location filename="../qml/main.qml" line="346"/>
         <source>Terminal</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/main.qml" line="287"/>
+        <location filename="../qml/main.qml" line="353"/>
         <source>Desktop</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/main.qml" line="294"/>
+        <location filename="../qml/main.qml" line="360"/>
         <source>Full screen</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/main.qml" line="303"/>
+        <location filename="../qml/main.qml" line="369"/>
         <source>Compact size</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/main.qml" line="357"/>
+        <location filename="../qml/main.qml" line="423"/>
         <source>Creating a new virtual machine</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/main.qml" line="419"/>
+        <location filename="../qml/main.qml" line="485"/>
         <source>Not a Page instance %1</source>
         <translation type="unfinished"></translation>
     </message>

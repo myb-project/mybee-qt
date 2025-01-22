@@ -79,6 +79,7 @@ TextRender::TextRender(QQuickItem* parent)
     , iFont(QLatin1String("monospace"), QGuiApplication::font().pointSize() - 1)
     , iShowBufferScrollIndicator(false)
     , iAllowGestures(true)
+    , last_selected(false)
     , m_contentItem(0)
     , m_backgroundContainer(0)
     , m_textContainer(0)
@@ -91,11 +92,7 @@ TextRender::TextRender(QQuickItem* parent)
     , m_topSelectionDelegateInstance(0)
     , m_middleSelectionDelegateInstance(0)
     , m_bottomSelectionDelegateInstance(0)
-#if defined(Q_OS_ANDROID) || defined(Q_OS_IOS)
-    , m_dragMode(DragScroll)
-#else
-    , m_dragMode(DragSelect)
-#endif
+    , m_dragMode(DragGestures)
     , m_dispatch_timer(0)
 {
     TRACE();
@@ -104,7 +101,6 @@ TextRender::TextRender(QQuickItem* parent)
     setAcceptedMouseButtons(Qt::LeftButton);
     setCursor(Qt::IBeamCursor);
 
-    connect(QGuiApplication::clipboard(), &QClipboard::dataChanged, this, &TextRender::clipboardChanged);
     connect(this, &QQuickItem::widthChanged, this, &TextRender::redraw);
     connect(this, &QQuickItem::heightChanged, this, &TextRender::redraw);
 
@@ -118,7 +114,13 @@ TextRender::TextRender(QQuickItem* parent)
     connect(&m_terminal, SIGNAL(termSizeChanged(int,int)), this, SIGNAL(terminalSizeChanged()));
     connect(&m_terminal, &Terminal::selectionChanged, this, &TextRender::redraw);
     connect(&m_terminal, &Terminal::scrollBackBufferAdjusted, this, &TextRender::handleScrollBack);
-    connect(&m_terminal, &Terminal::selectionChanged, this, &TextRender::selectionChanged);
+    connect(&m_terminal, &Terminal::selectionChanged, this, [this]() {
+        bool yes = !m_terminal.selection().isNull();
+        if (yes != last_selected) {
+            last_selected = yes;
+            emit selectedChanged();
+        }
+    });
 }
 
 TextRender::~TextRender()
@@ -154,25 +156,31 @@ void TextRender::componentComplete()
     }
 }
 
-void TextRender::copy()
+bool TextRender::selected() const
 {
+    return last_selected;
+}
+
+bool TextRender::copy()
+{
+    if (!last_selected) return false;
     QClipboard* cb = QGuiApplication::clipboard();
+    if (!cb) return false;
     cb->clear();
-    cb->setText(selectedText());
+    QString text = selectedText();
+    if (text.isEmpty()) return false;
+    cb->setText(text);
+    return true;
 }
 
-void TextRender::paste()
+bool TextRender::paste()
 {
     QClipboard* cb = QGuiApplication::clipboard();
-    QString cbText = cb->text();
-    m_terminal.paste(cbText);
-}
-
-bool TextRender::canPaste() const
-{
-    QClipboard* cb = QGuiApplication::clipboard();
-
-    return !cb->text().isEmpty();
+    if (!cb) return false;
+    QString text = cb->text();
+    if (text.isEmpty()) return false;
+    m_terminal.paste(text);
+    return true;
 }
 
 void TextRender::deselect()
@@ -253,6 +261,7 @@ QFont TextRender::font() const
 void TextRender::setFontMetrics()
 {
     QFontMetricsF fontMetrics(iFont);
+
     iFontHeight = fontMetrics.height();
     iFontWidth = fontMetrics.horizontalAdvance(' ');
     iFontDescent = fontMetrics.descent();
@@ -695,18 +704,9 @@ void TextRender::mouseRelease(float eventX, float eventY)
 
 void TextRender::keyPressEvent(QKeyEvent* event)
 {
+    if (event->key() == Qt::Key_Insert && (event->modifiers() & (Qt::ControlModifier | Qt::ShiftModifier)))
+        return;
     m_terminal.keyPress(event->key(), event->modifiers(), event->text());
-}
-
-void TextRender::wheelEvent(QWheelEvent* event)
-{
-    if (!event->pixelDelta().isNull()) {
-        dragOrigin = scrollBackBuffer(dragOrigin + event->pixelDelta(), dragOrigin);
-        event->accept();
-    } else {
-        dragOrigin = scrollBackBuffer(dragOrigin + event->angleDelta() / 2, dragOrigin);
-        event->accept();
-    }
 }
 
 void TextRender::selectionHelper(QPointF scenePos, bool selectionOngoing)
@@ -851,24 +851,31 @@ void TextRender::setSelectionDelegate(QQmlComponent* component)
 
 int TextRender::contentHeight() const
 {
-    if (m_terminal.useAltScreenBuffer())
-        return m_terminal.buffer().size();
-    else
-        return m_terminal.buffer().size() + m_terminal.backBuffer().size();
+    int lines = m_terminal.useAltScreenBuffer() ? m_terminal.buffer().size()
+                : m_terminal.buffer().size() + m_terminal.backBuffer().size();
+    return qCeil(lines * iFontHeight);
 }
 
 int TextRender::visibleHeight() const
 {
-    return m_terminal.buffer().size();
+    return qCeil(m_terminal.buffer().size() * iFontHeight);
 }
 
 int TextRender::contentY() const
 {
-    if (m_terminal.useAltScreenBuffer())
-        return 0;
+    if (m_terminal.useAltScreenBuffer()) return 0;
+    int lines = m_terminal.backBuffer().size() - m_terminal.backBufferScrollPos();
+    return qFloor(lines * iFontHeight);
+}
 
-    int scrollPos = m_terminal.backBuffer().size() - m_terminal.backBufferScrollPos();
-    return scrollPos;
+void TextRender::setContentY(int ypos)
+{
+    int lines = qFloor(ypos / iFontHeight);
+    if (lines != m_terminal.backBufferScrollPos()) {
+        if (lines > m_terminal.backBufferScrollPos())
+            m_terminal.scrollBackBufferBack(lines - m_terminal.backBufferScrollPos());
+        else m_terminal.scrollBackBufferFwd(m_terminal.backBufferScrollPos() - lines);
+    }
 }
 
 QPointF TextRender::scrollBackBuffer(QPointF now, QPointF last)
@@ -920,7 +927,7 @@ void TextRender::setSession(QObject *obj)
         return;
     }
     ssh_session = ss;
-    ssh_shell = ssh_session->createShell();
+    ssh_shell = ssh_session->createShell(m_terminal.termSize());
     if (!ssh_shell) {
         qWarning() << Q_FUNC_INFO << "createShell() return null pointer";
         return;
@@ -938,6 +945,7 @@ void TextRender::setSession(QObject *obj)
         if (ssh_shell) ssh_shell.toStrongRef()->sendText(text);
     });
 
+    connect(&m_terminal, &Terminal::termSizeChanged, shell, &SshChannelShell::setTermSize);
     m_terminal.closePty();
     emit sessionChanged();
 }

@@ -50,7 +50,7 @@ Page {
 
     Component.onCompleted: {
         if (currentFolder) {
-            currentProfile = SystemHelper.loadObject(currentFolder + "/lastProfile")
+            currentProfile = SystemHelper.loadObject(currentFolder + "/lastProfile.json")
             if (!currentProfile.hasOwnProperty("server") || !currentProfile.hasOwnProperty("ssh_key")) {
                 appError(qsTr("Can't load current configuration"))
                 return

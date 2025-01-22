@@ -71,7 +71,7 @@ void DirSpaceUsed::setStorage(const QString &path)
     txt = storage_info.rootPath();
 #else
     txt = QString::fromLatin1(storage_info.device());
-    txt += " -> " + storage_info.rootPath();
+    txt += " [ " + storage_info.rootPath() + " ]";
 #endif
     QString name = storage_info.name();
     if (!name.isEmpty()) txt += " \"" + name + '"';

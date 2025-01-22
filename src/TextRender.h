@@ -45,10 +45,9 @@ class TextRender : public QQuickItem
     Q_PROPERTY(QQmlComponent* selectionDelegate READ selectionDelegate WRITE setSelectionDelegate NOTIFY selectionDelegateChanged)
     Q_PROPERTY(int contentHeight READ contentHeight NOTIFY contentHeightChanged)
     Q_PROPERTY(int visibleHeight READ visibleHeight NOTIFY visibleHeightChanged)
-    Q_PROPERTY(int contentY READ contentY NOTIFY contentYChanged)
+    Q_PROPERTY(int contentY READ contentY WRITE setContentY NOTIFY contentYChanged)
     Q_PROPERTY(QSize terminalSize READ terminalSize NOTIFY terminalSizeChanged)
-    Q_PROPERTY(QString selectedText READ selectedText NOTIFY selectionChanged)
-    Q_PROPERTY(bool canPaste READ canPaste NOTIFY clipboardChanged)
+    Q_PROPERTY(bool selected READ selected NOTIFY selectedChanged FINAL)
     Q_PROPERTY(QObject* session READ session WRITE setSession NOTIFY sessionChanged FINAL)
 
 public:
@@ -59,16 +58,17 @@ public:
     Q_INVOKABLE void putString(const QString &str);
     Q_INVOKABLE QStringList grabURLsFromBuffer() const;
 
-    bool canPaste() const;
-    Q_INVOKABLE void copy();
-    Q_INVOKABLE void paste();
-    Q_INVOKABLE void deselect();
+    bool selected() const;
+    Q_INVOKABLE bool copy();
+    Q_INVOKABLE bool paste();
 
-    QString selectedText() const;
+    Q_INVOKABLE void deselect();
+    Q_INVOKABLE QString selectedText() const;
 
     int contentHeight() const;
     int visibleHeight() const;
     int contentY() const;
+    void setContentY(int ypos);
 
     QString title() const;
 
@@ -128,8 +128,7 @@ signals:
     void visibleHeightChanged();
     void contentYChanged();
     void terminalSizeChanged();
-    void clipboardChanged();
-    void selectionChanged();
+    void selectedChanged();
     void displayBufferChanged();
     void panLeft();
     void panRight();
@@ -152,7 +151,6 @@ protected:
     void mouseMoveEvent(QMouseEvent* event) override;
     void mouseReleaseEvent(QMouseEvent* event) override;
     void keyPressEvent(QKeyEvent* event) override;
-    void wheelEvent(QWheelEvent* event) override;
     void timerEvent(QTimerEvent* event) override;
     void componentComplete() override;
 
@@ -179,10 +177,10 @@ private:
     void selectionHelper(QPointF scenePos, bool selectionOngoing);
     void setFontMetrics();
 
-    qreal fontWidth() { return iFontWidth; }
-    qreal fontHeight() { return iFontHeight; }
-    qreal fontDescent() { return iFontDescent; }
-    int fontPointSize() { return iFont.pointSize(); }
+    qreal fontWidth() const { return iFontWidth; }
+    qreal fontHeight() const { return iFontHeight; }
+    qreal fontDescent() const { return iFontDescent; }
+    int fontPointSize() const { return iFont.pointSize(); }
 
     /**
      * Scroll the back buffer on drag.
@@ -205,6 +203,7 @@ private:
     qreal iFontDescent;
     bool iShowBufferScrollIndicator;
     bool iAllowGestures;
+    bool last_selected;
 
     QQuickItem* m_contentItem;
     QQuickItem* m_backgroundContainer;

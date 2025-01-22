@@ -9,8 +9,6 @@
 #include <QLocale>
 #include <QTranslator>
 #include <QDirIterator>
-#include <QFontDatabase>
-#include <QLoggingCategory>
 #ifdef Q_OS_ANDROID
 #include <QStandardPaths>
 #endif
@@ -41,7 +39,6 @@ static const char *materialStyleMode = "Normal";
 static const char *quickControlStyle = "Material";
 static const char *materialStyleMode = "Dense";
 #endif
-static const char *embeddedFontFamily = "Roboto";
 
 static void setCbsdSearchPaths()
 {
@@ -104,24 +101,7 @@ int main(int argc, char *argv[])
     QSettings::setDefaultFormat(QSettings::IniFormat);
 #endif
 
-    bool set_font = false;
-    QDirIterator font_it(QStringLiteral(":/"), QStringList() << "font-*");
-    while (font_it.hasNext()) {
-        QString path = font_it.next();
-        int font_id = QFontDatabase::addApplicationFont(path);
-        if (!set_font) {
-            auto font_families = QFontDatabase::applicationFontFamilies(font_id);
-            set_font = font_families.contains(QLatin1String(embeddedFontFamily));
-        }
-    }
-    if (set_font) {
-        QFont sys_font = QFontDatabase::systemFont(QFontDatabase::GeneralFont);
-        QFont app_font(QLatin1String(embeddedFontFamily), sys_font.pointSize(), sys_font.weight());
-        app_font.setStyleStrategy(QFont::PreferAntialias);
-        app.setFont(app_font);
-    }
-
-    QDirIterator res_it(QStringLiteral(":/"), QStringList() << KeyLoader::keyLayoutFilter << "*.wav");
+    QDirIterator res_it(QStringLiteral(":/resource"), QDir::Files);
     while (res_it.hasNext()) {
         QString path = res_it.next();
         SystemHelper::copyFile(path, res_it.fileName());

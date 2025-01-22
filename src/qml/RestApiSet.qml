@@ -22,13 +22,16 @@ QtObject {
     Component.onCompleted: {
         HttpRequest.recvArray.connect(function(url, data) {
             var cmd = urlCmdIndex(url)
+            if (!cmd) return
             var file = Url.hostAt(url) + '/' + control.cmdStrings[cmd]
             if (SystemHelper.saveArray(file, data))
                 response(cmd, Url.adjustedAt(url), "")
             else error("Can't write " + file)
         })
         HttpRequest.recvObject.connect(function(url, data) {
-            var name = "", cmd = urlCmdIndex(url)
+            var cmd = urlCmdIndex(url)
+            if (!cmd) return
+            var name = ""
             if (cmd !== RestApiSet.Cmd.Cluster) {
                 if (cmd >= RestApiSet.Cmd.Status)
                     name = SystemHelper.fileName(Url.pathAt(url))

@@ -27,7 +27,6 @@ Page {
         ColumnLayout {
             id: columnLayout
             width: control.availableWidth
-            spacing: 10
 
             AnimatedImage {
                 id: animatedImage
@@ -54,7 +53,7 @@ Page {
             Label {
                 Layout.alignment: Qt.AlignHCenter
                 textFormat: Text.PlainText
-                text: qsTr("\u00a9 2023-2025, Oleg Ginzburg <olevole@yandex.ru>\n\u00a9 2023-2025, Vladimir Vorobyev <b800xy@yandex.ru>")
+                text: qsTr("\u00a9 2023-2025 Oleg Ginzburg <olevole@yandex.ru>\n\u00a9 2023-2025 Vladimir Vorobyev <b800xy@yandex.ru>\n\u00a9 2025 MyBee Teams")
             }
 
             GridLayout {
@@ -79,11 +78,12 @@ Page {
                 Layout.fillWidth: true
                 horizontalAlignment: Text.AlignHCenter
                 font.pointSize: appTipSize
-                padding: 5
                 wrapMode: Text.Wrap
-                text: qsTr("Become a financial contributor and help us sustain our community. All funds are returned to the project (hosting, equipment, support) and invested in the development of a number of areas.")
+                text: qsTr("Become a financial contributor and help us sustain our community.\nAll funds are returned to the project (hosting, equipment, support) and invested in the development of a number of areas.")
             }
         }
+
+        ScrollIndicator.vertical: ScrollIndicator { active: true }
     }
 
     footer: DropDownPane {

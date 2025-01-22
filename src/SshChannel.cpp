@@ -348,8 +348,11 @@ qint64 SshChannel::writeData(const char *data, qint64 len)
     if ((status & SSH_WRITE_PENDING) == 0) {
         auto cc = lib_channel.getCChannel();
         int wb = ::ssh_channel_write(cc, data, len);
-        if (wb > 0) emit bytesWritten(wb);
-        else emit errorOccurred(QStringLiteral("ssh_channel_write: ") + ::ssh_get_error(cs));
+        if (wb > 0) {
+            emit bytesWritten(wb);
+        } else {
+            emit errorOccurred(QStringLiteral("ssh_channel_write: ") + ::ssh_get_error(cs));
+        }
         return wb;
     }
     int max = write_bufsize - write_buffer.size();

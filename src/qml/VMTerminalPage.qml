@@ -8,18 +8,20 @@ import QmlCustomModules 1.0
 
 Page {
     id: control
-    title: qsTr("Terminal")
+    title: VMConfigSet.valueAt("name")
 
     readonly property string myClassName: control.toString().match(/.+?(?=_)/)[0]
     readonly property string attachCmd: VMConfigSet.valueAt("attach_cmd")
     property var sshSession: null
+    property font monoFont: control.font
     readonly property list<Action> actionsList: [
         Action {
             id: progressLogAction
-            enabled: control.sshSession && swipeView.currentIndex !== swipeView.count - 1
+            enabled: control.sshSession
+            checkable: true
+            checked: swipeView.currentIndex === swipeView.count - 1
             text: qsTr("Progress log")
-            icon.source: "qrc:/icon-info"
-            onTriggered: swipeView.setCurrentIndex(swipeView.count - 1)
+            onTriggered: swipeView.setCurrentIndex(checked ? swipeView.count - 1 : 0)
         },
         Action {
             id: newTermAction
@@ -28,6 +30,22 @@ Page {
             text: qsTr("New Terminal")
             icon.source: "qrc:/icon-create"
             onTriggered: termListModel.addShellView()
+        },
+        Action {
+            id: copySelectionAction
+            enabled: swipeView.currentIndex < swipeView.count - 1 && swipeView.currentItem.selected
+            text: qsTr("Copy")
+            icon.source: "qrc:/icon-content-copy"
+            shortcut: "Ctrl+Ins" // StandardKey.Copy -- should be transparent!
+            onTriggered: if (swipeView.currentItem.copy()) appToast(qsTr("Copy to clipboard"))
+        },
+        Action {
+            id: pasteSelectionAction
+            enabled: swipeView.currentIndex < swipeView.count - 1 && SystemHelper.clipboard
+            text: qsTr("Paste")
+            icon.source: "qrc:/icon-content-paste"
+            shortcut: "Shift+Ins" // StandardKey.Paste  -- should be transparent!
+            onTriggered: if (swipeView.currentItem.paste()) appToast(qsTr("Paste from clipboard"))
         }
     ]
 
@@ -57,6 +75,10 @@ Page {
     }
 
     Component.onCompleted: {
+        monoFont.family = appFontFamily(appMonoFont ? appMonoFont : defaultMonoFont)
+        monoFont.styleName = appFontStyle(appMonoFont ? appMonoFont : defaultMonoFont)
+        monoFont.pointSize = appFontPointSize
+
         if (attachCmd) {
             if (serverUrl.scheme === "file")     termListModel.addShellView()
             else if (serverUrl.scheme === "ssh") sshSession = sshSessionComponent.createObject(control)
@@ -132,7 +154,10 @@ Page {
                 progressPane.text += "\n\n"
             }
             onHostConnected: progressPane.text += qsTr("Connected to host %1 port %2").arg(hostAddress).arg(settings.port) + "\n\n"
-            onHostDisconnected: progressPane.text += qsTr("Host disconnected") + "\n\n"
+            onHostDisconnected: {
+                progressPane.text += qsTr("Host disconnected") + "\n\n"
+                progressPane.show = true
+            }
             onHelloBannerChanged: progressPane.text += helloBanner + "\n\n"
             onPubkeyHashChanged: progressPane.text += qsTr("Host public key hash:\n%1").arg(pubkeyHash) + "\n\n"
             onKnownHostChanged: sshServerDialog(control.sshSession)
@@ -199,14 +224,16 @@ Page {
     SwipeView {
         id: swipeView
         anchors.fill: parent
+        interactive: SystemHelper.isMobile
         focus: true // turn-on active focus here
         contentItem.focus: true // propagate active focus to SwipeView childrens
         background: Rectangle { color: control.termBackground }
         Repeater {
             model: termListModel
             VMTerminalView {
-                id: termView
                 session: control.sshSession
+                font: control.monoFont
+                dragMode: SystemHelper.isMobile ? TextRender.DragScroll : TextRender.DragSelect
                 onTerminalReady: {
                     progressPane.show = false
                     swipeView.setCurrentIndex(index)
@@ -215,11 +242,29 @@ Page {
                         putString("exec " + control.attachCmd + '\r')
                 }
                 onHangupReceived: termListModel.remove(index)
+
+                // dragMode: DragGestures by default
+                onPanLeft: console.debug("panLeft")
+                onPanRight: console.debug("panRight")
+                onPanUp: console.debug("panUp")
+                onPanDown: console.debug("panDown")
             }
         }
         ProgressPane {
             id: progressPane
             enabled: control.sshSession
+        }
+    }
+
+    MouseArea {
+        anchors.fill: parent
+        acceptedButtons: Qt.RightButton
+        onClicked: appContextMenu.popup()
+        onWheel: function(wheel) {
+            if (swipeView.currentItem && swipeView.currentItem.scrollBar) {
+                if (wheel.angleDelta.y < 0) swipeView.currentItem.scrollBar.decrease()
+                else swipeView.currentItem.scrollBar.increase()
+            }
         }
     }
 }

@@ -1,3 +1,5 @@
+#include <QTcpServer>
+#include <QTcpSocket>
 #include <QTimer>
 #include <QHostInfo>
 #include <QFileInfo>
@@ -5,8 +7,13 @@
 #include <QMetaMethod>
 #include <QtDebug>
 #include <QHostAddress>
+#include <QSize>
 
+#ifdef Q_OS_WIN
+#include <winsock2.h>
+#else
 #include <poll.h>
+#endif
 
 #include "SshSession.h"
 #include "SshChannelShell.h"
@@ -38,6 +45,9 @@ SshSession::SshSession(QObject *parent)
     , lib_ssh_key(nullptr)
     , connect_timer(nullptr)
     , later_timer(nullptr)
+    , alive_timer(nullptr)
+    , tunnel_serv(nullptr)
+    , tunnel_port(0)
     , ssh_running(false)
     , open_channels(0)
 {
@@ -211,19 +221,6 @@ void SshSession::setShareKey(bool enable)
     }
 }
 
-bool SshSession::setSshUrl(const QUrl &url, const QString &key)
-{
-    TRACE_ARG(url);
-    if (!url.isValid() || key.isEmpty() || !QFile::exists(key) || !setSettings(SshSettings::fromUrl(url, key)))
-        return false;
-
-    if (url != ssh_url) {
-        ssh_url = url;
-        emit sshUrlChanged();
-    }
-    return true;
-}
-
 void SshSession::setLogLevel(int level)
 {
     TRACE_ARG(level);
@@ -332,11 +329,19 @@ void SshSession::connectToHost()
     setState(StateConnecting);
 }
 
-void SshSession::connectToHost(const QString &user, const QString &host, int port)
+void SshSession::connectToUrl(const QUrl &url, const QString &key)
 {
-    TRACE();
-    setSettings(SshSettings(user, host, port));
-    connectToHost();
+    TRACE_ARG(url << key);
+    if (!url.isValid()) {
+        qWarning() << Q_FUNC_INFO << "Invalid URL specified";
+        return;
+    }
+    if (key.isEmpty() || !QFile::exists(key)) {
+        qWarning() << Q_FUNC_INFO << "Invalid private key specified";
+        return;
+    }
+    if (setSettings(SshSettings::fromUrl(url, key)))
+        connectToHost();
 }
 
 void SshSession::disconnectFromHost()
@@ -397,6 +402,7 @@ void SshSession::setState(State state)
         callLater(&SshSession::sendPublicKey);
         break;
     case StateReady:
+        onBytesWritten(0);
         break;
     case StateError:
         if (last_error.isEmpty()) {
@@ -415,7 +421,9 @@ void SshSession::setState(State state)
     case StateClosed:
         cleanUp();
     case StateClosing:
-        if (prev_state == StateEstablished) {
+        if (tunnel_serv && tunnel_serv->isListening())
+            tunnel_serv->close();
+        if (prev_state == StateEstablished || prev_state == StateReady) {
             if (channels()) closeChannel();
             if (open_channels) {
                 open_channels = 0;
@@ -549,7 +557,6 @@ void SshSession::checkPollFlags()
         setState(StateClosed);
         return;
     }
-    //XXX? if (!flags) flags = SSH_READ_PENDING;
     if (read_notifier) read_notifier->setEnabled(flags & SSH_READ_PENDING);
     if (write_notifier) write_notifier->setEnabled(flags & SSH_WRITE_PENDING);
 }
@@ -934,7 +941,22 @@ void SshSession::emitHostDisconnected()
     emit hostDisconnected();
 }
 
-QWeakPointer<SshChannelShell> SshSession::createShell()
+void SshSession::onBytesWritten(qint64 bytes)
+{
+    Q_UNUSED(bytes);
+    if (!alive_timer) {
+        alive_timer = new QTimer(this);
+        alive_timer->setSingleShot(false);
+        alive_timer->setInterval(60000);
+        alive_timer->callOnTimeout([this]() {
+            if (!isEstablished() || ::ssh_send_ignore(lib_session.getCSession(), "keepalive") != SSH_OK)
+                alive_timer->stop();
+        });
+    }
+    alive_timer->start();
+}
+
+QWeakPointer<SshChannelShell> SshSession::createShell(const QSize &termSize)
 {
     static QWeakPointer<SshChannelShell> empty;
     TRACE();
@@ -942,10 +964,11 @@ QWeakPointer<SshChannelShell> SshSession::createShell()
         qWarning() << Q_FUNC_INFO << "Ssh session must be ready!";
         return empty;
     }
-    auto cnl = new SshChannelShell(lib_session, ssh_settings.termType(), ssh_settings.envVars());
+    auto cnl = new SshChannelShell(lib_session, ssh_settings.termType(), termSize, ssh_settings.envVars());
     connect(cnl, &SshChannelShell::channelOpened, this, &SshSession::setOpenChannels);
     connect(cnl, &SshChannel::channelClosed, this, &SshSession::onChannelClosed, Qt::QueuedConnection);
     connect(cnl, &SshChannel::errorOccurred, this, &SshSession::setLastError);
+    connect(cnl, &SshChannel::bytesWritten, this, &SshSession::onBytesWritten);
 
     channel_list.append(QSharedPointer<SshChannel>(cnl));
     return qWeakPointerCast<SshChannelShell>(channel_list.constLast());
@@ -970,8 +993,9 @@ void SshSession::sendPublicKey()
     }
     auto cnl = new SshChannelFtp(lib_session, QLatin1String(authorizedKeys));
     connect(cnl, &SshChannelFtp::channelOpened, cnl, &SshChannelFtp::pull);
-    connect(cnl, &SshChannelFtp::readyRead, this, &SshSession::onPullDone);
+    connect(cnl, &SshChannel::readyRead, this, &SshSession::onPullDone);
     connect(cnl, &SshChannel::errorOccurred, this, &SshSession::setLastError);
+    connect(cnl, &SshChannel::bytesWritten, this, &SshSession::onBytesWritten);
 
     channel_list.append(QSharedPointer<SshChannel>(cnl));
 }
@@ -1033,6 +1057,7 @@ QWeakPointer<SshChannelExec> SshSession::createExec(const QString &command)
     }
     auto cnl = new SshChannelExec(lib_session, command);
     connect(cnl, &SshChannel::errorOccurred, this, &SshSession::setLastError);
+    connect(cnl, &SshChannel::bytesWritten, this, &SshSession::onBytesWritten);
 
     channel_list.append(QSharedPointer<SshChannel>(cnl));
     return qWeakPointerCast<SshChannelExec>(channel_list.constLast());
@@ -1052,7 +1077,79 @@ QWeakPointer<SshChannelPort> SshSession::createPort(const QString &host, quint16
     }
     auto cnl = new SshChannelPort(lib_session, host, port);
     connect(cnl, &SshChannel::errorOccurred, this, &SshSession::setLastError);
+    connect(cnl, &SshChannel::bytesWritten, this, &SshSession::onBytesWritten);
 
     channel_list.append(QSharedPointer<SshChannel>(cnl));
     return qWeakPointerCast<SshChannelPort>(channel_list.constLast());
+}
+
+int SshSession::tunnel(const QString &addr, int port)
+{
+    TRACE();
+    if (addr.isEmpty() || !port) {
+        qWarning() << Q_FUNC_INFO << "An empty host/port specified?";
+        return 0;
+    }
+    if (!isReady()) {
+        qWarning() << Q_FUNC_INFO << "Ssh session must be ready!";
+        return 0;
+    }
+    if (!tunnel_serv) {
+        tunnel_serv = new QTcpServer(this);
+        tunnel_serv->setMaxPendingConnections(1);
+        connect(tunnel_serv, &QTcpServer::newConnection, this, &SshSession::onNewConnection);
+        connect(tunnel_serv, &QTcpServer::acceptError, this, [this](QAbstractSocket::SocketError) {
+            setLastError(tunnel_serv->errorString());
+            tunnel_serv->deleteLater();
+            tunnel_serv = nullptr;
+        });
+    }
+    if (!tunnel_serv->isListening() && !tunnel_serv->listen()) {
+        tunnel_serv->deleteLater();
+        tunnel_serv = nullptr;
+        qWarning() << Q_FUNC_INFO << "Can't listen server socket";
+        return 0;
+    }
+    tunnel_addr = addr;
+    tunnel_port = port;
+    return tunnel_serv->serverPort();
+}
+
+void SshSession::onNewConnection()
+{
+    TRACE();
+    if (!tunnel_serv || !tunnel_port || !isReady()) // just for sanity
+        return;
+
+    auto sock = tunnel_serv->nextPendingConnection();
+    Q_ASSERT(sock);
+    //sock->setSocketOption(QAbstractSocket::LowDelayOption, 1);
+
+    auto cnl = new SshChannelPort(lib_session, tunnel_addr, tunnel_port);
+    connect(cnl, &SshChannelPort::channelOpened, this, &SshSession::setOpenChannels);
+    connect(cnl, &SshChannelPort::channelOpened, sock, [cnl,sock]() {
+        if (sock->bytesAvailable() > 0)
+            cnl->write(sock->readAll());
+    });
+    connect(cnl, &SshChannel::channelClosed, this, &SshSession::onChannelClosed, Qt::QueuedConnection);
+    connect(cnl, &SshChannel::channelClosed, sock, &QTcpSocket::deleteLater);
+    connect(cnl, &SshChannel::errorOccurred, this, &SshSession::setLastError);
+    connect(cnl, &SshChannel::bytesWritten, this, &SshSession::onBytesWritten);
+    connect(cnl, &SshChannel::readyRead, sock, [cnl,sock]() {
+        if (sock->state() == QAbstractSocket::ConnectedState)
+            sock->write(cnl->readAll());
+    });    
+    channel_list.append(QSharedPointer<SshChannel>(cnl));
+
+    connect(sock, &QAbstractSocket::errorOccurred, this, [this,cnl](QAbstractSocket::SocketError) {
+        abortChannel(cnl);
+    });
+    connect(sock, &QTcpSocket::readyRead, cnl, [sock,cnl]() {
+        if (cnl->isChannelOpen())
+            cnl->write(sock->readAll());
+    });
+    connect(sock, &QTcpSocket::connected, cnl, [sock,cnl]() {
+        if (cnl->bytesAvailable() > 0)
+            sock->write(cnl->readAll());
+    });
 }
