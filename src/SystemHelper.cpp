@@ -317,9 +317,10 @@ QString SystemHelper::userHome(const QString &name)
     if (::getpwnam_r(qPrintable(!name.isEmpty() ? name : userName()), &pw, buf, sizeof(buf), &pwp) == 0 && pwp)
         user_home = pwp->pw_dir;
 #elif defined(Q_OS_WIN)
+    Q_UNUSED(name);
     WCHAR path[MAX_PATH];
     if (SUCCEEDED(SHGetFolderPathW(NULL, CSIDL_PROFILE, NULL, 0, path)))
-        user_home = path;
+        user_home = QString::fromWCharArray(path);
 #else
     Q_UNUSED(name);
 #endif
@@ -991,10 +992,17 @@ QString SystemHelper::shortcutText(const QVariant &key)
     return QString();
 }
 
+//static
 void SystemHelper::setCursorShape(int shape)
 {
     if (shape < 0) QGuiApplication::restoreOverrideCursor();
     else QGuiApplication::setOverrideCursor(QCursor((Qt::CursorShape)shape));
+}
+
+//static
+QPoint SystemHelper::cursorPos()
+{
+    return QCursor::pos();
 }
 
 #ifdef Q_OS_ANDROID

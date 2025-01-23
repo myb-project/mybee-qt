@@ -5,6 +5,7 @@
 #include <QJsonArray>
 #include <QJsonObject>
 #include <QDateTime>
+#include <QPoint>
 
 class SystemHelper : public QObject
 {
@@ -118,6 +119,7 @@ public:
     Q_INVOKABLE static QString shortcutText(const QVariant &key);
 
     Q_INVOKABLE static void setCursorShape(int shape = -1); // Qt::CursorShape, -1 to restore
+    Q_INVOKABLE static QPoint cursorPos();
 
 #ifdef Q_OS_ANDROID
     Q_INVOKABLE static bool setAndroidPermission(const QStringList &permissions);

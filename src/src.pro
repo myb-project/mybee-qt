@@ -79,7 +79,6 @@ SOURCES += \
     DesktopView.cpp \
     DirSpaceUsed.cpp \
     HttpRequest.cpp \
-    KeyLoader.cpp \
     Parser.cpp \
     RdpAudioPlugin.cpp \
     RdpDesktopClient.cpp \
@@ -106,7 +105,6 @@ HEADERS += \
     DesktopView.h \
     DirSpaceUsed.h \
     HttpRequest.h \
-    KeyLoader.h \
     Parser.h \
     RdpAudioPlugin.h \
     RdpDesktopClient.h \

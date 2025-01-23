@@ -36,6 +36,9 @@
         <file alias="icon-create">icons/create.png</file>
         <file alias="icon-create@2x">icons/create@2x.png</file>
         <file alias="icon-create@3x">icons/create@3x.png</file>
+        <file alias="icon-credential">icons/credential.png</file>
+        <file alias="icon-credential@2x">icons/credential@2x.png</file>
+        <file alias="icon-credential@3x">icons/credential@3x.png</file>
         <file alias="icon-database-query">icons/database-query.png</file>
         <file alias="icon-database-query@2x">icons/database-query@2x.png</file>
         <file alias="icon-database-query@3x">icons/database-query@3x.png</file>

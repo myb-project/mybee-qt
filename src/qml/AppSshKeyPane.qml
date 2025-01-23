@@ -82,6 +82,10 @@ Pane {
                         Layout.preferredHeight: itemDelegate.availableHeight
                         fillMode: Image.PreserveAspectFit
                         source: model.icon
+                        ToolTip.text: model.tip
+                        ToolTip.visible: hovered
+                        ToolTip.delay: appTipDelay
+                        ToolTip.timeout: appTipTimeout
                     }
                     Text {
                         Layout.fillWidth: true
@@ -97,10 +101,6 @@ Pane {
                     listView.forceActiveFocus()
                     listView.currentIndex = index
                 }
-                ToolTip.text: model.tip
-                ToolTip.visible: hovered
-                ToolTip.delay: appTipDelay
-                ToolTip.timeout: appTipTimeout
                 FlashingPoint {
                     visible: !index && listView.currentIndex < 0
                 }

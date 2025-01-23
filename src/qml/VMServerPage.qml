@@ -234,7 +234,7 @@ Page {
             }
             SquareButton {
                 enabled: control.urlSchemeModel[control.currentScheme] !== "file"
-                icon.source: "qrc:/icon-refresh"
+                icon.source: "qrc:/icon-credential"
                 ToolTip.text: qsTr("Import credential")
                 onClicked: {
                     var dlg = appDialog("BriefDialog.qml", {

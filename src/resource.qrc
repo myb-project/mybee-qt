@@ -5,7 +5,5 @@
         <file>resource/relaxing-bell.wav</file>
         <file>resource/service-bell.wav</file>
         <file>resource/short-pulse.wav</file>
-        <file>resource/key-layout.en_US</file>
-        <file>resource/key-layout.ru_RU</file>
     </qresource>
 </RCC>

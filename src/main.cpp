@@ -17,7 +17,6 @@
 #include "DirSpaceUsed.h"
 #include "DesktopView.h"
 #include "HttpRequest.h"
-#include "KeyLoader.h"
 #include "TextRender.h"
 #include "SshProcess.h"
 #include "SshSession.h"
@@ -107,20 +106,14 @@ int main(int argc, char *argv[])
         SystemHelper::copyFile(path, res_it.fileName());
     }
 
-    QString locale;
     QTranslator translator;
     const QStringList languages = QLocale::system().uiLanguages();
     for (const QString &lang : languages) {
         if (translator.load(QString(":/i18n/%1-%2").arg(APP_NAME, QLocale(lang).name()))) {
-            locale = QLocale(lang).name();
             app.installTranslator(&translator);
             break;
         }
     }
-    KeyLoader keyLoader(SystemHelper::appDataDir());
-    qmlRegisterSingletonInstance(CPP_CUSTOM_MODULES, 1, 0, "KeyLoader", &keyLoader);
-    if (!keyLoader.loadLayout(locale) && !keyLoader.loadLayout())
-        qFatal("Failure loading keyboard layout");
 
     qmlRegisterSingletonType(QUrl(QStringLiteral("qrc:/MaterialSet.qml")), QML_CUSTOM_MODULES, 1, 0, "MaterialSet");
     qmlRegisterSingletonType(QUrl(QStringLiteral("qrc:/RestApiSet.qml")), QML_CUSTOM_MODULES, 1, 0, "RestApiSet");
