@@ -356,7 +356,7 @@ Item {
                 return
             case "ssh":
             case "file":
-                var key = SystemHelper.sshPublicKey(cfg["ssh_key"] + ".pub")
+                var key = SystemHelper.sshPublicKey(cfg["ssh_key"])
                 if (!key) {
                     error("createVm: No ssh public key at " + cfg["ssh_key"])
                     return

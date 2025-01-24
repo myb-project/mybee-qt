@@ -324,10 +324,16 @@ void SshProcess::giveAnswers(const QStringList &answers)
     TRACE_ARG(answers);
     if (ssh_session) ssh_session->giveAnswers(answers);
 }
-/*
-// static
-SshSettings SshProcess::sshSettings(const QString &user, const QString &host, quint16 port, const QString &key)
+
+//static
+bool SshProcess::extractPublicKey(const QString &key)
 {
-    return SshSettings(user, host, port, key);
+    if (key.isEmpty() || !QFile::exists(key)) {
+        qWarning() << Q_FUNC_INFO << "Invalid private key specified";
+        return false;
+    }
+    auto sk = SshSession::extractPublicKey(key);
+    if (!sk) return false;
+    ::ssh_key_free(sk);
+    return true;
 }
-*/

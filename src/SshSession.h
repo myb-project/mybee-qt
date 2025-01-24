@@ -110,6 +110,8 @@ public:
     QString lastError() const { return last_error; }
     Q_INVOKABLE int tunnel(const QString &addr, int port);
 
+    static ssh_key extractPublicKey(const QString &privkey_path);
+
 public slots:
     void connectToHost();
     void connectToUrl(const QUrl &url, const QString &key);

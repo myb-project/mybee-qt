@@ -717,6 +717,20 @@ void SshSession::iterateUserAuth()
     setState(StateDenied);
 }
 
+//static
+ssh_key SshSession::extractPublicKey(const QString &privateKey)
+{
+    ssh_key key = nullptr, pkey = nullptr;
+    if (::ssh_pki_import_privkey_file(qPrintable(privateKey), nullptr, nullptr, nullptr, &pkey) == SSH_OK &&
+            ::ssh_pki_export_privkey_to_pubkey(pkey, &key) == SSH_OK) {
+        QString path = privateKey + ".pub";
+        if (::ssh_pki_export_pubkey_file(key, qPrintable(path)) != SSH_OK)
+            qWarning() << Q_FUNC_INFO << "Can't write" << path;
+    }
+    if (pkey) ::ssh_key_free(pkey);
+    return key;
+}
+
 static ssh_key getPublicKey(const QString &privateKey)
 {
     if (privateKey.isEmpty() || !QFile::exists(privateKey)) return nullptr;
@@ -725,16 +739,7 @@ static ssh_key getPublicKey(const QString &privateKey)
     if (::ssh_pki_import_pubkey_file(qPrintable(privateKey + ".pub"), &key) == SSH_OK) return key;
     if (key) ::ssh_key_free(key);
 
-    ssh_key pkey = nullptr;
-    if (::ssh_pki_import_privkey_file(qPrintable(privateKey), nullptr, nullptr, nullptr, &pkey) != SSH_OK) {
-        if (pkey) ::ssh_key_free(pkey);
-        return nullptr;
-    }
-    key = nullptr;
-    int op = ::ssh_pki_export_privkey_to_pubkey(pkey, &key);
-    if (pkey) ::ssh_key_free(pkey);
-
-    return op == SSH_OK ? key : nullptr;
+    return SshSession::extractPublicKey(privateKey);
 }
 
 void SshSession::libUserAuthTryPublickey()

@@ -10,6 +10,7 @@ MyDialog {
 
     enum Type { Input, Info, Warning, Error }
     property int type: 1
+    property string icon
     property alias text: textLabel.text
     property alias placeholderText: textInput.placeholderText
     property alias input: textInput.text
@@ -40,7 +41,7 @@ MyDialog {
                 Layout.preferredWidth: appIconSize
                 Layout.preferredHeight: appIconSize
                 fillMode: Image.PreserveAspectFit
-                source: control.imageType[control.type]
+                source: control.icon ? control.icon : control.imageType[control.type]
             }
             Label {
                 id: textLabel

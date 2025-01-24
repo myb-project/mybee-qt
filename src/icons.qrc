@@ -36,9 +36,6 @@
         <file alias="icon-create">icons/create.png</file>
         <file alias="icon-create@2x">icons/create@2x.png</file>
         <file alias="icon-create@3x">icons/create@3x.png</file>
-        <file alias="icon-credential">icons/credential.png</file>
-        <file alias="icon-credential@2x">icons/credential@2x.png</file>
-        <file alias="icon-credential@3x">icons/credential@3x.png</file>
         <file alias="icon-database-query">icons/database-query.png</file>
         <file alias="icon-database-query@2x">icons/database-query@2x.png</file>
         <file alias="icon-database-query@3x">icons/database-query@3x.png</file>
@@ -102,6 +99,9 @@
         <file alias="icon-pause">icons/pause.png</file>
         <file alias="icon-pause@2x">icons/pause@2x.png</file>
         <file alias="icon-pause@3x">icons/pause@3x.png</file>
+        <file alias="icon-plus">icons/plus.png</file>
+        <file alias="icon-plus@2x">icons/plus@2x.png</file>
+        <file alias="icon-plus@3x">icons/plus@3x.png</file>
         <file alias="icon-power-off">icons/power-off.png</file>
         <file alias="icon-power-off@2x">icons/power-off@2x.png</file>
         <file alias="icon-power-off@3x">icons/power-off@3x.png</file>
@@ -114,9 +114,6 @@
         <file alias="icon-quit">icons/quit.png</file>
         <file alias="icon-quit@2x">icons/quit@2x.png</file>
         <file alias="icon-quit@3x">icons/quit@3x.png</file>
-        <file alias="icon-refresh">icons/refresh.png</file>
-        <file alias="icon-refresh@2x">icons/refresh@2x.png</file>
-        <file alias="icon-refresh@3x">icons/refresh@3x.png</file>
         <file alias="icon-remove">icons/remove.png</file>
         <file alias="icon-remove@2x">icons/remove@2x.png</file>
         <file alias="icon-remove@3x">icons/remove@3x.png</file>

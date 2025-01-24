@@ -66,8 +66,7 @@ public:
     Q_INVOKABLE static QString defaultTermType() { return SshSettings::defaultTermType; }
     Q_INVOKABLE static QString portNumberKey() { return SshSettings::portNumberKey; }
     Q_INVOKABLE static QString timeoutSecKey() { return SshSettings::timeoutSecKey; }
-    /*Q_INVOKABLE static SshSettings sshSettings(const QString &user, const QString &host,
-                                               quint16 port, const QString &key);*/
+    Q_INVOKABLE static bool extractPublicKey(const QString &privkey_path);
 
 public slots:
     void start(const QUrl &url, const QString &key);

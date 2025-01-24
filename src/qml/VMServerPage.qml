@@ -188,13 +188,13 @@ Page {
         }
     }
 
-/*  https://zx.convectix.com/c/Le9foh
+/*
     scheme: https
-    host: zx.convectix.com
+    host: host.domain.com
     http_port: 443
     private_key: Qt.atob(...)
     ssh_port: 22
-    user: app2
+    ssh_user: name
 */
     property string credentialUrl
     Connections {
@@ -234,12 +234,13 @@ Page {
             }
             SquareButton {
                 enabled: control.urlSchemeModel[control.currentScheme] !== "file"
-                icon.source: "qrc:/icon-credential"
+                icon.source: "qrc:/icon-plus"
                 ToolTip.text: qsTr("Import credential")
                 onClicked: {
                     var dlg = appDialog("BriefDialog.qml", {
                                 type: BriefDialog.Type.Input,
                                 standardButtons: Dialog.Open,
+                                icon: "qrc:/image-drive-connect",
                                 text: qsTr("Import credential from the CBSD server"),
                                 placeholderText: qsTr("Enter Credential URL") })
                     dlg.accepted.connect(function() {

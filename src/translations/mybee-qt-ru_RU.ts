@@ -492,32 +492,32 @@ All funds are returned to the project (hosting, equipment, support) and invested
 <context>
     <name>BriefDialog</name>
     <message>
-        <location filename="../qml/BriefDialog.qml" line="18"/>
+        <location filename="../qml/BriefDialog.qml" line="19"/>
         <source>Input required</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/BriefDialog.qml" line="18"/>
+        <location filename="../qml/BriefDialog.qml" line="19"/>
         <source>Information</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/BriefDialog.qml" line="18"/>
+        <location filename="../qml/BriefDialog.qml" line="19"/>
         <source>Warning</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/BriefDialog.qml" line="18"/>
+        <location filename="../qml/BriefDialog.qml" line="19"/>
         <source>Error</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/BriefDialog.qml" line="67"/>
+        <location filename="../qml/BriefDialog.qml" line="68"/>
         <source>Copy to clipboard</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/BriefDialog.qml" line="70"/>
+        <location filename="../qml/BriefDialog.qml" line="71"/>
         <source>Copied to clipboard</source>
         <translation type="unfinished"></translation>
     </message>
@@ -1137,7 +1137,7 @@ Use a new URL instead of the original one?</source>
     </message>
     <message>
         <location filename="../qml/VMServerPage.qml" line="85"/>
-        <location filename="../qml/VMServerPage.qml" line="336"/>
+        <location filename="../qml/VMServerPage.qml" line="337"/>
         <source>%1: Not an ssh key</source>
         <translation type="unfinished"></translation>
     </message>
@@ -1162,77 +1162,77 @@ Use a new URL instead of the original one?</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/VMServerPage.qml" line="243"/>
+        <location filename="../qml/VMServerPage.qml" line="244"/>
         <source>Import credential from the CBSD server</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/VMServerPage.qml" line="244"/>
+        <location filename="../qml/VMServerPage.qml" line="245"/>
         <source>Enter Credential URL</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/VMServerPage.qml" line="261"/>
+        <location filename="../qml/VMServerPage.qml" line="262"/>
         <source>User@Host</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/VMServerPage.qml" line="261"/>
+        <location filename="../qml/VMServerPage.qml" line="262"/>
         <source>Host</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/VMServerPage.qml" line="283"/>
+        <location filename="../qml/VMServerPage.qml" line="284"/>
         <source>Port</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/VMServerPage.qml" line="298"/>
+        <location filename="../qml/VMServerPage.qml" line="299"/>
         <source>Executable</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/VMServerPage.qml" line="307"/>
+        <location filename="../qml/VMServerPage.qml" line="308"/>
         <source>Select file</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/VMServerPage.qml" line="309"/>
+        <location filename="../qml/VMServerPage.qml" line="310"/>
         <source>Select %1 executable</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/VMServerPage.qml" line="315"/>
+        <location filename="../qml/VMServerPage.qml" line="316"/>
         <source>Can&apos;t load MyFileDialog.qml</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/VMServerPage.qml" line="319"/>
+        <location filename="../qml/VMServerPage.qml" line="320"/>
         <source>The file is not executable</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/VMServerPage.qml" line="358"/>
+        <location filename="../qml/VMServerPage.qml" line="359"/>
         <source>Import</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/VMServerPage.qml" line="360"/>
+        <location filename="../qml/VMServerPage.qml" line="361"/>
         <source>Importing VMs from the server</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/VMServerPage.qml" line="374"/>
+        <location filename="../qml/VMServerPage.qml" line="375"/>
         <source>Please select ssh key</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/VMServerPage.qml" line="380"/>
+        <location filename="../qml/VMServerPage.qml" line="381"/>
         <source>Profile</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/VMServerPage.qml" line="382"/>
+        <location filename="../qml/VMServerPage.qml" line="383"/>
         <source>Get VM profiles</source>
         <translation type="unfinished"></translation>
     </message>

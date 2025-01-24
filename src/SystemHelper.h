@@ -81,7 +81,7 @@ public:
     Q_INVOKABLE static QStringList sshAllKeys(bool pairs = false);
     Q_INVOKABLE static bool isSshKeyPair(const QString &path);
     Q_INVOKABLE static bool isSshPrivateKey(const QString &path);
-    Q_INVOKABLE static QString sshPublicKey(const QString &path);
+    Q_INVOKABLE static QString sshPublicKey(const QString &path, bool check = false);
 
     Q_INVOKABLE static QString pathName(const QString &path = QString()); // empty: current dir
     Q_INVOKABLE static QString fileName(const QString &path = QString()); // empty: temp file

@@ -11,6 +11,7 @@
         <file alias="image-drive">images/drive.png</file>
         <file alias="image-drive-cdrom">images/drive-cdrom.png</file>
         <file alias="image-drive-change">images/drive-change.png</file>
+        <file alias="image-drive-connect">images/drive-connect.png</file>
         <file alias="image-drive-network">images/drive-network.png</file>
         <file alias="image-drive-offline">images/drive-offline.png</file>
         <file alias="image-emulator-bhyve">images/emulator-bhyve.png</file>

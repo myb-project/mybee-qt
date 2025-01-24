@@ -42,6 +42,7 @@
 #include "rfb/rfbconfig.h"
 
 #include "SystemHelper.h"
+#include "SshProcess.h"
 
 extern bool sshKeygenEd25519(const QString &filename, const QString &comm);
 
@@ -533,7 +534,7 @@ QStringList SystemHelper::sshAllKeys(bool pairs)
 // static
 bool SystemHelper::isSshKeyPair(const QString &path)
 {
-    return (SystemHelper::isSshPrivateKey(path) && !SystemHelper::sshPublicKey(path + ".pub").isEmpty());
+    return (SystemHelper::isSshPrivateKey(path) && !SystemHelper::sshPublicKey(path, true).isEmpty());
 }
 
 // static
@@ -545,11 +546,18 @@ bool SystemHelper::isSshPrivateKey(const QString &path)
 }
 
 // static
-QString SystemHelper::sshPublicKey(const QString &path)
+QString SystemHelper::sshPublicKey(const QString &path, bool check)
 {
     static const QRegularExpression re("^ssh-\\w+\\s\\w+");
 
-    return path.isEmpty() ? QString() : fileContainsLine(path, re);
+    QString key;
+    if (!path.isEmpty()) {
+        QString pub = path + ".pub";
+        key = fileContainsLine(pub, re);
+        if (!check && key.isEmpty() && SshProcess::extractPublicKey(path))
+            key = fileContainsLine(pub, re);
+    }
+    return key;
 }
 
 // static
