@@ -49,5 +49,6 @@
         <file alias="VMServerPage.qml">qml/VMServerPage.qml</file>
         <file alias="VMTerminalPage.qml">qml/VMTerminalPage.qml</file>
         <file alias="VMTerminalView.qml">qml/VMTerminalView.qml</file>
+        <file alias="+mobile/VMTerminalView.qml">qml/+mobile/VMTerminalView.qml</file>
     </qresource>
 </RCC>

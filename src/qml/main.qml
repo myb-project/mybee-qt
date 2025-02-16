@@ -15,7 +15,6 @@ ApplicationWindow {
     minimumHeight: 400
     title: Qt.application.displayName
     visible: true
-    //visibility: SystemHelper.isMobile ? ApplicationWindow.FullScreen : ApplicationWindow.Windowed
 
     readonly property int appStartWidth:    400 // HD: 1280
     readonly property int appStartHeight:   700 // HD: 720
@@ -138,6 +137,13 @@ ApplicationWindow {
     }
 
     Component.onCompleted: {
+        WindowState.stateChanged.connect(function(state) {
+            if (state & WindowState.NoState) console.debug("NoState")
+            if (state & WindowState.Minimized) console.debug("Minimized")
+            if (state & WindowState.Maximized) console.debug("Maximized")
+            if (state & WindowState.FullScreen) console.debug("FullScreen")
+            if (state & WindowState.Active) console.debug("Active")
+        })
         if (!appMonoFont) appMonoFont = defaultMonoFont
         appResetFont(appMainFont ? appMainFont : defaultMainFont, appFontPointSize)
 
@@ -202,15 +208,25 @@ ApplicationWindow {
     }
 
     onClosing: function(close) {
-        if (SystemHelper.isMobile && appStackView.depth > 1) {
-            appStackView.pop(null)
-            close.accepted = false
-        } else if (VMConfigSet.isBusy && !appForceQuit) {
+        if (SystemHelper.isMobile) {
+            if (visibility === ApplicationWindow.FullScreen) {
+                visibility = ApplicationWindow.Windowed
+                close.accepted = false
+                return
+            }
+            if (appStackView.depth > 1) {
+                appStackView.pop(null)
+                close.accepted = false
+                return
+            }
+        }
+        if (VMConfigSet.isBusy && !appForceQuit) {
             appWarning(qsTr("The system is busy, quit anyway?"), Dialog.Yes | Dialog.No).accepted.connect(function() {
                 appForceQuit = true
                 Qt.callLater(Qt.quit)
             })
             close.accepted = false
+            return
         }
     }
 
@@ -301,6 +317,10 @@ ApplicationWindow {
         id: appEscapeAction
         shortcut: StandardKey.Cancel
         onTriggered: {
+            if (visibility === ApplicationWindow.FullScreen) {
+                visibility = ApplicationWindow.Windowed
+                return
+            }
             var request
             if (HttpRequest.running) {
                 request = HttpRequest
@@ -359,7 +379,13 @@ ApplicationWindow {
         checked: visibility === ApplicationWindow.FullScreen
         text: qsTr("Full screen")
         shortcut: "F11"
-        onToggled: visibility = checked ? ApplicationWindow.FullScreen : ApplicationWindow.Windowed
+        onToggled: {
+            visibility = checked ? ApplicationWindow.FullScreen : ApplicationWindow.Windowed
+            if (checked) Qt.callLater(function() {
+                appToast(SystemHelper.isMobile ? qsTr("Hit <b>Back</b> to exit FullScreen")
+                                               : qsTr("Hit <b>F11</b> to exit FullScreen"))
+            })
+        }
     }
     Action {
         id: appCompactAction
@@ -379,6 +405,7 @@ ApplicationWindow {
         }
     }
     Shortcut {
+        enabled: !SystemHelper.isMobile
         sequence: StandardKey.Quit
         context: Qt.ApplicationShortcut
         onActivated: Qt.quit()
@@ -395,6 +422,7 @@ ApplicationWindow {
     }
 
     header: ToolBar {
+        visible: appWindow.visibility !== ApplicationWindow.FullScreen
         Material.elevation: MaterialSet.theme[Material.theme]["elevation"]
         StackLayout {
             anchors.fill: parent

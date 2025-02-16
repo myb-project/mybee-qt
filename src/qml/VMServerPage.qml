@@ -274,6 +274,9 @@ Page {
                     }
                     urlOutModel.host = text
                 }
+                onAccepted: Qt.callLater(function() {
+                    if (urlOutModel.valid) setCurrentServer(1)
+                })
                 FlashingPoint { visible: enabled && !hostTextField.text }
             }
             MyTextField {

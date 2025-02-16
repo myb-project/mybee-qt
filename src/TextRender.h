@@ -26,6 +26,7 @@
 
 #include "Terminal.h"
 
+class QTimer;
 class SshSession;
 class SshChannelShell;
 
@@ -135,24 +136,29 @@ signals:
     void panUp();
     void panDown();
     void hangupReceived();
+    void mouseClicked();
+    void mouseLongPressed();
+    void keyPressed();
 
     void sessionChanged();
     void terminalReady();
 
 public slots:
     void redraw();
-    void mousePress(float eventX, float eventY);
-    void mouseMove(float eventX, float eventY);
-    void mouseRelease(float eventX, float eventY);
+    void extKeyPressed(int key);
+    void extKeyToggled(int key, bool checked);
 
 protected:
+    // Reimplemented from QQuickItem
     void updatePolish() override;
     void mousePressEvent(QMouseEvent* event) override;
     void mouseMoveEvent(QMouseEvent* event) override;
     void mouseReleaseEvent(QMouseEvent* event) override;
     void keyPressEvent(QKeyEvent* event) override;
-    void timerEvent(QTimerEvent* event) override;
     void componentComplete() override;
+    void touchEvent(QTouchEvent *event) override;
+    QVariant inputMethodQuery(Qt::InputMethodQuery query) const override;
+    void inputMethodEvent(QInputMethodEvent *event) override;
 
 private slots:
     void handleScrollBack(bool reset);
@@ -176,6 +182,9 @@ private:
     QPointF charsToPixels(QPoint pos);
     void selectionHelper(QPointF scenePos, bool selectionOngoing);
     void setFontMetrics();
+    void setMousePressed(int x, int y);
+    void setMouseMoved(int x, int y);
+    void setMouseReleased(int x, int y);
 
     qreal fontWidth() const { return iFontWidth; }
     qreal fontHeight() const { return iFontHeight; }
@@ -196,6 +205,8 @@ private:
 
     QPointF dragOrigin;
     bool m_activeClick;
+    bool m_touchMoved;
+    int m_modifiers;
 
     QFont iFont;
     qreal iFontWidth;
@@ -223,7 +234,8 @@ private:
     QQuickItem* m_bottomSelectionDelegateInstance;
     DragMode m_dragMode;
     QString m_title;
-    int m_dispatch_timer;
+    QTimer *m_dispatch_timer;
+    QTimer *m_mouse_timer;
     Terminal m_terminal;
 
     QPointer<SshSession> ssh_session;

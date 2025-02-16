@@ -30,17 +30,15 @@ public:
     QUrl serverUrl() const;
 
     QSize maxSize() const;
-    void setMaxSize(const QSize &size);
-
     Quality quality() const;
-    void setQuality(Quality quality);
-
     QString bellSound() const;
     bool setBellSound(const QString &wavFile);
 
     QImage scaledImage(const QSize &size) const;
 
 public slots:
+    virtual void setMaxSize(const QSize &size);
+    virtual void setQuality(Quality quality);
     virtual void sendInputAction(const QString &text) = 0;
     virtual void sendDesktopAction(const DesktopAction &act) = 0;
 

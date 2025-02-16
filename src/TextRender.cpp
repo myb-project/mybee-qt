@@ -21,6 +21,8 @@
 #include <QCursor>
 #include <QFontMetrics>
 #include <QGuiApplication>
+#include <QStyleHints>
+#include <QTimer>
 #include <cmath>
 
 #include "Parser.h"
@@ -76,6 +78,8 @@
 TextRender::TextRender(QQuickItem* parent)
     : QQuickItem(parent)
     , m_activeClick(false)
+    , m_touchMoved(false)
+    , m_modifiers(0)
     , iFont(QLatin1String("monospace"), QGuiApplication::font().pointSize() - 1)
     , iShowBufferScrollIndicator(false)
     , iAllowGestures(true)
@@ -93,13 +97,19 @@ TextRender::TextRender(QQuickItem* parent)
     , m_middleSelectionDelegateInstance(0)
     , m_bottomSelectionDelegateInstance(0)
     , m_dragMode(DragGestures)
-    , m_dispatch_timer(0)
+    , m_dispatch_timer(nullptr)
+    , m_mouse_timer(nullptr)
 {
     TRACE();
     setFontMetrics();
 
     setAcceptedMouseButtons(Qt::LeftButton);
+    setAcceptTouchEvents(true);
     setCursor(Qt::IBeamCursor);
+    setFlag(QQuickItem::ItemAcceptsInputMethod, true);
+    setFlag(QQuickItem::ItemIsFocusScope, true);
+    //setFlag(QQuickItem::ItemHasContents, true);
+    setFocusPolicy(Qt::StrongFocus);
 
     connect(this, &QQuickItem::widthChanged, this, &TextRender::redraw);
     connect(this, &QQuickItem::heightChanged, this, &TextRender::redraw);
@@ -110,7 +120,6 @@ TextRender::TextRender(QQuickItem* parent)
     connect(&m_terminal, &Terminal::displayBufferChanged, this, &TextRender::redraw);
     connect(&m_terminal, &Terminal::displayBufferChanged, this, &TextRender::displayBufferChanged);
     connect(&m_terminal, SIGNAL(cursorPosChanged(QPoint)), this, SLOT(redraw()));
-    connect(&m_terminal, SIGNAL(termSizeChanged(int,int)), this, SLOT(redraw()));
     connect(&m_terminal, SIGNAL(termSizeChanged(int,int)), this, SIGNAL(terminalSizeChanged()));
     connect(&m_terminal, &Terminal::selectionChanged, this, &TextRender::redraw);
     connect(&m_terminal, &Terminal::scrollBackBufferAdjusted, this, &TextRender::handleScrollBack);
@@ -135,8 +144,8 @@ QStringList TextRender::printableLinesFromCursor(int lines) const
 
 void TextRender::putString(const QString &str)
 {
-    if (!str.isEmpty())
-        m_terminal.putString(str);
+    TRACE_ARG(str);
+    if (!str.isEmpty()) m_terminal.putString(str);
 }
 
 QStringList TextRender::grabURLsFromBuffer() const
@@ -148,8 +157,31 @@ void TextRender::componentComplete()
 {
     QQuickItem::componentComplete();
 
-    if (ssh_session) return;
-    if (m_terminal.openPty()) {
+    if (ssh_session) {
+        QSize size((width() - 4) / iFontWidth, (height() - 4) / iFontHeight);
+        m_terminal.setTermSize(size);
+        ssh_shell = ssh_session->createShell(size);
+        if (!ssh_shell) {
+            qWarning() << Q_FUNC_INFO << "createShell() return null pointer";
+            return;
+        }
+        auto shell = ssh_shell.toStrongRef().data();
+        connect(shell, &SshChannelShell::channelOpened, this, &TextRender::terminalReady, Qt::QueuedConnection);
+        connect(shell, &SshChannel::channelClosed, this, &TextRender::hangupReceived);
+
+        connect(shell, &SshChannelShell::textReceived, this, [this](const QString &text) {
+            //TRACE_ARG(text);
+            if (text.count('\n') != text.count('\r'))
+                m_terminal.insertInBuffer(QString(text).replace(QLatin1Char('\n'), QStringLiteral("\r\n")));
+            else m_terminal.insertInBuffer(text);
+        });
+        connect(&m_terminal, &Terminal::newTerminalChars, this, [this](const QString &text) {
+            //TRACE_ARG(text);
+            if (ssh_shell) ssh_shell.toStrongRef()->sendText(text);
+        });
+        connect(&m_terminal, &Terminal::termSizeChanged, shell, &SshChannelShell::setTermSize);
+
+    } else if (m_terminal.openPty()) {
         emit terminalReady();
     } else {
         handleTitleChanged(tr("Pseudo TTY unavailable"));
@@ -219,11 +251,13 @@ TextRender::DragMode TextRender::dragMode() const
 
 void TextRender::setDragMode(DragMode dragMode)
 {
-    if (m_dragMode == dragMode)
-        return;
-
-    m_dragMode = dragMode;
-    emit dragModeChanged();
+    TRACE_ARG(dragMode);
+    if (m_dragMode != dragMode) {
+        m_dragMode = dragMode;
+        if (m_dragMode != DragSelect)
+            m_terminal.clearSelection();
+        emit dragModeChanged();
+    }
 }
 
 void TextRender::setContentItem(QQuickItem* contentItem)
@@ -318,14 +352,15 @@ QQuickItem* TextRender::fetchFreeCellContent()
 
 void TextRender::updatePolish()
 {
+    TRACE();
+
     // ### these should be handled more carefully
     emit contentYChanged();
     emit visibleHeightChanged();
     emit contentHeightChanged();
 
     // Make sure the terminal's size is right
-    QSize size((width() - 4) / iFontWidth, (height() - 4) / iFontHeight);
-    m_terminal.setTermSize(size);
+    m_terminal.setTermSize(QSize((width() - 4) / iFontWidth, (height() - 4) / iFontHeight));
 
     if (!m_contentItem || m_terminal.rows() == 0 || m_terminal.columns() == 0)
         return;
@@ -604,109 +639,201 @@ void TextRender::drawTextFragment(QQuickItem* cellContentsDelegate, qreal x, qre
 
 void TextRender::redraw()
 {
-    if (m_dispatch_timer)
-        return;
-
-    // instantly polish
-    polish();
-
-    // ... but now, wait a while, so we don't constantly re-polish.
-    m_dispatch_timer = startTimer(3);
-}
-
-void TextRender::timerEvent(QTimerEvent*)
-{
-    killTimer(m_dispatch_timer);
-    m_dispatch_timer = 0;
-    polish();
+    TRACE();
+    if (!m_dispatch_timer) {
+        m_dispatch_timer = new QTimer(this);
+        m_dispatch_timer->setSingleShot(true);
+        m_dispatch_timer->setInterval(50);
+        connect(m_dispatch_timer, &QTimer::timeout, this, &TextRender::polish);
+    }
+    if (!m_dispatch_timer->isActive()) m_dispatch_timer->start();
 }
 
 void TextRender::mousePressEvent(QMouseEvent* event)
 {
+    if (event->button() != Qt::LeftButton || !iAllowGestures || m_dragMode == DragOff) {
+        event->ignore();
+        return;
+    }
 #if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
-    mousePress(event->localPos().x(), event->localPos().y());
+    setMousePressed(event->localPos().x(), event->localPos().y());
 #else
-    mousePress(event->position().x(), event->position().y());
+    setMousePressed(event->position().x(), event->position().y());
 #endif
 }
 
-void TextRender::mousePress(float eventX, float eventY)
+void TextRender::setMousePressed(int x, int y)
 {
-    if (!allowGestures())
-        return;
-
     m_activeClick = true;
+    m_touchMoved = false;
+    dragOrigin.setX(x);
+    dragOrigin.setY(y);
 
-    dragOrigin = QPointF(eventX, eventY);
-
-    if (m_dragMode == DragSelect) {
-        m_terminal.clearSelection();
+    if (!m_mouse_timer) {
+        m_mouse_timer = new QTimer(this);
+        m_mouse_timer->setSingleShot(true);
+        m_mouse_timer->setInterval(QGuiApplication::styleHints()->mousePressAndHoldInterval());
+        m_mouse_timer->callOnTimeout([this]() {
+            m_activeClick = false;
+            m_touchMoved = false;
+            emit mouseLongPressed();
+        });
     }
+    m_mouse_timer->start();
+
+    if (!hasActiveFocus())
+        forceActiveFocus(Qt::MouseFocusReason);
 }
 
 void TextRender::mouseMoveEvent(QMouseEvent* event)
 {
+    if (!iAllowGestures || m_dragMode == DragOff || !m_activeClick) {
+        event->ignore();
+        return;
+    }
 #if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
-    mouseMove(event->localPos().x(), event->localPos().y());
+    setMouseMoved(event->localPos().x(), event->localPos().y());
 #else
-    mouseMove(event->position().x(), event->position().y());
+    setMouseMoved(event->position().x(), event->position().y());
 #endif
 }
 
-void TextRender::mouseMove(float eventX, float eventY)
+void TextRender::setMouseMoved(int x, int y)
 {
-    if (!allowGestures() || !m_activeClick)
+    if ((QPointF(x, y) - dragOrigin).manhattanLength() < iFontWidth) // short distance, assumed as jitter
         return;
 
-    QPointF eventPos(eventX, eventY);
+    if (m_mouse_timer) m_mouse_timer->stop();
+    m_touchMoved = true;
 
     if (m_dragMode == DragScroll) {
-        dragOrigin = scrollBackBuffer(eventPos, dragOrigin);
+        dragOrigin = scrollBackBuffer(QPointF(x, y), dragOrigin);
     } else if (m_dragMode == DragSelect) {
-        selectionHelper(eventPos, true);
+        selectionHelper(QPointF(x, y), true);
     }
 }
 
 void TextRender::mouseReleaseEvent(QMouseEvent* event)
 {
+    if (event->button() != Qt::LeftButton || !iAllowGestures || m_dragMode == DragOff || !m_activeClick) {
+        event->ignore();
+        return;
+    }
 #if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
-    mouseRelease(event->localPos().x(), event->localPos().y());
+    setMouseReleased(event->localPos().x(), event->localPos().y());
 #else
-    mouseRelease(event->position().x(), event->position().y());
+    setMouseReleased(event->position().x(), event->position().y());
 #endif
 }
 
-void TextRender::mouseRelease(float eventX, float eventY)
+void TextRender::setMouseReleased(int x, int y)
 {
-    if (!allowGestures() || !m_activeClick)
-        return;
+    static const int reqDragLength = 140;
 
-    QPointF eventPos(eventX, eventY);
-    const int reqDragLength = 140;
+    if (m_mouse_timer) m_mouse_timer->stop();
 
-    if (m_dragMode == DragGestures) {
-        int xdist = qAbs(eventPos.x() - dragOrigin.x());
-        int ydist = qAbs(eventPos.y() - dragOrigin.y());
-        if (eventPos.x() < dragOrigin.x() - reqDragLength && xdist > ydist * 2)
-            emit panLeft();
-        else if (eventPos.x() > dragOrigin.x() + reqDragLength && xdist > ydist * 2)
-            emit panRight();
-        else if (eventPos.y() > dragOrigin.y() + reqDragLength && ydist > xdist * 2)
-            emit panDown();
-        else if (eventPos.y() < dragOrigin.y() - reqDragLength && ydist > xdist * 2)
-            emit panUp();
-    } else if (m_dragMode == DragScroll) {
-        scrollBackBuffer(eventPos, dragOrigin);
-    } else if (m_dragMode == DragSelect) {
-        selectionHelper(eventPos, false);
+    if (m_touchMoved) {
+        m_touchMoved = false;
+        if (m_dragMode == DragGestures) {
+            int xdist = qAbs(dragOrigin.x() - x);
+            int ydist = qAbs(dragOrigin.y() - y);
+            if (dragOrigin.x() < x - reqDragLength && xdist > ydist * 2) emit panLeft();
+            else if (dragOrigin.x() > x + reqDragLength && xdist > ydist * 2) emit panRight();
+            else if (dragOrigin.y() > y + reqDragLength && ydist > xdist * 2) emit panDown();
+            else if (dragOrigin.y() < y - reqDragLength && ydist > xdist * 2) emit panUp();
+        } else if (m_dragMode == DragScroll) {
+            scrollBackBuffer(QPointF(x, y), dragOrigin);
+        } else if (m_dragMode == DragSelect) {
+            selectionHelper(QPointF(x, y), false);
+        }
+    } else if (x == dragOrigin.x() && y == dragOrigin.y()) {
+        if (m_dragMode == DragSelect) m_terminal.clearSelection();
+        if (hasActiveFocus()) emit mouseClicked();
     }
+}
+
+void TextRender::touchEvent(QTouchEvent *event)
+{
+    if (!iAllowGestures || m_dragMode == DragOff) {
+        event->ignore();
+        return;
+    }
+#if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
+    const auto points = event->touchPoints();
+#else
+    const auto points = event->points();
+#endif
+    if (points.size() != 1) {
+        event->ignore();
+        return;
+    }
+#if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
+    int x = points.first().pos().x();
+    int y = points.first().pos().y();
+#else
+    int x = points.first().position().x();
+    int y = points.first().position().y();
+#endif
+    auto states = event->touchPointStates();
+    if (states & Qt::TouchPointPressed) {
+        setMousePressed(x, y);
+        return;
+    }
+    if (!m_activeClick) {
+        event->ignore();
+        return;
+    }
+    if (states & Qt::TouchPointMoved) setMouseMoved(x, y);
+    else if (states & Qt::TouchPointReleased) setMouseReleased(x, y);
+    //XXX else if (states & Qt::TouchPointStationary) { ? }
 }
 
 void TextRender::keyPressEvent(QKeyEvent* event)
 {
-    if (event->key() == Qt::Key_Insert && (event->modifiers() & (Qt::ControlModifier | Qt::ShiftModifier)))
+    if (event->key() == Qt::Key_Back) {
+        event->ignore();
         return;
-    m_terminal.keyPress(event->key(), event->modifiers(), event->text());
+    }
+    if (m_terminal.keyPress(event->key(), event->modifiers(), event->text()))
+        emit keyPressed();
+}
+
+void TextRender::inputMethodEvent(QInputMethodEvent *event)
+{
+    if (event->commitString().isEmpty()) {
+        event->ignore();
+        return;
+    }
+    if (m_terminal.keyPress(event->commitString().front().unicode(), m_modifiers, QString()))
+        emit keyPressed();
+}
+
+void TextRender::extKeyPressed(int key)
+{
+    if (m_terminal.keyPress(key, m_modifiers, QString()))
+        emit keyPressed();
+}
+
+void TextRender::extKeyToggled(int key, bool checked)
+{
+    TRACE_ARG(key << checked);
+    if (checked) {
+        if (key == Qt::Key_Control) m_modifiers |= Qt::ControlModifier;
+        else if (key == Qt::Key_Alt) m_modifiers |= Qt::AltModifier;
+    } else {
+        if (key == Qt::Key_Control) m_modifiers &= ~Qt::ControlModifier;
+        else if (key == Qt::Key_Alt) m_modifiers &= ~Qt::AltModifier;
+    }
+}
+
+QVariant TextRender::inputMethodQuery(Qt::InputMethodQuery query) const
+{
+    auto var = QQuickItem::inputMethodQuery(query);
+    if (!(query & Qt::ImHints)) return var;
+    int bits = var.isNull() ? 0 : var.toUInt();
+    bits |= (Qt::ImhSensitiveData | Qt::ImhNoAutoUppercase | Qt::ImhPreferLowercase |
+             Qt::ImhNoPredictiveText | Qt::ImhPreferLatin | Qt::ImhMultiLine | Qt::ImhNoEditMenu);
+    return bits;
 }
 
 void TextRender::selectionHelper(QPointF scenePos, bool selectionOngoing)
@@ -883,7 +1010,6 @@ QPointF TextRender::scrollBackBuffer(QPointF now, QPointF last)
     int xdist = qAbs(now.x() - last.x());
     int ydist = qAbs(now.y() - last.y());
     int fontSize = fontPointSize();
-
     int lines = ydist / fontSize;
 
     if (lines > 0 && now.y() < last.y() && xdist < ydist * 2) {
@@ -893,7 +1019,6 @@ QPointF TextRender::scrollBackBuffer(QPointF now, QPointF last)
         m_terminal.scrollBackBufferBack(lines);
         last = QPointF(now.x(), last.y() + lines * fontSize);
     }
-
     return last;
 }
 
@@ -927,25 +1052,5 @@ void TextRender::setSession(QObject *obj)
         return;
     }
     ssh_session = ss;
-    ssh_shell = ssh_session->createShell(m_terminal.termSize());
-    if (!ssh_shell) {
-        qWarning() << Q_FUNC_INFO << "createShell() return null pointer";
-        return;
-    }
-    auto shell = ssh_shell.toStrongRef().data();
-    connect(shell, &SshChannelShell::channelOpened, this, &TextRender::terminalReady, Qt::QueuedConnection);
-    connect(shell, &SshChannel::channelClosed, this, &TextRender::hangupReceived);
-
-    connect(shell, &SshChannelShell::textReceived, this, [this](const QString &text) {
-        if (text.count('\n') != text.count('\r'))
-            m_terminal.insertInBuffer(QString(text).replace(QLatin1Char('\n'), QStringLiteral("\r\n")));
-        else m_terminal.insertInBuffer(text);
-    });
-    connect(&m_terminal, &Terminal::newTerminalChars, this, [this](const QString &text) {
-        if (ssh_shell) ssh_shell.toStrongRef()->sendText(text);
-    });
-
-    connect(&m_terminal, &Terminal::termSizeChanged, shell, &SshChannelShell::setTermSize);
-    m_terminal.closePty();
     emit sessionChanged();
 }

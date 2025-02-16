@@ -410,16 +410,20 @@ void SshSession::setState(State state)
             setLastError(::ssh_get_error_code(cs) != SSH_NO_ERROR ?
                          ::ssh_get_error(cs) : QStringLiteral("Unknown error"));
         }
+        [[fallthrough]];
     case StateDenied:
         if (session_state == StateDenied && last_error.isEmpty()) {
             setLastError(QStringLiteral("Authentication failed"));
         }
+        [[fallthrough]];
     case StateTimeout:
         if (session_state == StateTimeout && last_error.isEmpty()) {
             setLastError(QString("Connection timed out (max %1 sec)").arg(ssh_settings.timeout()));
         }
+        [[fallthrough]];
     case StateClosed:
         cleanUp();
+        [[fallthrough]];
     case StateClosing:
         if (tunnel_serv && tunnel_serv->isListening())
             tunnel_serv->close();

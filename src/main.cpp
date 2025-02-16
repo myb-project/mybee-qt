@@ -13,6 +13,8 @@
 #include <QStandardPaths>
 #endif
 
+#include <QFileSelector>
+
 #include "libssh/libsshpp.hpp" // just for ssh_init()/ssh_finalize()
 #include "DirSpaceUsed.h"
 #include "DesktopView.h"
@@ -23,6 +25,7 @@
 #include "SystemHelper.h"
 #include "SystemProcess.h"
 #include "UrlModel.h"
+#include "WindowState.h"
 
 #ifndef QML_CUSTOM_MODULES
 #define QML_CUSTOM_MODULES "QmlCustomModules"
@@ -129,6 +132,8 @@ int main(int argc, char *argv[])
                                           [](QQmlEngine*, QJSEngine*)->QObject* { return new HttpRequest(); });
     qmlRegisterSingletonType<UrlModel>(CPP_CUSTOM_MODULES, 1, 0, "Url",
                                        [](QQmlEngine*, QJSEngine*)->QObject* { return new UrlModel(); });
+    qmlRegisterSingletonType<WindowState>(CPP_CUSTOM_MODULES, 1, 0, "WindowState",
+                                          [](QQmlEngine*, QJSEngine*)->QObject* { return new WindowState(); });
 
     qmlRegisterType<DirSpaceUsed>(CPP_CUSTOM_MODULES, 1, 0, "DirSpaceUsed");
     qmlRegisterType<DesktopView>(CPP_CUSTOM_MODULES, 1, 0, "DesktopView");
@@ -138,11 +143,14 @@ int main(int argc, char *argv[])
     qmlRegisterType<UrlModel>(CPP_CUSTOM_MODULES, 1, 0, "UrlModel");
 
     QQmlApplicationEngine engine;
+    QStringList efs;
+#if defined(Q_OS_ANDROID) || defined(Q_OS_IOS)
+    efs.append(QStringLiteral("mobile"));
+#endif
     const QVersionNumber qt_ver = QLibraryInfo::version(); // Qt run-time version
-    if (qt_ver.majorVersion() > 5) {
-        QStringList efs;
+    if (qt_ver.majorVersion() > 5)
         efs.append(QStringLiteral("qt") + QString::number(qt_ver.majorVersion()));
-        efs.append(QStringLiteral("mobile"));
+    if (!efs.isEmpty()) {
 #if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
         QQmlFileSelector::get(&engine)->setExtraSelectors(efs);
 #else

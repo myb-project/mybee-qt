@@ -246,6 +246,7 @@ Page {
 
     MouseArea {
         anchors.fill: parent
+        enabled: !SystemHelper.isMobile
         acceptedButtons: Qt.RightButton
         onClicked: appContextMenu.popup()
     }

@@ -1,24 +1,59 @@
-*** include/freerdp/api.h.orig	Mon Apr 22 12:26:59 2024
---- include/freerdp/api.h	Mon Jan 13 20:55:51 2025
+*** freerdp-2.11.7/CMakeLists.txt.orig	2024-04-22 12:26:59.000000000 +0300
+--- freerdp-2.11.7/CMakeLists.txt	2025-01-28 15:33:02.801644504 +0300
 ***************
-*** 34,39 ****
---- 34,42 ----
-  #endif
+*** 18,24 ****
+  # See the License for the specific language governing permissions and
+  # limitations under the License.
   
-  #if defined _WIN32 || defined __CYGWIN__
-+ #ifdef FREERDP_STATIC
-+ #define FREERDP_API
-+ #else
-  #ifdef FREERDP_EXPORTS
-  #ifdef __GNUC__
-  #define FREERDP_API __attribute__((dllexport))
+! cmake_minimum_required(VERSION 2.8)
+  
+  project(FreeRDP C CXX)
+  
+--- 18,24 ----
+  # See the License for the specific language governing permissions and
+  # limitations under the License.
+  
+! cmake_minimum_required(VERSION 3.12.0)
+  
+  project(FreeRDP C CXX)
+  
+
+*** freerdp-2.11.7/winpr/CMakeLists.txt.orig	2024-04-22 12:26:59.000000000 +0300
+--- freerdp-2.11.7/winpr/CMakeLists.txt	2025-01-28 16:13:46.686155904 +0300
 ***************
-*** 47,52 ****
---- 50,56 ----
-  #define FREERDP_API __declspec(dllimport)
-  #endif
-  #endif
-+ #endif
-  #else
-  #if __GNUC__ >= 4
-  #define FREERDP_API __attribute__((visibility("default")))
+*** 15,21 ****
+  # See the License for the specific language governing permissions and
+  # limitations under the License.
+  
+! cmake_minimum_required(VERSION 2.8)
+  
+  project(WinPR C)
+  
+--- 15,21 ----
+  # See the License for the specific language governing permissions and
+  # limitations under the License.
+  
+! cmake_minimum_required(VERSION 3.12.0)
+  
+  project(WinPR C)
+  
+
+*** freerdp-2.11.7/rdtk/CMakeLists.txt.orig	2024-04-22 12:26:59.000000000 +0300
+--- freerdp-2.11.7/rdtk/CMakeLists.txt	2025-01-28 16:30:16.118332625 +0300
+***************
+*** 15,21 ****
+  # See the License for the specific language governing permissions and
+  # limitations under the License.
+  
+! cmake_minimum_required(VERSION 2.8)
+  
+  project(RdTk C)
+  
+--- 15,21 ----
+  # See the License for the specific language governing permissions and
+  # limitations under the License.
+  
+! cmake_minimum_required(VERSION 3.12.0)
+  
+  project(RdTk C)
+  

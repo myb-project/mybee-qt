@@ -6,17 +6,17 @@ include(../common.pri)
 TEMPLATE = aux
 VNCCLIENT_ARC = LibVNCServer-0.9.15.tar.gz
 VNCCLIENT_DIR = $$section(VNCCLIENT_ARC, '.', 0, 2)
-VNCCLIENT_URL = "https://codeload.github.com/LibVNC/libvncserver/tar.gz/refs/tags/$${VNCCLIENT_DIR}"
+VNCCLIENT_URL = "https://github.com/LibVNC/libvncserver/archive/refs/tags/$${VNCCLIENT_DIR}"
 VNCCLIENT_SRC = $${PWD}/$${VNCCLIENT_ARC}
 
 !exists($${VNCCLIENT_SRC}) {
-    VNCCLIENT_CMD += ($$shell_quote($${CURL_COMMAND}) -o \
+    VNCCLIENT_CMD += ($$shell_quote($${CURL_COMMAND}) $${CURL_OPTIONS} -o \
         $$relative_path($${VNCCLIENT_SRC}, $${OUT_PWD}) $${VNCCLIENT_URL}) &&
 }
 
 !exists($${OUT_PWD}/libvncserver-$${VNCCLIENT_DIR}/CMakeLists.txt) {
-    VNCCLIENT_CMD += ($$shell_quote($${TAR_COMMAND}) -xf \
-        $$relative_path($${VNCCLIENT_SRC}, $${OUT_PWD})) &&
+    VNCCLIENT_CMD += ($$shell_quote($${TAR_COMMAND}) -xf $$relative_path($${VNCCLIENT_SRC}, $${OUT_PWD})) &&
+    VNCCLIENT_CMD += ($$shell_quote($${PATCH_COMMAND}) -bp0 < $$shell_path($${PWD}/vnc.patch)) &&
 }
 
 VNCCLIENT_CMD += ($${CMAKE_CONFIG_LIBS} $$cat(BuildOptions.txt) -S libvncserver-$${VNCCLIENT_DIR})

@@ -57,23 +57,11 @@ TextRender {
         Behavior on opacity { NumberAnimation {}}
     }
 
-    MouseArea {
-        anchors.fill: parent
-        acceptedButtons: Qt.RightButton
-        onClicked: appContextMenu.popup()
-        onWheel: function(wheel) {
-            if (wheel.angleDelta.y < 0) vbar.decrease()
-            else vbar.increase()
-        }
+    onTerminalReady: {
+        if (!Qt.inputMethod.visible) appDelay(appTinyDelay, Qt.inputMethod.show)
     }
-    ScrollBar {
-        id: vbar
-        anchors { top: parent.top; right: parent.right; bottom: parent.bottom }
-        orientation: Qt.Vertical
-        hoverEnabled: true
-        active: hovered || pressed || parent.contentHeight > parent.height
-        size: parent.height / parent.contentHeight
-        rotation: 180
+    onMouseClicked: {
+        if (!Qt.inputMethod.visible) Qt.inputMethod.show()
     }
-    contentY: Math.round(vbar.position * contentHeight)
+    onMouseLongPressed: appContextMenu.popup()
 }

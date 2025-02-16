@@ -40,7 +40,9 @@ DesktopView::DesktopView(QQuickItem *parent)
     setAcceptedMouseButtons(Qt::AllButtons);
     setAcceptHoverEvents(true);
     setAcceptTouchEvents(true);
+    setFlag(QQuickItem::ItemIsFocusScope, true);
     setFlag(QQuickItem::ItemAcceptsInputMethod, true);
+    setFocusPolicy(Qt::StrongFocus);
 
     auto timer = new QTimer(this);
     timer->setInterval(200);

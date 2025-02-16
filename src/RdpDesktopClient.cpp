@@ -84,17 +84,6 @@ RdpDesktopClient::RdpDesktopClient(QObject *parent)
     , cursor_index(0)
 {
     TRACE();
-
-    connect(this, &DesktopClient::maxSizeChanged, this, [this]() {
-        if (client_instance && !maxSize().isEmpty()) {
-            client_instance->settings->DesktopWidth = maxSize().width();
-            client_instance->settings->DesktopHeight = maxSize().height();
-        }
-    });
-    connect(this, &DesktopClient::qualityChanged, this, [this]() {
-        if (client_instance)
-            setInstanceQuality(client_instance, quality());
-    });
 }
 
 RdpDesktopClient::~RdpDesktopClient()
@@ -352,6 +341,29 @@ void RdpDesktopClient::emitErrorText(const QString &text)
     emit errorChanged(txt);
 }
 
+void RdpDesktopClient::setMaxSize(const QSize &size)
+{
+    TRACE_ARG(size);
+
+    if (size.isEmpty() || size == maxSize()) return;
+    if (client_instance && client_instance->settings) {
+        client_instance->settings->DesktopWidth = size.width();
+        client_instance->settings->DesktopHeight = size.height();
+    }
+    DesktopClient::setMaxSize(size);
+}
+
+void RdpDesktopClient::setQuality(Quality ql)
+{
+    TRACE_ARG(ql);
+
+    if (ql == quality()) return;
+    if (client_instance)
+        setInstanceQuality(client_instance, ql);
+
+    DesktopClient::setQuality(ql);
+}
+
 void RdpDesktopClient::sendInputAction(const QString &text)
 {
     TRACE_ARG(text);
@@ -383,10 +395,10 @@ void RdpDesktopClient::sendDesktopAction(const DesktopAction &act)
     if (!client_instance || !client_instance->input) return;
     switch (act.type()) {
     case DesktopAction::ActionKey: {
-#ifdef Q_OS_UNIX
-        quint32 scanCode = ::freerdp_keyboard_get_rdp_scancode_from_x11_keycode(act.scanCode());
-#else
+#if defined(Q_OS_WIN) || defined(Q_OS_MACOS) || defined(Q_OS_ANDROID)
         quint32 scanCode = act.scanCode();
+#else
+        quint32 scanCode = ::freerdp_keyboard_get_rdp_scancode_from_x11_keycode(act.scanCode());
 #endif
         ::freerdp_input_send_keyboard_event_ex(client_instance->input, act.down(), scanCode);
     }   break;

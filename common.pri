@@ -1,4 +1,4 @@
-1#
+#
 # The following APP_* variables can be freely modified to suit your taste before compiling the source code
 #
 APP_NAME        = mybee-qt
@@ -27,26 +27,23 @@ isEmpty(CMAKE_COMMAND): error("The cmake executable was not found in the system 
 
 CURL_COMMAND = $$system($${WHERE_COMMAND} curl)
 isEmpty(CURL_COMMAND): error("The curl executable was not found in the system path")
+CURL_OPTIONS = -fsSL
 
 TAR_COMMAND = $$system($${WHERE_COMMAND} tar)
 isEmpty(TAR_COMMAND): error("The tar executable was not found in the system path")
 
-#PATCH_COMMAND = $$system($${WHERE_COMMAND} patch)
-#isEmpty(PATCH_COMMAND): error("The patch executable was not found in the system path")
+PATCH_COMMAND = $$system($${WHERE_COMMAND} patch)
+isEmpty(PATCH_COMMAND): error("The patch executable was not found in the system path")
 
 windows {
     VCVARSALL_BAT = $$(VCVARSALL_BAT)
     isEmpty(VCVARSALL_BAT): VCVARSALL_BAT = \
         $$shell_quote(C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Auxiliary\Build\vcvarsall.bat) amd64
 
-    CMAKE_PREFIX_PATH = "$${PWD}/win64/libjpeg;$${PWD}/win64/zlib"
-
     OPENSSL_ROOT_DIR = $$(OPENSSL_ROOT_DIR)
     isEmpty(OPENSSL_ROOT_DIR): OPENSSL_ROOT_DIR = "D:\OpenSSL-Win64"
 
-    CMAKE_CONFIG_LIBS = $${VCVARSALL_BAT} && $$shell_quote($${CMAKE_COMMAND}) \
-        -DCMAKE_PREFIX_PATH=$$shell_quote($${CMAKE_PREFIX_PATH}) \
-        -DOPENSSL_ROOT_DIR=$$shell_quote($${OPENSSL_ROOT_DIR})
+    CMAKE_CONFIG_LIBS = $${VCVARSALL_BAT} && $$shell_quote($${CMAKE_COMMAND})
 
     QMAKE_CXXFLAGS += /MP
     QMAKE_CXXFLAGS_WARN_ON += /WX /W3
@@ -56,8 +53,7 @@ windows {
 
 } else { # linux & unix
 
-    CMAKE_CONFIG_LIBS = $$shell_quote($${CMAKE_COMMAND}) \
-        -DCMAKE_C_COMPILER=$$shell_quote($${QMAKE_CC})
+    CMAKE_CONFIG_LIBS = $$shell_quote($${CMAKE_COMMAND})
 
     QMAKE_CXXFLAGS += -fPIC
     QMAKE_CXXFLAGS_RELEASE += -fdata-sections -ffunction-sections
@@ -81,10 +77,6 @@ windows {
         QMAKE_CFLAGS += -D__USE_BSD
         QMAKE_CFLAGS_RELEASE += -Wno-unused-command-line-argument
 
-        OPENSSL_ROOT_DIR = $$(OPENSSL_ROOT_DIR)
-        isEmpty(OPENSSL_ROOT_DIR): OPENSSL_ROOT_DIR = \
-            $$(ANDROID_SDK_ROOT)/android_openssl/ssl_3/$${ANDROID_TARGET_ARCH}
-
         ANDROID_SDK_ROOT = $$(ANDROID_SDK_ROOT)
         isEmpty(ANDROID_SDK_ROOT): ANDROID_SDK_ROOT = $$(HOME)/Android/Sdk
 
@@ -93,6 +85,10 @@ windows {
 
         ANDROID_NDK_PLATFORM = $$(ANDROID_NDK_PLATFORM)
         isEmpty(ANDROID_NDK_PLATFORM): ANDROID_NDK_PLATFORM = 24 # getifaddrs() and IPv6 ifname
+
+        OPENSSL_ROOT_DIR = $$(OPENSSL_ROOT_DIR)
+        isEmpty(OPENSSL_ROOT_DIR): OPENSSL_ROOT_DIR = \
+            $$(ANDROID_SDK_ROOT)/android_openssl/ssl_3/$${ANDROID_TARGET_ARCH}
 
         CMAKE_CONFIG_LIBS += \
             -DCMAKE_FIND_ROOT_PATH=$${OPENSSL_ROOT_DIR} \
@@ -107,17 +103,21 @@ windows {
     }
 
     CMAKE_CONFIG_LIBS += \
+        -DCMAKE_C_COMPILER=$$shell_quote($${QMAKE_CC}) \
         -DCMAKE_C_FLAGS=$$shell_quote($${QMAKE_CFLAGS})
 }
 
+!isEmpty(OPENSSL_ROOT_DIR): \
+    CMAKE_CONFIG_LIBS += -DOPENSSL_ROOT_DIR=$$shell_quote($${OPENSSL_ROOT_DIR})
+
 CMAKE_CONFIG_LIBS += -B build \
     -DCMAKE_C_FLAGS_RELEASE=$$shell_quote($${QMAKE_CFLAGS_RELEASE}) \
+    -DCMAKE_PREFIX_PATH=$$shell_quote($${OUT_PWD}/..) \
     -DCMAKE_INSTALL_PREFIX=$$shell_quote($${OUT_PWD}/..) \
     -DCMAKE_BUILD_TYPE=$${CMAKE_BUILD_TYPE} \
-    -DCMAKE_SKIP_INSTALL_ALL_DEPENDENCY=ON
+    -DCMAKE_SKIP_INSTALL_ALL_DEPENDENCY=ON \
+    -DCMAKE_POSITION_INDEPENDENT_CODE=ON
 
 CMAKE_BUILD_LIBS = \
     $$shell_quote($${CMAKE_COMMAND}) --build build --config $${CMAKE_BUILD_TYPE} && \
     $$shell_quote($${CMAKE_COMMAND}) --install build --config $${CMAKE_BUILD_TYPE}
-
-#message($${CMAKE_CONFIG_LIBS})

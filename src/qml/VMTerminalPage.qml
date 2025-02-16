@@ -8,20 +8,20 @@ import QmlCustomModules 1.0
 
 Page {
     id: control
-    title: VMConfigSet.valueAt("name")
+    title: (swipeView.currentItem && swipeView.currentItem.title) ? swipeView.currentItem.title : VMConfigSet.valueAt("name")
 
     readonly property string myClassName: control.toString().match(/.+?(?=_)/)[0]
     readonly property string attachCmd: VMConfigSet.valueAt("attach_cmd")
     property var sshSession: null
     property font monoFont: control.font
-    readonly property list<Action> actionsList: [
+    property list<Action> actionsList: [
         Action {
             id: progressLogAction
             enabled: control.sshSession
             checkable: true
             checked: swipeView.currentIndex === swipeView.count - 1
             text: qsTr("Progress log")
-            onTriggered: swipeView.setCurrentIndex(checked ? swipeView.count - 1 : 0)
+            onToggled: swipeView.setCurrentIndex(checked ? swipeView.count - 1 : 0)
         },
         Action {
             id: newTermAction
@@ -32,15 +32,13 @@ Page {
             onTriggered: termListModel.addShellView()
         },
         Action {
-            id: copySelectionAction
             enabled: swipeView.currentIndex < swipeView.count - 1 && swipeView.currentItem.selected
             text: qsTr("Copy")
-            icon.source: "qrc:/icon-content-copy"
+            icon.source: "qrc:/icon-content-select"
             shortcut: "Ctrl+Ins" // StandardKey.Copy -- should be transparent!
             onTriggered: if (swipeView.currentItem.copy()) appToast(qsTr("Copy to clipboard"))
         },
         Action {
-            id: pasteSelectionAction
             enabled: swipeView.currentIndex < swipeView.count - 1 && SystemHelper.clipboard
             text: qsTr("Paste")
             icon.source: "qrc:/icon-content-paste"
@@ -74,7 +72,21 @@ Page {
         property alias selection:   control.termSelection
     }
 
+    Component {
+        id: dragModeComponent
+        Action {
+            enabled: swipeView.currentIndex < swipeView.count - 1
+            checkable: true
+            checked: !swipeView.interactive
+            text: qsTr("Selection mode")
+            onToggled: swipeView.interactive = !checked
+        }
+    }
+
     Component.onCompleted: {
+        if (SystemHelper.isMobile)
+            actionsList.push(dragModeComponent.createObject(control))
+
         monoFont.family = appFontFamily(appMonoFont ? appMonoFont : defaultMonoFont)
         monoFont.styleName = appFontStyle(appMonoFont ? appMonoFont : defaultMonoFont)
         monoFont.pointSize = appFontPointSize
@@ -233,21 +245,18 @@ Page {
             VMTerminalView {
                 session: control.sshSession
                 font: control.monoFont
-                dragMode: SystemHelper.isMobile ? TextRender.DragScroll : TextRender.DragSelect
+                dragMode: swipeView.interactive ? TextRender.DragScroll : TextRender.DragSelect
                 onTerminalReady: {
                     progressPane.show = false
                     swipeView.setCurrentIndex(index)
-                    forceActiveFocus()
                     if (control.attachCmd)
                         putString("exec " + control.attachCmd + '\r')
                 }
                 onHangupReceived: termListModel.remove(index)
-
-                // dragMode: DragGestures by default
-                onPanLeft: console.debug("panLeft")
-                onPanRight: console.debug("panRight")
-                onPanUp: console.debug("panUp")
-                onPanDown: console.debug("panDown")
+                onKeyPressed: {
+                    if (ctrlButtonKey.checked) ctrlButtonKey.toggle()
+                    if (altButtonKey.checked) altButtonKey.toggle()
+                }
             }
         }
         ProgressPane {
@@ -256,14 +265,57 @@ Page {
         }
     }
 
-    MouseArea {
-        anchors.fill: parent
-        acceptedButtons: Qt.RightButton
-        onClicked: appContextMenu.popup()
-        onWheel: function(wheel) {
-            if (swipeView.currentItem && swipeView.currentItem.scrollBar) {
-                if (wheel.angleDelta.y < 0) swipeView.currentItem.scrollBar.decrease()
-                else swipeView.currentItem.scrollBar.increase()
+    component ButtonKeyTemplate: RoundButton {
+        Layout.fillWidth: true
+        focusPolicy: Qt.NoFocus
+        radius: 5
+        padding: 0
+        spacing: 0
+        font.pointSize: appTipSize
+        font.bold: true
+        highlighted: checked
+    }
+
+    footer: ToolBar {
+        visible: SystemHelper.isMobile && Qt.inputMethod.visible
+        RowLayout {
+            anchors.fill: parent
+            spacing: 0
+            ButtonKeyTemplate {
+                text: "Esc"
+                onClicked: swipeView.currentItem.extKeyPressed(Qt.Key_Escape)
+            }
+            ButtonKeyTemplate {
+                text: "Tab"
+                onClicked: swipeView.currentItem.extKeyPressed(Qt.Key_Tab)
+            }
+            ButtonKeyTemplate {
+                id: ctrlButtonKey
+                checkable: true
+                text: "Ctrl"
+                onToggled: swipeView.currentItem.extKeyToggled(Qt.Key_Control, checked)
+            }
+            ButtonKeyTemplate {
+                id: altButtonKey
+                checkable: true
+                text: "Alt"
+                onToggled: swipeView.currentItem.extKeyToggled(Qt.Key_Alt, checked)
+            }
+            ButtonKeyTemplate {
+                icon.source: "qrc:/icon-key-left"
+                onClicked: swipeView.currentItem.extKeyPressed(Qt.Key_Left)
+            }
+            ButtonKeyTemplate {
+                icon.source: "qrc:/icon-key-up"
+                onClicked: swipeView.currentItem.extKeyPressed(Qt.Key_Up)
+            }
+            ButtonKeyTemplate {
+                icon.source: "qrc:/icon-key-down"
+                onClicked: swipeView.currentItem.extKeyPressed(Qt.Key_Down)
+            }
+            ButtonKeyTemplate {
+                icon.source: "qrc:/icon-key-right"
+                onClicked: swipeView.currentItem.extKeyPressed(Qt.Key_Right)
             }
         }
     }

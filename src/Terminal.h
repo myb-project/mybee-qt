@@ -120,7 +120,7 @@ public:
     void setCursorPos(QPoint pos);
     bool showCursor() const;
 
-    QSize termSize() const { return iTermSize; }
+    QSize termSize() const;
     void setTermSize(const QSize &size);
 
     TerminalBuffer& buffer();
@@ -132,7 +132,7 @@ public:
 
     bool inverseVideoMode() const { return m_inverseVideoMode; }
 
-    void keyPress(int key, int modifiers, const QString &text = "");
+    bool keyPress(int key, int modifiers, const QString &text);
     QStringList printableLinesFromCursor(int lines) const;
     void putString(const QString &str);
     void paste(const QString &text);

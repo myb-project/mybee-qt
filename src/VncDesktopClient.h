@@ -19,6 +19,8 @@ public:
     void stopSession() override;
 
 public slots:
+    void setMaxSize(const QSize &size) override;
+    void setQuality(Quality quality) override;
     void sendInputAction(const QString &text) override;
     void sendDesktopAction(const DesktopAction &act) override;
 

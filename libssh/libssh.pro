@@ -10,7 +10,7 @@ LIBSSH_URL = "https://www.libssh.org/files/0.11/$${LIBSSH_ARC}"
 LIBSSH_SRC = $${PWD}/$${LIBSSH_ARC}
 
 !exists($${LIBSSH_SRC}) {
-    LIBSSH_CMD += ($$shell_quote($${CURL_COMMAND}) -o \
+    LIBSSH_CMD += ($$shell_quote($${CURL_COMMAND}) $${CURL_OPTIONS} -o \
         $$relative_path($${LIBSSH_SRC}, $${OUT_PWD}) $${LIBSSH_URL}) &&
 }
 

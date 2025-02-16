@@ -10,19 +10,13 @@ FREERDP_URL = "https://pub.freerdp.com/releases/$${FREERDP_ARC}"
 FREERDP_SRC = $${PWD}/$${FREERDP_ARC}
 
 !exists($${FREERDP_SRC}) {
-    FREERDP_CMD += ($$shell_quote($${CURL_COMMAND}) -o \
+    FREERDP_CMD += ($$shell_quote($${CURL_COMMAND}) $${CURL_OPTIONS} -o \
         $$relative_path($${FREERDP_SRC}, $${OUT_PWD}) $${FREERDP_URL}) &&
 }
 
-!exists($${OUT_PWD}/$${FREERDP_DIR}/CMakeLists.txtXXX) {
-    FREERDP_CMD += ($$shell_quote($${TAR_COMMAND}) -xf \
-        $$relative_path($${FREERDP_SRC}, $${OUT_PWD})) &&
-    #windows {
-    #    FREERDP_CMD += (cd $${FREERDP_DIR} &&
-    #    FREERDP_CMD += $$shell_quote($${PATCH_COMMAND}) -bp0 < $$shell_path($${PWD}/freerdp2.patch) &&
-    #    FREERDP_CMD += $$shell_quote($${PATCH_COMMAND}) -bp0 < $$shell_path($${PWD}/winpr2.patch) &&
-    #    FREERDP_CMD += cd ..) &&
-    #}
+!exists($${OUT_PWD}/$${FREERDP_DIR}/CMakeLists.txt) {
+    FREERDP_CMD += ($$shell_quote($${TAR_COMMAND}) -xf $$relative_path($${FREERDP_SRC}, $${OUT_PWD})) &&
+    FREERDP_CMD += ($$shell_quote($${PATCH_COMMAND}) -bp0 < $$shell_path($${PWD}/freerdp2.patch)) &&
 }
 
 # Unfortunately, FreeRDP2 for Windows does not support static build.

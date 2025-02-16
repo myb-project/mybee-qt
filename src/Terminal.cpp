@@ -287,9 +287,14 @@ TerminalBuffer& Terminal::buffer()
     return iBuffer;
 }
 
+QSize Terminal::termSize() const
+{
+    return iTermSize;
+}
+
 void Terminal::setTermSize(const QSize &size)
 {
-    if (size.isValid() && iTermSize != size) {
+    if (!size.isEmpty() && iTermSize != size) {
         iMarginTop = 1;
         iMarginBottom = size.height();
         iTermSize = size;
@@ -339,206 +344,81 @@ void Terminal::putString(const QString &txt)
     emit newTerminalChars(str);
 }
 
-void Terminal::keyPress(int key, int modifiers, const QString& text)
+bool Terminal::keyPress(int key, int modifiers, const QString &text)
 {
     QString toWrite;
 
     if (key > 0xFFFF) {
         int modcode = (modifiers & Qt::ShiftModifier ? 1 : 0) | (modifiers & Qt::AltModifier ? 2 : 0) | (modifiers & MyControlModifier ? 4 : 0);
-
-        if (modcode == 0) {
-            QString fmt;
-            char cursorModif = '[';
-            if (iAppCursorKeys)
-                cursorModif = 'O';
-
-            if (key == Qt::Key_Up)
-                fmt = QString("%2%1A").arg(cursorModif);
-            if (key == Qt::Key_Down)
-                fmt = QString("%2%1B").arg(cursorModif);
-            if (key == Qt::Key_Right)
-                fmt = QString("%2%1C").arg(cursorModif);
-            if (key == Qt::Key_Left)
-                fmt = QString("%2%1D").arg(cursorModif);
-            if (key == Qt::Key_PageUp)
-                fmt = "%1[5~";
-            if (key == Qt::Key_PageDown)
-                fmt = "%1[6~";
-            if (key == Qt::Key_Home)
-                fmt = "%1OH";
-            if (key == Qt::Key_End)
-                fmt = "%1OF";
-            if (key == Qt::Key_Insert)
-                fmt = "%1[2~";
-            if (key == Qt::Key_Delete)
-                fmt = "%1[3~";
-
-            if (key == Qt::Key_F1)
-                fmt = "%1OP";
-            if (key == Qt::Key_F2)
-                fmt = "%1OQ";
-            if (key == Qt::Key_F3)
-                fmt = "%1OR";
-            if (key == Qt::Key_F4)
-                fmt = "%1OS";
-            if (key == Qt::Key_F5)
-                fmt = "%1[15~";
-            if (key == Qt::Key_F6)
-                fmt = "%1[17~";
-            if (key == Qt::Key_F7)
-                fmt = "%1[18~";
-            if (key == Qt::Key_F8)
-                fmt = "%1[19~";
-            if (key == Qt::Key_F9)
-                fmt = "%1[20~";
-            if (key == Qt::Key_F10)
-                fmt = "%1[21~";
-            if (key == Qt::Key_F11)
-                fmt = "%1[23~";
-            if (key == Qt::Key_F12)
-                fmt = "%1[24~";
-
-            if (!fmt.isEmpty())
-                toWrite += fmt.arg(CONTROL_CODE_ESC);
-
-        } else {
-            QString fmt;
-            char modChar = '1' + modcode;
-
-            if (key == Qt::Key_Up)
-                fmt = "%1[1;%2A";
-            if (key == Qt::Key_Down)
-                fmt = "%1[1;%2B";
-            if (key == Qt::Key_Right)
-                fmt = "%1[1;%2C";
-            if (key == Qt::Key_Left)
-                fmt = "%1[1;%2D";
-            if (key == Qt::Key_PageUp)
-                fmt = "%1[5;%2~";
-            if (key == Qt::Key_PageDown)
-                fmt = "%1[6;%2~";
-            if (key == Qt::Key_Home)
-                fmt = "%1[1;%2H";
-            if (key == Qt::Key_End)
-                fmt = "%1[1;%2F";
-            if (key == Qt::Key_Insert)
-                fmt = "%1[2;%2~";
-            if (key == Qt::Key_Delete)
-                fmt = "%1[3;%2~";
-
-            if (key == Qt::Key_F1)
-                fmt = "%1[1;%2P";
-            if (key == Qt::Key_F2)
-                fmt = "%1[1;%2Q";
-            if (key == Qt::Key_F3)
-                fmt = "%1[1;%2R";
-            if (key == Qt::Key_F4)
-                fmt = "%1[1;%2S";
-            if (key == Qt::Key_F5)
-                fmt = "%1[15;%2~";
-            if (key == Qt::Key_F6)
-                fmt = "%1[17;%2~";
-            if (key == Qt::Key_F7)
-                fmt = "%1[18;%2~";
-            if (key == Qt::Key_F8)
-                fmt = "%1[19;%2~";
-            if (key == Qt::Key_F9)
-                fmt = "%1[20;%2~";
-            if (key == Qt::Key_F10)
-                fmt = "%1[21;%2~";
-            if (key == Qt::Key_F11)
-                fmt = "%1[23;%2~";
-            if (key == Qt::Key_F12)
-                fmt = "%1[24;%2~";
-
-            if (!fmt.isEmpty())
-                toWrite += fmt.arg(CONTROL_CODE_ESC).arg(modChar);
-        }
-
-        if (key == Qt::Key_Enter || key == Qt::Key_Return) {
-            if ((modifiers & (Qt::ShiftModifier | MyControlModifier)) == (Qt::ShiftModifier | MyControlModifier))
-                toWrite += QChar(0x9E);
-            else if (modifiers & MyControlModifier)
-                toWrite += QChar(0x1E); // ^^
-            else if (modifiers & Qt::ShiftModifier)
-                toWrite += "\n";
-            else if (iNewLineMode)
-                toWrite += "\r\n";
-            else
-                toWrite += "\r";
-        }
-        if (key == Qt::Key_Backspace) {
-            if ((modifiers & (Qt::ShiftModifier | MyControlModifier)) == (Qt::ShiftModifier | MyControlModifier))
-                toWrite += QChar(0x9F);
-            else if (modifiers & MyControlModifier)
-                toWrite += QChar(0x1F); // ^_
-            else
-                toWrite += "\x7F";
-        }
-        if (key == Qt::Key_Tab || key == Qt::Key_Backtab) {
-            if (key == Qt::Key_Backtab)
-                modifiers |= Qt::ShiftModifier;
+        switch (key) {
+        case Qt::Key_Enter:
+        case Qt::Key_Return:
+            if ((modifiers & MyControlModifier) && (modifiers & Qt::ShiftModifier)) toWrite += QChar(0x9E);
+            else if (modifiers & MyControlModifier) toWrite += QChar(0x1E); // ^^
+            else if (modifiers & Qt::ShiftModifier) toWrite += '\n';
+            else if (iNewLineMode) toWrite += "\r\n";
+            else toWrite += '\r';
+            break;
+        case Qt::Key_Backspace:
+            if ((modifiers & MyControlModifier) && (modifiers & Qt::ShiftModifier)) toWrite += QChar(0x9F);
+            else if (modifiers & MyControlModifier) toWrite += QChar(0x1F); // ^_
+            else toWrite += "\x7F";
+            break;
+        case Qt::Key_Backtab:
+            modifiers |= Qt::ShiftModifier;
+            [[fallthrough]];
+        case Qt::Key_Tab:
             if (modifiers & MyControlModifier) {
-                char modChar = '5' + (modifiers & Qt::ShiftModifier ? 1 : 0);
-                toWrite += QString("%1[1;%2I").arg(CONTROL_CODE_ESC).arg(modChar);
+                toWrite += CONTROL_CODE_ESC;
+                toWrite += QString("[1;5%1I").arg((modifiers & Qt::ShiftModifier) ? 1 : 0);
             } else if (modifiers & Qt::ShiftModifier) {
-                toWrite += QString("%1[Z").arg(CONTROL_CODE_ESC);
-            } else {
-                toWrite += "\t";
-            }
-        }
-
-        if (key == Qt::Key_Escape) {
-            if (modifiers & Qt::ShiftModifier)
-                toWrite += QChar(0x9B);
-            else
-                toWrite += QString(1, CONTROL_CODE_ESC);
-        }
-
-        if (!toWrite.isEmpty()) {
-            resetBackBufferScrollPos();
-            if (!toWrite.startsWith(CONTROL_CODE_ESC)) {
-                // Only affect selection if not writing escape codes
-                clearSelection();
-            }
-
-            emit newTerminalChars(toWrite);
-        }
-
-        return;
-    }
-
-    QChar c(key);
-
-    if (c.isLetter()) {
-        c = ((modifiers & Qt::ShiftModifier) != 0) ? c.toUpper() : c.toLower();
-    }
-
-    if ((modifiers & Qt::AltModifier) != 0) {
-        toWrite.append(CONTROL_CODE_ESC);
-    }
-
-    if ((modifiers & MyControlModifier) != 0) {
-        char asciiVal = c.toUpper().toLatin1();
-
-        if (asciiVal >= 0x41 && asciiVal <= 0x5f) {
-            // Turn uppercase characters into their control code equivalent
-            toWrite.append(QChar(asciiVal - 0x40));
-        } else if (!c.isNull()) {
-            qWarning() << "Ctrl+" << c << " does not translate into a control code";
+                toWrite += CONTROL_CODE_ESC;
+                toWrite += "[Z";
+            } else toWrite += '\t';
+            break;
+        case Qt::Key_Escape: toWrite += (modifiers & Qt::ShiftModifier) ? QChar(0x9B) : CONTROL_CODE_ESC; break;
+        case Qt::Key_Up:    toWrite += CONTROL_CODE_ESC + (modcode ? QString("1;1%1A").arg(modcode) : QString("%1A").arg(iAppCursorKeys ? 'O' : '[')); break;
+        case Qt::Key_Down:  toWrite += CONTROL_CODE_ESC + (modcode ? QString("1;1%1B").arg(modcode) : QString("%1B").arg(iAppCursorKeys ? 'O' : '[')); break;
+        case Qt::Key_Right: toWrite += CONTROL_CODE_ESC + (modcode ? QString("1;1%1C").arg(modcode) : QString("%1C").arg(iAppCursorKeys ? 'O' : '[')); break;
+        case Qt::Key_Left:  toWrite += CONTROL_CODE_ESC + (modcode ? QString("1;1%1D").arg(modcode) : QString("%1D").arg(iAppCursorKeys ? 'O' : '[')); break;
+        case Qt::Key_PageUp:   toWrite += CONTROL_CODE_ESC + (modcode ? QString("5;1%1~").arg(modcode) : "[5~"); break;
+        case Qt::Key_PageDown: toWrite += CONTROL_CODE_ESC + (modcode ? QString("6;1%1~").arg(modcode) : "[6~"); break;
+        case Qt::Key_Home:     toWrite += CONTROL_CODE_ESC + (modcode ? QString("1;1%1H").arg(modcode) : "OH"); break;
+        case Qt::Key_End:      toWrite += CONTROL_CODE_ESC + (modcode ? QString("1;1%1F").arg(modcode) : "OF"); break;
+        case Qt::Key_Insert:   toWrite += CONTROL_CODE_ESC + (modcode ? QString("2;1%1~").arg(modcode) : "[2~"); break;
+        case Qt::Key_Delete:   toWrite += CONTROL_CODE_ESC + (modcode ? QString("3;1%1~").arg(modcode) : "[3~"); break;
+        case Qt::Key_F1:  toWrite += CONTROL_CODE_ESC + (modcode ? QString("1;1%1P").arg(modcode) : "OP"); break;
+        case Qt::Key_F2:  toWrite += CONTROL_CODE_ESC + (modcode ? QString("1;1%1Q").arg(modcode) : "OQ"); break;
+        case Qt::Key_F3:  toWrite += CONTROL_CODE_ESC + (modcode ? QString("1;1%1R").arg(modcode) : "OR"); break;
+        case Qt::Key_F4:  toWrite += CONTROL_CODE_ESC + (modcode ? QString("1;1%1S").arg(modcode) : "OS"); break;
+        case Qt::Key_F5:  toWrite += CONTROL_CODE_ESC + (modcode ? QString("15;1%1~").arg(modcode) : "[15~"); break;
+        case Qt::Key_F6:  toWrite += CONTROL_CODE_ESC + (modcode ? QString("17;1%1~").arg(modcode) : "[17~"); break;
+        case Qt::Key_F7:  toWrite += CONTROL_CODE_ESC + (modcode ? QString("18;1%1~").arg(modcode) : "[18~"); break;
+        case Qt::Key_F8:  toWrite += CONTROL_CODE_ESC + (modcode ? QString("19;1%1~").arg(modcode) : "[19~"); break;
+        case Qt::Key_F9:  toWrite += CONTROL_CODE_ESC + (modcode ? QString("20;1%1~").arg(modcode) : "[20~"); break;
+        case Qt::Key_F10: toWrite += CONTROL_CODE_ESC + (modcode ? QString("21;1%1~").arg(modcode) : "[21~"); break;
+        case Qt::Key_F11: toWrite += CONTROL_CODE_ESC + (modcode ? QString("23;1%1~").arg(modcode) : "[23~"); break;
+        case Qt::Key_F12: toWrite += CONTROL_CODE_ESC + (modcode ? QString("24;1%1~").arg(modcode) : "[24~"); break;
         }
     } else {
-        if (text.isEmpty()) {
-            toWrite.append(c);
-        } else {
-            toWrite.append(text);
-        }
+        QChar ch(key);
+        if (ch.isLetter()) ch = (modifiers & Qt::ShiftModifier) ? ch.toUpper() : ch.toLower();
+        if (modifiers & Qt::AltModifier) toWrite += CONTROL_CODE_ESC;
+        if (modifiers & MyControlModifier) {
+            char asciiVal = ch.toUpper().toLatin1(); // Turn uppercase characters into their control code equivalent
+            if (asciiVal >= 0x41 && asciiVal <= 0x5f) toWrite += QChar(asciiVal - 0x40);
+            else if (!ch.isNull()) qWarning() << "Ctrl+" << ch << "does not translate to control code";
+        } else if (text.isEmpty()) toWrite += ch;
+        else toWrite += text;
     }
+    if (toWrite.isEmpty()) return false;
 
     resetBackBufferScrollPos();
-    clearSelection();
+    if (!toWrite.startsWith(CONTROL_CODE_ESC)) // Only affect selection if not writing escape codes
+        clearSelection();
+
     emit newTerminalChars(toWrite);
-    return;
+    return true;
 }
 
 void Terminal::insertInBuffer(const QString& chars)

@@ -122,15 +122,6 @@ VncDesktopClient::VncDesktopClient(QObject *parent)
 
     ::rfbClientLog = reportVncLog;
     ::rfbClientErr = reportVncErr;
-
-    connect(this, &DesktopClient::maxSizeChanged, this, [this]() {
-        if (client_instance && remote_setsize && !maxSize().isEmpty())
-            ::SendExtDesktopSize(client_instance, maxSize().width(), maxSize().height());
-    });
-    connect(this, &DesktopClient::qualityChanged, this, [this]() {
-        if (client_instance)
-            setInstanceQuality(client_instance, quality());
-    });
 }
 
 VncDesktopClient::~VncDesktopClient()
@@ -211,6 +202,28 @@ void VncDesktopClient::stopSession()
     ::rfbClientCleanup(client_instance);
     client_instance = nullptr;
     emit aliveChanged(false);
+}
+
+void VncDesktopClient::setMaxSize(const QSize &size)
+{
+    TRACE_ARG(size);
+
+    if (size.isEmpty() || size == maxSize()) return;
+    if (client_instance && remote_setsize)
+        ::SendExtDesktopSize(client_instance, size.width(), size.height());
+
+    DesktopClient::setMaxSize(size);
+}
+
+void VncDesktopClient::setQuality(Quality ql)
+{
+    TRACE_ARG(ql);
+
+    if (ql == quality()) return;
+    if (client_instance)
+        setInstanceQuality(client_instance, ql);
+
+    DesktopClient::setQuality(ql);
 }
 
 void VncDesktopClient::sendInputAction(const QString &text)
