@@ -4,7 +4,7 @@
 include(../common.pri)
 
 TEMPLATE = aux
-LIBJPEG_VER = 3.1.0
+LIBJPEG_VER = 3.2.0
 LIBJPEG_ARC = libjpeg-turbo-$${LIBJPEG_VER}.tar.gz
 LIBJPEG_DIR = $$section(LIBJPEG_ARC, '.', 0, 2)
 LIBJPEG_URL = "https://github.com/libjpeg-turbo/libjpeg-turbo/archive/refs/tags/$${LIBJPEG_VER}.tar.gz"

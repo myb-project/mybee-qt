@@ -4,9 +4,9 @@
 include(../common.pri)
 
 TEMPLATE = aux
-LIBSSH_ARC = libssh-0.11.1.tar.xz
+LIBSSH_ARC = libssh-0.12.0.tar.xz
 LIBSSH_DIR = $$section(LIBSSH_ARC, '.', 0, 2)
-LIBSSH_URL = "https://www.libssh.org/files/0.11/$${LIBSSH_ARC}"
+LIBSSH_URL = "https://www.libssh.org/files/0.12/$${LIBSSH_ARC}"
 LIBSSH_SRC = $${PWD}/$${LIBSSH_ARC}
 
 !exists($${LIBSSH_SRC}) {

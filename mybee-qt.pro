@@ -3,11 +3,11 @@ TEMPLATE = subdirs
 freebsd {
     SUBDIRS = src
 } else {
-    SUBDIRS = zlib-ng libjpeg-turbo libssh freerdp2 vnc src
+    SUBDIRS = zlib-ng libjpeg-turbo libssh freerdp3 vnc src
     libssh.depends = zlib-ng
-    freerdp2.depends = zlib-ng libjpeg-turbo
+    freerdp3.depends = zlib-ng libjpeg-turbo
     vnc.depends = zlib-ng libjpeg-turbo
-    src.depends = libssh freerdp2 vnc
+    src.depends = libssh freerdp3 vnc
 }
 
 #CONFIG += ordered

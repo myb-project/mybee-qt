@@ -336,8 +336,8 @@ QStringList SystemHelper::groupMembers(const QString &name)
     char buf[4096];
     struct group gr, *grp = nullptr;
     if (::getgrnam_r(qPrintable(!name.isEmpty() ? name : userName()), &gr, buf, sizeof(buf), &grp) == 0 && grp) {
-        for (char *cp = *grp->gr_mem; cp && *cp; cp++) {
-            group_members += cp;
+        for (int i = 0; grp->gr_mem[i]; i++) {
+            group_members += grp->gr_mem[i];
         }
     }
 #else

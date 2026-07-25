@@ -136,41 +136,41 @@ void RdpDesktopClient::startSession()
         emitErrorText();
         return;
     }
-    auto settings = client_instance->settings;
+    auto settings = client_instance->context->settings;
 
     QString opt = serverUrl().host();
-    settings->ServerHostname = qstrdup(!opt.isEmpty() ? opt.toUtf8().constData() : "localhost");
-    settings->ServerPort = serverUrl().port(3389);
+    freerdp_settings_set_string(settings, FreeRDP_ServerHostname, !opt.isEmpty() ? opt.toUtf8().constData() : "localhost");
+    freerdp_settings_set_uint32(settings, FreeRDP_ServerPort, serverUrl().port(3389));
 
     opt = serverUrl().userName();
     if (opt.isEmpty()) opt = QCoreApplication::applicationName();
-    settings->Username = qstrdup(opt.toUtf8().constData());
+    freerdp_settings_set_string(settings, FreeRDP_Username, opt.toUtf8().constData());
 
     opt = serverUrl().password();
-    settings->Password = qstrdup(!opt.isEmpty() ? opt.toUtf8().constData() : "");
+    freerdp_settings_set_string(settings, FreeRDP_Password, !opt.isEmpty() ? opt.toUtf8().constData() : "");
 
-    settings->NlaSecurity = false;
-    settings->TlsSecurity = false;
-    //settings->RdpSecurity = true;
-    //settings->AutoAcceptCertificate = true;
+    freerdp_settings_set_bool(settings, FreeRDP_NlaSecurity, false);
+    freerdp_settings_set_bool(settings, FreeRDP_TlsSecurity, false);
+    //freerdp_settings_set_bool(settings, FreeRDP_RdpSecurity, true);
+    //freerdp_settings_set_bool(settings, FreeRDP_AutoAcceptCertificate, true);
 
     if (!maxSize().isEmpty()) {
-        settings->DesktopWidth = maxSize().width();
-        settings->DesktopHeight = maxSize().height();
+        freerdp_settings_set_uint32(settings, FreeRDP_DesktopWidth, maxSize().width());
+        freerdp_settings_set_uint32(settings, FreeRDP_DesktopHeight, maxSize().height());
     }
-    settings->EmbeddedWindow = true;
-    settings->SupportGraphicsPipeline = true;
-    settings->GfxAVC444 = true;
-    settings->GfxAVC444v2 = true;
-    settings->GfxH264 = true;
-    settings->RemoteFxCodec = true;
-    settings->ColorDepth = 32;
-    settings->FastPathOutput = true;
-    settings->FastPathInput = true;
-    settings->FrameMarkerCommandEnabled = true;
-    settings->SupportDynamicChannels = true;
-    settings->AudioPlayback = true;
-    settings->KeyboardLayout = KBD_UNITED_STATES_INTERNATIONAL;
+    freerdp_settings_set_bool(settings, FreeRDP_EmbeddedWindow, true);
+    freerdp_settings_set_bool(settings, FreeRDP_SupportGraphicsPipeline, true);
+    freerdp_settings_set_bool(settings, FreeRDP_GfxAVC444, true);
+    freerdp_settings_set_bool(settings, FreeRDP_GfxAVC444v2, true);
+    freerdp_settings_set_bool(settings, FreeRDP_GfxH264, true);
+    freerdp_settings_set_bool(settings, FreeRDP_RemoteFxCodec, true);
+    freerdp_settings_set_uint32(settings, FreeRDP_ColorDepth, 32);
+    freerdp_settings_set_bool(settings, FreeRDP_FastPathOutput, true);
+    freerdp_settings_set_bool(settings, FreeRDP_FastPathInput, true);
+    freerdp_settings_set_bool(settings, FreeRDP_FrameMarkerCommandEnabled, true);
+    freerdp_settings_set_bool(settings, FreeRDP_SupportDynamicChannels, true);
+    freerdp_settings_set_bool(settings, FreeRDP_AudioPlayback, true);
+    freerdp_settings_set_uint32(settings, FreeRDP_KeyboardLayout, KBD_UNITED_STATES_INTERNATIONAL);
 #if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
     auto code = QLocale::system().country();
 #else
@@ -178,7 +178,7 @@ void RdpDesktopClient::startSession()
 #endif
     for (const struct localeKeymapEntry *e = localeKeymapTable; e && e->country && e->rdp_kbd; ++e) {
         if (e->country == code) {
-            settings->KeyboardLayout = e->rdp_kbd;
+            freerdp_settings_set_uint32(settings, FreeRDP_KeyboardLayout, e->rdp_kbd);
             break;
         }
     }
@@ -206,38 +206,22 @@ void RdpDesktopClient::setSocketNotifiers(bool enable)
 
     if (!client_instance) return;
     if (enable) {
-        int rcount = 0, wcount = 0;
-        void *rfds[64], *wfds[64];
-        if (!::freerdp_get_fds(client_instance, rfds, &rcount, wfds, &wcount)) {
-            if (rdpLoggingEnabled) qWarning() << Q_FUNC_INFO << "freerdp_get_fds() failed";
+        HANDLE events[64];
+        DWORD count = ::freerdp_get_event_handles(client_instance->context, events, 64);
+        if (count == 0) {
+            if (rdpLoggingEnabled) qWarning() << Q_FUNC_INFO << "freerdp_get_event_handles() failed";
             emitErrorText();
             return;
         }
-        if (!::freerdp_channels_get_fds(client_instance->context->channels, client_instance, rfds, &rcount, wfds, &wcount)) {
-            if (rdpLoggingEnabled) qWarning() << Q_FUNC_INFO << "freerdp_channels_get_fds() failed";
-            emitErrorText();
-            return;
+        HANDLE channels_handle = ::freerdp_channels_get_event_handle(client_instance);
+        if (channels_handle) {
+            events[count++] = channels_handle;
         }
-        if (!rcount && !wcount) {
-            if (rdpLoggingEnabled) qWarning() << Q_FUNC_INFO << "No one socket descriptor?";
-            emitErrorText();
-            return;
-        }
+
 #ifdef Q_OS_WIN
-        for (int i = 0; i < rcount; i++) {
-            auto pfd = reinterpret_cast<HANDLE>(rfds[i]);
-            QString name = QString("RW%1").arg((qint64)pfd);
-            auto sn = findChild<QWinEventNotifier*>(name, Qt::FindDirectChildrenOnly);
-            if (!sn) {
-                sn = new QWinEventNotifier(pfd, this);
-                sn->setObjectName(name);
-                connect(sn, &QWinEventNotifier::activated, this, &RdpDesktopClient::onSocketActivated);
-            }
-            sn->setEnabled(true);
-        }
-        for (int i = 0; i < wcount; i++) {
-            auto pfd = reinterpret_cast<HANDLE>(wfds[i]);
-            QString name = QString("RW%1").arg((qint64)pfd);
+        for (DWORD i = 0; i < count; i++) {
+            auto pfd = events[i];
+            QString name = QString("H%1").arg((qint64)pfd);
             auto sn = findChild<QWinEventNotifier*>(name, Qt::FindDirectChildrenOnly);
             if (!sn) {
                 sn = new QWinEventNotifier(pfd, this);
@@ -249,23 +233,13 @@ void RdpDesktopClient::setSocketNotifiers(bool enable)
     } else {
         const auto list = findChildren<QWinEventNotifier*>(QString(), Qt::FindDirectChildrenOnly);
 #else
-        for (int i = 0; i < rcount; i++) {
-            auto pfd = reinterpret_cast<qintptr>(rfds[i]);
-            QString name = QString("R%1").arg(pfd);
+        for (DWORD i = 0; i < count; i++) {
+            auto pfd = (qintptr)(events[i]);
+            if (pfd < 0) continue;
+            QString name = QString("H%1").arg(pfd);
             auto sn = findChild<QSocketNotifier*>(name, Qt::FindDirectChildrenOnly);
             if (!sn) {
                 sn = new QSocketNotifier(pfd, QSocketNotifier::Read, this);
-                sn->setObjectName(name);
-                connect(sn, &QSocketNotifier::activated, this, &RdpDesktopClient::onSocketActivated);
-            }
-            sn->setEnabled(true);
-        }
-        for (int i = 0; i < wcount; i++) {
-            auto pfd = reinterpret_cast<qintptr>(wfds[i]);
-            QString name = QString("W%1").arg(pfd);
-            auto sn = findChild<QSocketNotifier*>(name, Qt::FindDirectChildrenOnly);
-            if (!sn) {
-                sn = new QSocketNotifier(pfd, QSocketNotifier::Write, this);
                 sn->setObjectName(name);
                 connect(sn, &QSocketNotifier::activated, this, &RdpDesktopClient::onSocketActivated);
             }
@@ -286,7 +260,7 @@ void RdpDesktopClient::onSocketActivated()
     TRACE_ARG(sender()->objectName());
 
     if (!client_instance) return;
-    if (::freerdp_shall_disconnect(client_instance)) {
+    if (::freerdp_shall_disconnect_context(client_instance->context)) {
         setSocketNotifiers(false);
         ::freerdp_disconnect(client_instance);
         QTimer::singleShot(0, this, &RdpDesktopClient::freeSession);
@@ -310,7 +284,7 @@ void RdpDesktopClient::stopSession()
 
     if (!client_instance) return;
     setSocketNotifiers(false);
-    ::freerdp_abort_connect(client_instance);
+    ::freerdp_abort_connect_context(client_instance->context);
     freeSession();
 }
 
@@ -329,13 +303,14 @@ void RdpDesktopClient::emitErrorText(const QString &text)
     TRACE_ARG(text);
 
     QString txt = text;
-    if (txt.isEmpty()) {
-        if (client_instance) {
-            auto error = ::freerdp_get_last_error(client_instance->context);
-            if (error) txt = ::freerdp_get_last_error_string(error);
+    if (txt.isEmpty() && client_instance && client_instance->context) {
+        const UINT32 error = ::freerdp_get_last_error(client_instance->context);
+        if (error != FREERDP_ERROR_SUCCESS) {
+            const char *msg = ::freerdp_get_last_error_string(error);
+            if (msg) txt = QString::fromUtf8(msg);
         }
-        if (txt.isEmpty()) txt = QStringLiteral("Unknown error");
     }
+    if (txt.isEmpty()) txt = QStringLiteral("Unknown error");
     stopSession();
     txt.prepend(serverUrl().toDisplayString() + ": ");
     emit errorChanged(txt);
@@ -346,9 +321,10 @@ void RdpDesktopClient::setMaxSize(const QSize &size)
     TRACE_ARG(size);
 
     if (size.isEmpty() || size == maxSize()) return;
-    if (client_instance && client_instance->settings) {
-        client_instance->settings->DesktopWidth = size.width();
-        client_instance->settings->DesktopHeight = size.height();
+    if (client_instance && client_instance->context && client_instance->context->settings) {
+        auto settings = client_instance->context->settings;
+        freerdp_settings_set_uint32(settings, FreeRDP_DesktopWidth, size.width());
+        freerdp_settings_set_uint32(settings, FreeRDP_DesktopHeight, size.height());
     }
     DesktopClient::setMaxSize(size);
 }
@@ -368,11 +344,12 @@ void RdpDesktopClient::sendInputAction(const QString &text)
 {
     TRACE_ARG(text);
 
-    if (!client_instance || !client_instance->input) return;
+    if (!client_instance || !client_instance->context || !client_instance->context->input) return;
+    auto input = client_instance->context->input;
     for (int i = 0; i < text.length(); i++) {
-        quint32 code = text.at(i).unicode();
-        ::freerdp_input_send_keyboard_event_ex(client_instance->input, true, code);
-        ::freerdp_input_send_keyboard_event_ex(client_instance->input, false, code);
+        const quint16 code = text.at(i).unicode();
+        ::freerdp_input_send_unicode_keyboard_event(input, 0, code);
+        ::freerdp_input_send_unicode_keyboard_event(input, KBD_FLAGS_RELEASE, code);
     }
 }
 
@@ -392,7 +369,7 @@ void RdpDesktopClient::sendDesktopAction(const DesktopAction &act)
 {
     //TRACE_ARG(act);
 
-    if (!client_instance || !client_instance->input) return;
+    if (!client_instance || !client_instance->context || !client_instance->context->input) return;
     switch (act.type()) {
     case DesktopAction::ActionKey: {
 #if defined(Q_OS_WIN) || defined(Q_OS_MACOS) || defined(Q_OS_ANDROID)
@@ -400,7 +377,7 @@ void RdpDesktopClient::sendDesktopAction(const DesktopAction &act)
 #else
         quint32 scanCode = ::freerdp_keyboard_get_rdp_scancode_from_x11_keycode(act.scanCode());
 #endif
-        ::freerdp_input_send_keyboard_event_ex(client_instance->input, act.down(), scanCode);
+        ::freerdp_input_send_keyboard_event_ex(client_instance->context->input, act.down(), false, scanCode);
     }   break;
     case DesktopAction::ActionMouse: {
         bool ext = false;
@@ -420,16 +397,16 @@ void RdpDesktopClient::sendDesktopAction(const DesktopAction &act)
         if (act.down())      flags |= (ext ? PTR_XFLAGS_DOWN : PTR_FLAGS_DOWN);
         else if (act.move()) flags |= PTR_FLAGS_MOVE;
         if (ext) {
-            ::freerdp_input_send_extended_mouse_event(client_instance->input, flags, act.posX(), act.posY());
+            ::freerdp_input_send_extended_mouse_event(client_instance->context->input, flags, act.posX(), act.posY());
         } else {
-            ::freerdp_input_send_mouse_event(client_instance->input, flags, act.posX(), act.posY());
+            ::freerdp_input_send_mouse_event(client_instance->context->input, flags, act.posX(), act.posY());
         }
     }   break;
     case DesktopAction::ActionWheel:
         if (act.deltaY()) {
-            ::freerdp_input_send_mouse_event(client_instance->input, rdpWheelFlags(act.deltaY()), act.posX(), act.posY());
+            ::freerdp_input_send_mouse_event(client_instance->context->input, rdpWheelFlags(act.deltaY()), act.posX(), act.posY());
         } else if (act.deltaX()) {
-            ::freerdp_input_send_mouse_event(client_instance->input, rdpWheelFlags(act.deltaX()), act.posX(), act.posY());
+            ::freerdp_input_send_mouse_event(client_instance->context->input, rdpWheelFlags(act.deltaX()), act.posX(), act.posY());
         }
         break;
     default:
@@ -439,7 +416,8 @@ void RdpDesktopClient::sendDesktopAction(const DesktopAction &act)
 
 bool RdpDesktopClient::setInstanceQuality(freerdp *instance, Quality quality)
 {
-    if (!instance || !instance->settings) return false;
+    if (!instance || !instance->context || !instance->context->settings) return false;
+    auto settings = instance->context->settings;
     quint32 quality_bits = 0;
     switch (quality) {
     case QualityBest: // DESKTOP_COMPOSITION disabled, all other enabled
@@ -453,10 +431,10 @@ bool RdpDesktopClient::setInstanceQuality(freerdp *instance, Quality quality)
         quality_bits = 0x01;
         break;
     }
-    return ::freerdp_settings_set_uint32(instance->settings, FreeRDP_PerformanceFlags, quality_bits);
+    return ::freerdp_settings_set_uint32(settings, FreeRDP_PerformanceFlags, quality_bits);
 }
 
-void RdpDesktopClient::channelConnected(void *ctx, ChannelConnectedEventArgs *ea)
+void RdpDesktopClient::channelConnected(void *ctx, const ChannelConnectedEventArgs *ea)
 {
     TRACE_ARG(ea->name);
 
@@ -472,7 +450,7 @@ void RdpDesktopClient::channelConnected(void *ctx, ChannelConnectedEventArgs *ea
     if (self) self->setSocketNotifiers(true);
 }
 
-void RdpDesktopClient::channelDisconnected(void *ctx, ChannelDisconnectedEventArgs *ea)
+void RdpDesktopClient::channelDisconnected(void *ctx, const ChannelDisconnectedEventArgs *ea)
 {
     TRACE_ARG(ea->name);
 
@@ -523,21 +501,21 @@ BOOL RdpDesktopClient::preConnect(freerdp *instance)
 {
     TRACE_ARG(instance);
 
-    auto settings = instance->settings;
+    auto settings = instance->context->settings;
 #if defined(Q_OS_ANDROID)
-    settings->OsMajorType = OSMAJORTYPE_ANDROID;
+    freerdp_settings_set_uint32(settings, FreeRDP_OsMajorType, OSMAJORTYPE_ANDROID);
 #elif defined(Q_OS_IOS)
-    settings->OsMajorType = OSMAJORTYPE_IOS;
+    freerdp_settings_set_uint32(settings, FreeRDP_OsMajorType, OSMAJORTYPE_IOS);
 #elif defined(Q_OS_MAC)
-    settings->OsMajorType = OSMAJORTYPE_OSX;
+    freerdp_settings_set_uint32(settings, FreeRDP_OsMajorType, OSMAJORTYPE_OSX);
 #elif defined(Q_OS_WIN)
-    settings->OsMajorType = OSMAJORTYPE_WINDOWS;
+    freerdp_settings_set_uint32(settings, FreeRDP_OsMajorType, OSMAJORTYPE_WINDOWS);
 #else
-    settings->OsMajorType = OSMAJORTYPE_UNIX;
+    freerdp_settings_set_uint32(settings, FreeRDP_OsMajorType, OSMAJORTYPE_UNIX);
 #endif
-    settings->OsMinorType = OSMINORTYPE_UNSPECIFIED;
-    settings->BitmapCacheEnabled = true;
-    settings->OffscreenSupportLevel = 1;
+    freerdp_settings_set_uint32(settings, FreeRDP_OsMinorType, OSMINORTYPE_UNSPECIFIED);
+    freerdp_settings_set_bool(settings, FreeRDP_BitmapCacheEnabled, true);
+    freerdp_settings_set_uint32(settings, FreeRDP_OffscreenSupportLevel, 1);
 
     ::PubSub_SubscribeChannelConnected(instance->context->pubSub, channelConnected);
     ::PubSub_SubscribeChannelDisconnected(instance->context->pubSub, channelDisconnected);
@@ -553,7 +531,9 @@ BOOL RdpDesktopClient::postConnect(freerdp *instance)
     if (!self) return false;
 
     auto settings = instance->context->settings;
-    QImage buffer = QImage(settings->DesktopWidth, settings->DesktopHeight, QImage::Format_RGBA8888);
+    QImage buffer = QImage(freerdp_settings_get_uint32(settings, FreeRDP_DesktopWidth),
+                           freerdp_settings_get_uint32(settings, FreeRDP_DesktopHeight),
+                           QImage::Format_RGBA8888);
     if (!::gdi_init_ex(instance, PIXEL_FORMAT_RGBA32, buffer.bytesPerLine(), buffer.bits(), nullptr)) {
         if (rdpLoggingEnabled) qWarning() << Q_FUNC_INFO << "gdi_init_ex() failed";
         self->emitErrorText();
@@ -565,10 +545,10 @@ BOOL RdpDesktopClient::postConnect(freerdp *instance)
         self->emitErrorText();
         return false;
     }
-    instance->update->BeginPaint = beginPaint;
-    instance->update->EndPaint = endPaint;
-    instance->update->DesktopResize = desktopResize;
-    instance->update->PlaySound = playSound;
+    instance->context->update->BeginPaint = beginPaint;
+    instance->context->update->EndPaint = endPaint;
+    instance->context->update->DesktopResize = desktopResize;
+    instance->context->update->PlaySound = playSound;
 
     if (instance->context->graphics) {
         rdpPointer pointer;
@@ -580,7 +560,8 @@ BOOL RdpDesktopClient::postConnect(freerdp *instance)
         ::graphics_register_pointer(instance->context->graphics, &pointer);
     }
 
-    ::freerdp_keyboard_init_ex(settings->KeyboardLayout, settings->KeyboardRemappingList);
+    ::freerdp_keyboard_init_ex(freerdp_settings_get_uint32(settings, FreeRDP_KeyboardLayout),
+                                freerdp_settings_get_string(settings, FreeRDP_KeyboardRemappingList));
 
     self->setBufferImage(buffer);
 
@@ -653,9 +634,11 @@ BOOL RdpDesktopClient::desktopResize(rdpContext *context)
 
     auto settings = context->settings;
     auto gdi = context->gdi;
+    UINT32 w = freerdp_settings_get_uint32(settings, FreeRDP_DesktopWidth);
+    UINT32 h = freerdp_settings_get_uint32(settings, FreeRDP_DesktopHeight);
 
-    QImage buffer = QImage(settings->DesktopWidth, settings->DesktopHeight, QImage::Format_RGBA8888);
-    if (!::gdi_resize_ex(gdi, settings->DesktopWidth, settings->DesktopHeight,
+    QImage buffer = QImage(w, h, QImage::Format_RGBA8888);
+    if (!::gdi_resize_ex(gdi, w, h,
                          buffer.bytesPerLine(), PIXEL_FORMAT_RGBA32, buffer.bits(), nullptr)) {
         if (rdpLoggingEnabled) qWarning() << Q_FUNC_INFO << "gdi_resize_ex() failed";
         self->emitErrorText();
@@ -664,9 +647,9 @@ BOOL RdpDesktopClient::desktopResize(rdpContext *context)
 
     self->setBufferImage(buffer);
 
-    if ((int)settings->DesktopWidth != self->remote_width || (int)settings->DesktopHeight != self->remote_height) {
-        self->remote_width = settings->DesktopWidth;
-        self->remote_height = settings->DesktopHeight;
+    if ((int)w != self->remote_width || (int)h != self->remote_height) {
+        self->remote_width = w;
+        self->remote_height = h;
         emit self->sizeChanged(self->remote_width, self->remote_height);
     }
     return true;
@@ -716,7 +699,7 @@ void RdpDesktopClient::pointerFree(rdpContext *context, rdpPointer *pointer)
     if (self && ptr) self->cursor_map.remove(ptr->index);
 }
 
-BOOL RdpDesktopClient::pointerSet(rdpContext *context, const rdpPointer *pointer)
+BOOL RdpDesktopClient::pointerSet(rdpContext *context, rdpPointer *pointer)
 {
     TRACE();
 

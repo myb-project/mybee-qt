@@ -17,9 +17,9 @@ CONFIG += file_copies lrelease embed_translations
 DEFINES += LIBSSH_STATIC SSH_NO_CPP_EXCEPTIONS
 
 freebsd {
-    INCLUDEPATH += /usr/local/include/freerdp2 /usr/local/include/freerdp2/freerdp/client  /usr/local/include/winpr2 ../include ../include/freerdp2 ../include/winpr2
+    INCLUDEPATH += /usr/local/include/freerdp3 /usr/local/include/freerdp3/freerdp/client  /usr/local/include/winpr3 ../include ../include/freerdp3 ../include/winpr3
 } else {
-    INCLUDEPATH += ../include ../include/freerdp2 ../include/winpr2
+    INCLUDEPATH += ../include ../include/freerdp3 ../include/winpr3
 }
 
 !isEmpty(OPENSSL_ROOT_DIR) {
@@ -34,7 +34,7 @@ windows {
     QMAKE_LIBDIR += ../lib
     LIBS += ssh.lib
     LIBS += vncclient.lib
-    LIBS += freerdp-client2.lib freerdp2.lib winpr2.lib
+    LIBS += freerdp-client3.lib freerdp3.lib winpr3.lib
     LIBS += turbojpeg-static.lib zlibstatic.lib
     LIBS += libssl.lib libcrypto.lib
     LIBS += Advapi32.lib User32.lib Ws2_32.lib Iphlpapi.lib Ntdsapi.lib Rpcrt4.lib Dbghelp.lib
@@ -62,19 +62,19 @@ windows {
     ANDROID_EXTRA_LIBS += $${OPENSSL_ROOT_DIR}/libssl_3.so $${OPENSSL_ROOT_DIR}/libcrypto_3.so
 
     LIBS += ../lib/libssh.a ../lib/libvncclient.a
-    LIBS += ../lib/libfreerdp-client2.a ../lib*.a ../lib/libfreerdp2.a ../lib/libwinpr2.a
+    LIBS += ../lib/libfreerdp-client3.a ../lib/libfreerdp3.a ../lib/libwinpr3.a
     LIBS += ../lib/libturbojpeg.a ../lib/libz.a
     LIBS += -lssl -lcrypto -ldl -lOpenSLES
 
 } else { # any other unix & linux
 
     freebsd {
-        LIBS += -lssl -lcrypto -ldl -lutil -lturbojpeg -lz-ng -lssh -lfreerdp-client2 -lfreerdp2 -lwinpr2 -lvncclient -lz
+        LIBS += -lssl -lcrypto -ldl -lutil -lturbojpeg -lz-ng -lssh -lfreerdp-client3 -lfreerdp3 -lwinpr3 -lvncclient -lz
     } else {
         LIBS += ../lib/libssh.a ../lib/libvncclient.a
-        LIBS += ../lib/libfreerdp-client2.a ../lib/freerdp2/lib*.a ../lib/libfreerdp2.a ../lib/libwinpr2.a
+        LIBS += ../lib/libfreerdp-client3.a ../lib/libfreerdp3.a ../lib/libwinpr3.a
         LIBS += ../lib/libturbojpeg.a ../lib/libz.a
-        LIBS += -lssl -lcrypto -ldl -lutil
+        LIBS += -lssl -lcrypto -ldl -lutil -lX11 -licuuc -licui18n -licudata -lkrb5 -lk5crypto -lcom_err -ljson-c
     }
 }
 
